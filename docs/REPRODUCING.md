@@ -1,0 +1,85 @@
+# Training a senior
+
+Install, smoke test, train. Commands run from the repository root and assume the environment
+from `docs/INSTALL.md` is on `PATH`.
+
+## 1. Build the two forks
+
+Tandem rollout lives in patched builds of vLLM and verl. `third_party/` holds the pinned upstream
+commits and the patches; the script clones and applies them.
+
+```bash
+bash third_party/apply_patches.sh
+```
+
+Then build and install both, following `docs/INSTALL.md`. Verify:
+
+```bash
+python env/smoke.py
+```
+
+## 2. Site configuration
+
+```bash
+cp train/env.sh.example train/env.sh
+# then edit train/env.sh
+```
+
+This is the only file holding paths for your machine: the environment's `bin` directory, an
+optional `HF_HOME`, the base model, the checkpoint root, the data root, and Weights and Biases
+settings. Without a wandb key the launchers use `WANDB_MODE=offline`. It is in `.gitignore`.
+
+## 3. Data
+
+```bash
+python data/build_deepscaler.py
+```
+
+Writes `data/deepscaler/train.parquet` and `data/deepscaler/heldout.parquet`. The evaluation
+parquets ship in `data/eval/`.
+
+## 4. Smoke test
+
+Three steps, and it checks the one thing that fails without an error.
+
+```bash
+mkdir -p logs
+TOTAL_STEPS=3 SAVE_FREQ=2 TEST_FREQ=3 MAX_RESPONSE=1024 \
+  EXP_NAME=tandem_smoke bash train/tandem_grpo.sh 2>&1 | tee logs/smoke.out
+grep -o "actor/tandem_senior_token_frac:[^ ]*" logs/smoke.out | tail -1
+```
+
+The fraction must be logged and must land near `prob_primary`, 0.5 by default. If it is missing,
+the authorship mask is not reaching the loss and the run is plain GRPO; see "Verifying the mask is
+live" in `docs/ARCHITECTURE.md`.
+
+## 5. Train
+
+```bash
+bash train/tandem_grpo.sh                # tandem rollout, senior only gradient
+bash train/vanilla_grpo.sh               # matched control
+bash train/kl_reg.sh                     # ablation, KL_COEF required
+bash train/grpo_g16.sh                   # ablation, control at 16 rollouts
+```
+
+Each is one job on two GPUs. `tandem_grpo.sh` trains on the first card and holds the frozen junior
+on the second, so under a scheduler request two GPUs while leaving verl at
+`trainer.n_gpus_per_node=1`: the second card belongs to the job rather than to Ray. The other three
+arms train on both cards.
+
+A checkpoint is saved every 20 steps under `${CKPT_ROOT}/${EXP_NAME}`, and the Hugging Face weights
+of every save are kept under `hf/global_step_N`.
+
+## 6. Pick a checkpoint
+
+Training validates every `TEST_FREQ` steps on `data/deepscaler/heldout.parquet`, a slice
+`data/build_deepscaler.py` draws and removes from the training set. Each problem gets four samples
+under the decoding in `eval/config.py`, and the trainer logs `val-core/deepscaler/acc/best@4/mean`.
+Tandem runs use senior--junior co-generation for validation; GRPO and KL-Reg runs use solo
+generation. Take the step with the highest validation pass@4 under that run's rollout protocol.
+
+```bash
+SENIOR=${CKPT_ROOT}/${EXP_NAME}/hf/global_step_N
+```
+
+Evaluation is in `eval/`; see `eval/README.md`.
