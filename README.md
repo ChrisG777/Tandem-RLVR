@@ -1,6 +1,5 @@
 # Tandem Reinforcement Learning with Verifiable Rewards
 
-[![arXiv](https://img.shields.io/badge/arXiv-2606.28166-b31b1b.svg)](https://arxiv.org/pdf/2606.28166) [![🤗 TT-Word-Qwen3-4B](https://img.shields.io/badge/🤗-TT--Word--Qwen3--4B--DeepScaleR-yellow)](https://huggingface.co/difanjiao/TT-Word-Qwen3-4B-Instruct-2507-DeepScaleR)
 
 RLVR raises a model's reasoning ability without any pressure to keep that reasoning legible to the
 weaker models and people it has to work with. TRLVR changes one thing in the rollout: every rollout
@@ -63,16 +62,3 @@ MODEL=$SENIOR TAG=step_120 RESULTS_ROOT=results/tandem bash eval/run_all.sh
 ```
 
 Sampling is defined once, in `eval/config.py`. See `eval/README.md`.
-
-## Citation
-
-If you find this work useful, please cite:
-
-```bibtex
-@article{jiao2026tandem,
-  title={Tandem Reinforcement Learning with Verifiable Rewards},
-  author={Jiao, Difan and Singhal, Raghav and West, Robert and Anderson, Ashton},
-  journal={arXiv preprint arXiv:2606.28166},
-  year={2026}
-}
-```
