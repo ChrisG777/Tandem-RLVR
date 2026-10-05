@@ -17,6 +17,15 @@ All GPU jobs require setup completion. Full jobs additionally require monitor
 startup, with no dependency on smoke success. Training has not yet been verified
 on GPU. See `logs/train-setup-2559076.out` and `logs/{grpo,tandem}-{smoke,full,watch}-JOB.out`.
 
+The complete downstream pipeline is also queued: checkpoint selection 2559145
+waits for the two full and two smoke training jobs; evaluation smoke 2559146 and
+full 2559147 wait for our selected checkpoint manifest. Evaluation guard 2559148
+starts after selection and cancels 2559147 if evaluation smoke fails. Full
+evaluation requires guard startup, not evaluation smoke success. Its 24-hour
+allocation writes `eval-full/figure2.{png,svg,json}` under the campaign root.
+Invalid training dependencies cancel downstream jobs automatically. No measured
+results exist yet.
+
 ## Historical released-checkpoint attempt (cancelled)
 
 Status: environment verified; corrected smoke and full GPU jobs are queued

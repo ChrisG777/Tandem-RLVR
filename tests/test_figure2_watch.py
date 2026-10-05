@@ -8,10 +8,27 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "slurm"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "train"))
 import watch_figure2
 
 
 class SmokeGuard(unittest.TestCase):
+    def test_training_artifact_failure_cancels_full(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            argv = ["watch", "--smoke-job", "10", "--full-job", "20",
+                    "--results", str(root), "--status", str(root / "status.json"),
+                    "--training-arm", "tandem"]
+            result = subprocess.CompletedProcess([], 0, "10|COMPLETED|0:0\n", "")
+            with patch.object(sys, "argv", argv), \
+                    patch.object(watch_figure2.subprocess, "run", return_value=result) as run, \
+                    patch.object(watch_figure2.signal, "signal"), \
+                    patch("figure2_checkpoint.verify_training", side_effect=ValueError("Missing mask")):
+                with self.assertRaisesRegex(ValueError, "Missing mask"):
+                    watch_figure2.main()
+                run.assert_any_call(["scancel", "20"], timeout=30)
+            self.assertFalse(json.loads((root / "status.json").read_text())["passed"])
+
     def run_guard(self, state, valid):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
