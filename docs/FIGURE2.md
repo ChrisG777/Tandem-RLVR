@@ -48,6 +48,9 @@ It requests two GPUs, 16 CPUs, 128 GB host RAM, and six hours. For Engaging use
 `--partition=mit_normal_gpu --account=mit_general`; for CSAIL use a compatible
 `vision-shared-*` partition list with `--account=vision-torralba
 --qos=shared-if-available`. The script includes `--requeue`.
+CSAIL batch startup was verified with `--export=NIL`; pass site variables as
+`KEY=VALUE` arguments after the script name to avoid inheriting a stale login
+environment. Use an absolute `--output` path and `--chdir` to the checkout.
 
 For a smoke test use `LIMIT=2 SOLO_N=2 HANDOFF_N=2
 RESULTS_ROOT=results/figure2-smoke` and a short walltime. Default execution uses
