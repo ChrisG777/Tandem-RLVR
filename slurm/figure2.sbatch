@@ -24,7 +24,7 @@ export TORCHINDUCTOR_CACHE_DIR="$XDG_CACHE_HOME/torchinductor"
 mkdir -p "$XDG_CACHE_HOME"
 unset VLLM_TANDEM_CONFIG VLLM_TANDEM_ALL_GPUS
 TANDEM_ENV=${TANDEM_ENV:-$REPO/.venv}
-run_python() { uv run --python "$TANDEM_ENV/bin/python" --no-project --offline "$@"; }
+run_python() { uv run --python "$TANDEM_ENV/bin/python" --no-project --offline python "$@"; }
 ROOT=${RESULTS_ROOT:-results/figure2}
 mkdir -p "$ROOT"
 git rev-parse HEAD > "$ROOT/code-commit.txt"

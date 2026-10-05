@@ -13,7 +13,7 @@ TANDEM_ENV=${TANDEM_ENV:-$REPO/.venv}
 uv pip install --python "$TANDEM_ENV/bin/python" --no-cache antlr4-python3-runtime==4.9.3
 uv pip install --python "$TANDEM_ENV/bin/python" -r env/figure2-requirements.txt
 uv pip freeze --python "$TANDEM_ENV/bin/python" > logs/figure2-environment.txt
-uv run --python "$TANDEM_ENV/bin/python" --no-project --offline -c \
+uv run --python "$TANDEM_ENV/bin/python" --no-project --offline python -c \
     'import torch, vllm; from vllm import LLM; from transformers import AutoTokenizer; print("torch", torch.__version__, "vllm", vllm.__version__)'
 uv run --python "$TANDEM_ENV/bin/python" --no-project --offline eval/download_figure2.py \
     --out results/figure2/models.json
