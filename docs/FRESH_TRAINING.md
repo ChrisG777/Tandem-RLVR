@@ -29,12 +29,50 @@ retain batch 16, mini-batch 8, group 8, LR 1e-6, clipping 0.2, response 3,000,
 training temperature 0.6, top-p 1, top-k -1, no entropy/KL penalty. Tandem uses
 word handoffs, senior probability 0.5, gap cap 32 and zero junior-token loss.
 
-Each job reserves two H100/H200 GPUs, eight CPU cores and 192 GB host RAM. The
-CPU allocation is supplied explicitly to Ray. GRPO trains on both GPUs;
-Tandem trains on one with its frozen junior on the other. Full jobs have a 24-hour
+GRPO reserves one GPU; Tandem reserves two, one for training and one for its
+frozen junior. Both request six CPU cores and 128 GiB host RAM. Training accepts
+A100 80 GB, H100 and H200 nodes with explicit memory-class feature constraints.
+The CPU allocation is supplied explicitly to Ray. Full jobs have a 24-hour
 limit; the paper reports 7.8 h to GRPO step 200 and 9.4 h to Tandem step 120 on
-two A100 80GBs. Actual runtime here remains unmeasured. At most three scheduler
+two A100 80GBs. Actual runtime here remains unmeasured; our single-GPU GRPO
+layout differs from the paper's two-GPU layout while retaining its global batch,
+mini-batch and optimizer settings. At most three scheduler
 restarts are allowed, resuming only that run's own optimizer checkpoint.
+
+## Resource budget (estimates, not measured minima)
+
+The base safetensors index reports 8,045,591,552 bytes of BF16 weights, about
+7.49 GiB. Its trainable FP32 parameters occupy about 15 GiB; two Adam moment
+buffers add 30 GiB, and gradients another 15 GiB. GPU activation, mixed-precision
+and kernel buffers add to those states during training. The paper's one-GPU
+Tandem senior fits an A100 80 GB; 40/48 GB cards lack comfortable room for the
+unsharded policy state with this configuration. Both training arms therefore
+accept all observed 80 GB-or-larger A100/H100/H200 types, rather than H100/H200
+only. Tandem's second GPU is a backend placement requirement, not a claim that
+every implementation mathematically needs two GPUs.
+
+The 128 GiB host budget allows roughly 45 GiB for offloaded parameters/Adam,
+45 GiB for temporary checkpoint/loading copies, a capped 4 GiB Ray object store,
+and 34 GiB for Python workers, data and transient headroom. Not all buffers are
+live simultaneously; this is a phase-based estimate until training peak RSS is
+available. Earlier startup failures provide no representative memory measurement.
+
+Each arm has one trainable-GPU placement group reserving three Ray CPUs. One
+TransferQueue storage actor and its controller reserve one CPU each; a sixth
+allows other actors to start and work to progress. The previous reduction to
+eight CPUs overlooked TransferQueue's default **eight** storage actors and would
+not have fit the total reservation. The campaign now sets one storage unit, two
+DataLoader workers, four asynchronous rollout workers, and one OpenMP thread per
+process. This is sufficient for the small single-node batches without changing
+the learning objective, global batch 16, mini-batch 8 or rollout group size 8.
+
+Evaluation uses its existing single-GPU engine-colocation mode, automatically
+selected when only one GPU is visible. Each of the two 7.49 GiB models gets 42%
+of VRAM, leaving room for KV cache on 40/48 GB-or-larger GPUs. The host estimate
+is 48 GiB for two model-loading footprints, worker processes, generated token
+objects and serialization buffers; four CPUs serve the engines and grading.
+The previous 128 GiB inference request was unnecessarily conservative. No extra
+GPU jobs were submitted merely to profile these resource estimates.
 
 ## Setup and interfaces
 

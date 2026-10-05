@@ -41,8 +41,9 @@ bash train/kl_reg.sh                           # ablation, KL_COEF required
 bash train/grpo_g16.sh                         # ablation, control at 16 rollouts
 ```
 
-Each is one job on two GPUs. The tandem arm trains on the first card and holds the frozen junior
-on the second; the other three arms train on both. A checkpoint is saved every 20 steps, and the
+The standard launchers default to two GPUs. The reproduction's batch environment
+uses one GPU for GRPO and two for Tandem (trainable senior plus frozen junior).
+A checkpoint is saved every 20 steps, and the
 Hugging Face weights of every save are kept under `${CKPT_ROOT}/${EXP_NAME}/hf/global_step_N`.
 Training validates on `data/deepscaler/heldout.parquet` and logs
 `val-core/deepscaler/acc/best@4/mean`; take the step with the highest value. Details in

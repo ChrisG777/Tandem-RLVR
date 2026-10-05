@@ -44,13 +44,20 @@ use the same explicitly selected uv-managed interpreter on the shared filesystem
 with the formerly failing runtime-environment shape. The new campaign preserves
 the failed attempt's artifacts and reuses only its official base and data split.
 
-Training CPU requests are now eight cores, explicitly passed to Ray. The GRPO
-placement groups reserve six cores (three per GPU), leaving two for other work;
-Tandem reserves three in its one training-GPU group. This reduces the earlier
-16-core reservation without changing batch sizes or the learning algorithm.
-Host RAM remains 192 GB for offload, model copies and checkpoint buffers; peak
-training memory has not yet been measured. Evaluation requests four CPU cores
-for its two engines and grading.
+All pending GPU requests were resized **in place**, preserving IDs and guards:
+
+| Work | GPUs | CPUs | Host RAM |
+|---|---:|---:|---:|
+| GRPO smoke/full | 1 | 6 | 128 GiB |
+| Tandem smoke/full | 2 | 6 | 128 GiB |
+| Evaluation smoke/full | 1 | 4 | 48 GiB |
+
+Training now also accepts A100 80 GB nodes, alongside H100/H200. The single-GPU
+GRPO policy retains the global batch and learning settings. TransferQueue is
+reduced to one storage actor so its reservations fit, and Ray's object store is
+capped at 4 GiB. Both NumCPUs/CPUsPerTask **and MinCPUsNode** were verified as six
+in Slurm. Training holds used during the update have been released. These are
+calculated budgets; see [FRESH_TRAINING.md](FRESH_TRAINING.md) for the accounting.
 
 ## Historical released-checkpoint attempt (cancelled)
 

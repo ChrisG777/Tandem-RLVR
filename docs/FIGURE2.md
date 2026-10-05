@@ -42,7 +42,7 @@ the separate-engine reasoning-step handoff evaluator.
 |---|---|
 | [`download_figure2.py`](../eval/download_figure2.py) | base-only manifest → cached base and `--out` snapshot-path JSON |
 | [`select_figure2.py`](../eval/select_figure2.py) | completed training campaign → base and selected local checkpoint paths |
-| [`figure2.sbatch`](../slurm/figure2.sbatch) | cached models, two GPUs → three solo and two handoff JSONs, figure |
+| [`figure2.sbatch`](../slurm/figure2.sbatch) | cached models, one GPU → three solo and two handoff JSONs, figure |
 | [`figure2.py`](../eval/figure2.py) | `--results` directory → `--out` stem with `.png`, `.svg`, `.json` |
 | [`summarize`](../eval/figure2.py) | full evaluation JSON → per-benchmark and macro pass@k means/SEs in percent |
 | [`watch_figure2.py`](../slurm/watch_figure2.py) | smoke/full job IDs and smoke outputs → verified status JSON; cancel full job on failure |
@@ -57,7 +57,9 @@ model snapshots to `HF_HOME`.
 
 Submit `slurm/figure2.sbatch` with `MODELS_JSON` pointing at the locally selected
 manifest, and the site's account, partition and QoS options.
-It requests two GPUs, 16 CPUs, 128 GB host RAM, and six hours. For Engaging use
+It requests one GPU, four CPUs, 48 GiB host RAM, and six hours by default
+(the queued full run requests 24 hours). Handoff automatically uses the existing
+single-GPU mode when only one GPU is visible, with 42% VRAM per engine. For Engaging use
 `--partition=mit_normal_gpu --account=mit_general`; for CSAIL use a compatible
 `vision-shared-*` partition list with `--account=vision-torralba
 --qos=shared-if-available`. The script includes `--requeue`.

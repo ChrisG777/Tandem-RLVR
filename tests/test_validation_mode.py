@@ -78,10 +78,11 @@ class LauncherIsolation(unittest.TestCase):
                 "CKPT_ROOT=/test-checkpoints\nPROJECT_NAME=test\nTANDEM_ENV_BIN=/test-env/bin\n")
             recorder = binary / "python3"
             recorder.write_text(
-                f"#!{sys.executable}\nimport json, os\n"
+                f"#!{sys.executable}\nimport json, os, sys\n"
                 "with open(os.environ['VALIDATION_TEST_CAPTURE'], 'w') as f:\n"
-                "    json.dump({k: os.environ.get(k) for k in "
-                "['VLLM_TANDEM_CONFIG', 'VLLM_TANDEM_ALL_GPUS']}, f)\n")
+                "    data = {k: os.environ.get(k) for k in "
+                "['VLLM_TANDEM_CONFIG', 'VLLM_TANDEM_ALL_GPUS', 'RAY_DEFAULT_OBJECT_STORE_MAX_MEMORY_BYTES']}\n"
+                "    data['argv'] = sys.argv[1:]\n    json.dump(data, f)\n")
             recorder.chmod(0o755)
             shutil.copy2(recorder, binary / "uv")
             capture = root / "environment.json"
@@ -103,6 +104,21 @@ class LauncherIsolation(unittest.TestCase):
                     else:
                         self.assertIsNone(actual["VLLM_TANDEM_CONFIG"])
                         self.assertIsNone(actual["VLLM_TANDEM_ALL_GPUS"])
+                    if name in ("tandem_grpo.sh", "vanilla_grpo.sh"):
+                        batch_env = {**env, "TANDEM_ENV_FILE": str(REPO / "slurm/training-env.sh"),
+                                     "TANDEM_ENV_BIN": "/test-env/bin", "BASE_MODEL": "test-model",
+                                     "DATA_ROOT": "/test-data", "CKPT_ROOT": "/test-checkpoints",
+                                     "PROJECT_NAME": "test"}
+                        result = subprocess.run(["bash", str(train / name)], env=batch_env,
+                                                text=True, capture_output=True)
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        actual = json.loads(capture.read_text())
+                        for arg in ("trainer.n_gpus_per_node=1", "data.dataloader_num_workers=2",
+                                    "actor_rollout_ref.rollout.agent.num_workers=4",
+                                    "transfer_queue.backend.SimpleStorage.num_data_storage_units=1",
+                                    "data.train_batch_size=16", "actor_rollout_ref.rollout.n=8"):
+                            self.assertIn(arg, actual["argv"])
+                        self.assertEqual(actual["RAY_DEFAULT_OBJECT_STORE_MAX_MEMORY_BYTES"], "4294967296")
 
 
 if __name__ == "__main__":
