@@ -6,15 +6,16 @@ attempt trains both arms from the official Qwen base; see
 
 Fresh training campaign: `/data/vision/torralba/u/chrisge/tandem-rlvr/fresh-20261005`.
 Separate training uv environment: `/data/vision/torralba/u/chrisge/tandem-rlvr/train-venv`.
-Setup job 2559076 is running. Queued jobs:
+Setup job 2559076 passed: patched imports, all 39 tests, pinned base download,
+and the expected 39,309 training / 1,000 held-out examples. GPU jobs:
 
 | Arm | Three-step smoke | 200-step full | CPU cancellation monitor |
 |---|---|---|---|
 | GRPO | 2559081 | 2559082 | 2559083 |
 | Tandem | 2559084 | 2559085 | 2559086 |
 
-All GPU jobs require setup completion. Full jobs additionally require monitor
-startup, with no dependency on smoke success. Training has not yet been verified
+The setup prerequisite is satisfied. Both training CPU monitors are running.
+Full jobs have no dependency on smoke success. Training has not yet been verified
 on GPU. See `logs/train-setup-2559076.out` and `logs/{grpo,tandem}-{smoke,full,watch}-JOB.out`.
 
 The complete downstream pipeline is also queued: checkpoint selection 2559145
