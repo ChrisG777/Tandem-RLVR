@@ -4,7 +4,8 @@ set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?set REPO to the git checkout}"
 export PATH="${HOME:-/tmp}/.local/bin:/data/scratch/${SLURM_JOB_USER:-${USER:-}}/.local/bin:${PATH:-/usr/bin:/bin}"
-export UV_LINK_MODE=copy
+# uv's default links cache entries when the environment shares its filesystem.
+# For an environment on another filesystem, pass UV_LINK_MODE=copy explicitly.
 TANDEM_ENV=${TANDEM_ENV:-$REPO/.venv}
 [ -x "$TANDEM_ENV/bin/python" ] || uv venv --python 3.11 "$TANDEM_ENV"
 # The shared cache's old ANTLR sdist is missing bin/pygrun. Fetch this tiny
