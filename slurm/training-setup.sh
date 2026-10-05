@@ -5,6 +5,7 @@ if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 export PATH="/data/scratch/${SLURM_JOB_USER:-chrisge}/.local/bin:${PATH:-/usr/bin:/bin}"
 export UV_LINK_MODE=hardlink
+export UV_PYTHON_INSTALL_DIR="/data/scratch/${SLURM_JOB_USER:-chrisge}/.local/share/uv/python"
 export XDG_CACHE_HOME="/tmp/tandem-setup-${SLURM_JOB_ID}"
 export FLASHINFER_WORKSPACE_BASE="$XDG_CACHE_HOME/flashinfer"
 mkdir -p "$XDG_CACHE_HOME" "$RUN_ROOT"
