@@ -1,0 +1,11 @@
+# Evaluation only: training's patched verl/vLLM are not needed for step handoff.
+vllm==0.19.1
+torch==2.10.0
+transformers==5.5.4
+numpy==2.2.6
+pandas==3.0.4
+pyarrow==24.0.0
+sympy==1.14.0
+antlr4-python3-runtime==4.9.3
+pylatexenc==2.10
+matplotlib==3.10.8

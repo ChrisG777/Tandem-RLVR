@@ -18,7 +18,7 @@ AIME_SETS = ("aime24", "aime25", "aime26")
 DEFAULT_SETS = (*AIME_SETS, "amc23_25", "minerva", "olympiad")
 ALL_SETS = ("aime24", "aime25", "aime26", "amc23_25", "math500", "minerva", "olympiad")
 
-KS = (1, 2, 4, 8)
+KS = (1, 2, 4, 8, 16, 32)
 
 MAX_MODEL_LEN = 4096
 CONTEXT_RESERVE = 8

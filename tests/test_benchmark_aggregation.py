@@ -23,6 +23,13 @@ class BenchmarkAggregation(unittest.TestCase):
         self.assertEqual(counts, {"aime24": 30, "aime25": 30, "aime26": 30,
                                   "amc23_25": 121, "minerva": 272, "olympiad": 581})
 
+    def test_solo_reports_pass_32_without_extrapolating_small_runs(self):
+        result = common.agg_pass_at_k([0, 1, 32], n=32)
+        self.assertEqual(tuple(result), tuple(f"pass@{k}" for k in (1, 2, 4, 8, 16, 32)))
+        self.assertAlmostEqual(result["pass@32"], 2 / 3)
+        self.assertAlmostEqual(result["pass@16"], 0.5)
+        self.assertNotIn("pass@16", common.agg_pass_at_k([0, 8], n=8))
+
     def test_aime_contributes_one_quarter_of_the_default_macro(self):
         result = pass_metrics([("aime24", 4), ("aime25", 0), ("aime26", 0),
                                ("amc23_25", 4), ("minerva", 4), ("olympiad", 4)])

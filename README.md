@@ -63,3 +63,7 @@ MODEL=$SENIOR TAG=step_120 RESULTS_ROOT=results/tandem bash eval/run_all.sh
 ```
 
 Sampling is defined once, in `eval/config.py`. See `eval/README.md`.
+
+[`eval/figure2.py`](eval/figure2.py) turns the three solo and two handoff results
+into Figure 2 with bootstrap standard-error bands. The released-checkpoint
+workflow and cluster entry point are in [docs/FIGURE2.md](docs/FIGURE2.md).
