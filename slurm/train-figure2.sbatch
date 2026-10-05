@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus=2
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=192G
 #SBATCH --time=24:00:00
 #SBATCH --requeue
@@ -49,6 +49,7 @@ cp "$DATA_ROOT/deepscaler/manifest.json" "$CKPT_DIR/data-manifest.json"
 nvidia-smi > "$CKPT_DIR/gpus-${SLURM_JOB_ID}.txt"
 # Same data order and rollout seeds for both arms. Resume is only within this run.
 bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
+    "ray_kwargs.ray_init.num_cpus=${SLURM_CPUS_PER_TASK}" \
     actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 \
     actor_rollout_ref.rollout.top_k=-1 trainer.resume_mode=auto \
     "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" "${EXTRA[@]}"
