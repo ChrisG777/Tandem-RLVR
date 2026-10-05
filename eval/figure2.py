@@ -108,12 +108,10 @@ def plot(curves: dict, out: Path) -> None:
                 ax.set_ylabel(f"{phase.capitalize()} pass@k (%)")
             if row == 1:
                 ax.set_xlabel("k")
-    handles = [Line2D([], [], color=c, marker="o", label=arm.capitalize())
+    handles = [Line2D([], [], color=c, marker="o", label="GRPO" if arm == "grpo" else arm.capitalize())
                for arm, c in COLORS.items()]
     handles.append(Line2D([], [], color="#555555", ls="--", label="same senior, solo"))
     fig.legend(handles=handles, loc="outside upper center", ncol=4, frameon=False)
-    fig.suptitle("Figure 2 reproduction · released checkpoints · bands: ±1 bootstrap SE",
-                 fontsize=11)
     fig.savefig(out.with_suffix(".png"), dpi=200)
     fig.savefig(out.with_suffix(".svg"))
     plt.close(fig)
