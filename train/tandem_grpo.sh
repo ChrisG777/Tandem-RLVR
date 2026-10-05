@@ -2,8 +2,9 @@
 set -xeuo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/.." && pwd)
-[ -f "$HERE/env.sh" ] || { echo "[error] $HERE/env.sh not found: copy train/env.sh.example to train/env.sh and edit it" >&2; exit 1; }
-source "$HERE/env.sh"
+ENV_FILE=${TANDEM_ENV_FILE:-$HERE/env.sh}
+[ -f "$ENV_FILE" ] || { echo "[error] $ENV_FILE not found" >&2; exit 1; }
+source "$ENV_FILE"
 
 POLICY_MODEL=${POLICY_MODEL:-$BASE_MODEL}
 JUNIOR_MODEL=${JUNIOR_MODEL:-$BASE_MODEL}
@@ -56,7 +57,7 @@ val_files="[$DATA_ROOT/deepscaler/heldout.parquet]"
 reward_fn=$REPO/reward/math_boxed_reward.py
 max_num_tokens=$(( MAX_PROMPT + MAX_RESPONSE + 1 ))
 
-python3 -m verl.trainer.main_ppo \
+uv run --python "${TANDEM_ENV_BIN:?}/python" --no-project --offline python -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     algorithm.norm_adv_by_std_in_grpo=True \
     algorithm.use_kl_in_reward=False \

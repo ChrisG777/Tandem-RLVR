@@ -3,6 +3,7 @@ import argparse
 import json
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -18,6 +19,7 @@ def main() -> None:
     parser.add_argument("--full-job", required=True, type=int)
     parser.add_argument("--results", required=True, type=Path)
     parser.add_argument("--status", required=True, type=Path)
+    parser.add_argument("--training-arm", choices=("grpo", "tandem"))
     args = parser.parse_args()
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
@@ -46,7 +48,12 @@ def main() -> None:
                 if state == "COMPLETED":
                     if code != "0:0":
                         raise RuntimeError(f"Smoke exit code {code}")
-                    verify_outputs(args.results)
+                    if args.training_arm:
+                        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "train"))
+                        from figure2_checkpoint import verify_training
+                        verify_training(args.results, args.training_arm, 3)
+                    else:
+                        verify_outputs(args.results)
                     passed = True
                     record.update(passed=True, status="smoke and artifacts passed")
                     break
