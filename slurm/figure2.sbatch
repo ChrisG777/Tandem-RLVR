@@ -13,7 +13,7 @@ set -euo pipefail
 # Explicit KEY=VALUE arguments also support sbatch --export=NIL on CSAIL.
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?set REPO to the git checkout}"
-export PATH="$HOME/.local/bin:/data/scratch/$USER/.local/bin:$PATH"
+export PATH="${HOME:-/tmp}/.local/bin:/data/scratch/${SLURM_JOB_USER:-${USER:-}}/.local/bin:${PATH:-/usr/bin:/bin}"
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export HF_HUB_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false

@@ -3,7 +3,7 @@
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?set REPO to the git checkout}"
-export PATH="$HOME/.local/bin:/data/scratch/$USER/.local/bin:$PATH"
+export PATH="${HOME:-/tmp}/.local/bin:/data/scratch/${SLURM_JOB_USER:-${USER:-}}/.local/bin:${PATH:-/usr/bin:/bin}"
 export UV_LINK_MODE=copy
 TANDEM_ENV=${TANDEM_ENV:-$REPO/.venv}
 [ -x "$TANDEM_ENV/bin/python" ] || uv venv --python 3.11 "$TANDEM_ENV"
