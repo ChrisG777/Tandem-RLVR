@@ -14,9 +14,9 @@ and the expected 39,309 training / 1,000 held-out examples. GPU jobs:
 | GRPO | 2560586 | 2560587 | 2560588 |
 | Tandem | 2560589 | 2560590 | 2560591 |
 
-The original environment setup passed. New CPU compatibility check 2560582
-must also pass before these GPU jobs become eligible. Both cancellation monitors
-are running. Full jobs have no dependency on smoke success. Training has not yet
+The original environment setup passed. CPU compatibility check 2560582 also
+passed actual Ray driver/worker startup and verified both patched module paths.
+Both cancellation monitors are running. Full jobs have no dependency on smoke success. Training has not yet
 been verified on GPU. See `logs/ray-check-2560582.out` and
 `logs/{grpo,tandem}-{smoke,full,watch}-JOB.out`.
 

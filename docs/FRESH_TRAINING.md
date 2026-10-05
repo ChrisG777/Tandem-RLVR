@@ -29,8 +29,8 @@ retain batch 16, mini-batch 8, group 8, LR 1e-6, clipping 0.2, response 3,000,
 training temperature 0.6, top-p 1, top-k -1, no entropy/KL penalty. Tandem uses
 word handoffs, senior probability 0.5, gap cap 32 and zero junior-token loss.
 
-Each job reserves two H100/H200 GPUs and 192 GB host RAM. GRPO trains on both;
-Eight CPU cores are allocated and supplied explicitly to Ray.
+Each job reserves two H100/H200 GPUs, eight CPU cores and 192 GB host RAM. The
+CPU allocation is supplied explicitly to Ray. GRPO trains on both GPUs;
 Tandem trains on one with its frozen junior on the other. Full jobs have a 24-hour
 limit; the paper reports 7.8 h to GRPO step 200 and 9.4 h to Tandem step 120 on
 two A100 80GBs. Actual runtime here remains unmeasured. At most three scheduler
