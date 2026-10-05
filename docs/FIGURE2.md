@@ -44,6 +44,7 @@ the separate-engine reasoning-step handoff evaluator.
 | [`figure2.sbatch`](../slurm/figure2.sbatch) | cached models, two GPUs → three solo and two handoff JSONs, figure |
 | [`figure2.py`](../eval/figure2.py) | `--results` directory → `--out` stem with `.png`, `.svg`, `.json` |
 | [`summarize`](../eval/figure2.py) | full evaluation JSON → per-benchmark and macro pass@k means/SEs in percent |
+| [`watch_figure2.py`](../slurm/watch_figure2.py) | smoke/full job IDs and smoke outputs → verified status JSON; cancel full job on failure |
 
 ## Running
 
@@ -68,6 +69,14 @@ RESULTS_ROOT=results/figure2-smoke` and a short walltime. Default execution uses
 existing completed phase JSONs are skipped on restart. Full phases are atomic;
 an interrupted phase must be rerun. Plotting rejects incomplete benchmark panels,
 insufficient sample counts, wrong decoding, and handoff round-cap truncation.
+
+Queue the full run alongside the smoke job without an `afterok` dependency.
+Start `slurm/watch_figure2.py --smoke-job ID --full-job ID --results SMOKE_DIR
+--status STATUS_JSON` in an independent CPU allocation. It checks the smoke exit
+and all five result artifacts and cancels the full job on failure. Results are
+provisional until the status JSON has `passed: true`. A short initial hold on the
+full job can protect the interval before the CPU monitor starts; release it as
+soon as monitoring is active, without waiting for the smoke job to finish.
 
 Regenerate the plot without GPUs:
 

@@ -21,6 +21,7 @@ export MPLCONFIGDIR="${TMPDIR:-/tmp}/tandem-mpl-${SLURM_JOB_ID}"
 export XDG_CACHE_HOME="${TMPDIR:-/tmp}/tandem-cache-${SLURM_JOB_ID}"
 export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton"
 export TORCHINDUCTOR_CACHE_DIR="$XDG_CACHE_HOME/torchinductor"
+export FLASHINFER_WORKSPACE_BASE="$XDG_CACHE_HOME/flashinfer-workspace"
 mkdir -p "$XDG_CACHE_HOME"
 unset VLLM_TANDEM_CONFIG VLLM_TANDEM_ALL_GPUS
 TANDEM_ENV=${TANDEM_ENV:-$REPO/.venv}
