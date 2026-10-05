@@ -4,28 +4,53 @@
 attempt trains both arms from the official Qwen base; see
 [FRESH_TRAINING.md](FRESH_TRAINING.md). No author-trained weights enter the new run.
 
-Fresh training campaign: `/data/vision/torralba/u/chrisge/tandem-rlvr/fresh-20261005`.
+Fresh training campaign: `/data/vision/torralba/u/chrisge/tandem-rlvr/fresh-20261005-rayfix`.
 Separate training uv environment: `/data/vision/torralba/u/chrisge/tandem-rlvr/train-venv`.
 Setup job 2559076 passed: patched imports, all 39 tests, pinned base download,
 and the expected 39,309 training / 1,000 held-out examples. GPU jobs:
 
 | Arm | Three-step smoke | 200-step full | CPU cancellation monitor |
 |---|---|---|---|
-| GRPO | 2559081 | 2559082 | 2559083 |
-| Tandem | 2559084 | 2559085 | 2559086 |
+| GRPO | 2560586 | 2560587 | 2560588 |
+| Tandem | 2560589 | 2560590 | 2560591 |
 
-The setup prerequisite is satisfied. Both training CPU monitors are running.
-Full jobs have no dependency on smoke success. Training has not yet been verified
-on GPU. See `logs/train-setup-2559076.out` and `logs/{grpo,tandem}-{smoke,full,watch}-JOB.out`.
+The original environment setup passed. New CPU compatibility check 2560582
+must also pass before these GPU jobs become eligible. Both cancellation monitors
+are running. Full jobs have no dependency on smoke success. Training has not yet
+been verified on GPU. See `logs/ray-check-2560582.out` and
+`logs/{grpo,tandem}-{smoke,full,watch}-JOB.out`.
 
-The complete downstream pipeline is also queued: checkpoint selection 2559145
-waits for the two full and two smoke training jobs; evaluation smoke 2559146 and
-full 2559147 wait for our selected checkpoint manifest. Evaluation guard 2559148
-starts after selection and cancels 2559147 if evaluation smoke fails. Full
+The complete downstream pipeline is also queued: checkpoint selection 2560601
+waits for the two full and two smoke training jobs; evaluation smoke 2560602 and
+full 2560603 wait for our selected checkpoint manifest. Evaluation guard 2560604
+starts after selection and cancels 2560603 if evaluation smoke fails. Full
 evaluation requires guard startup, not evaluation smoke success. Its 24-hour
 allocation writes `eval-full/figure2.{png,svg,json}` under the campaign root.
 Invalid training dependencies cancel downstream jobs automatically. No measured
 results exist yet.
+
+## First training attempt: Ray startup failure
+
+Tandem smoke 2559084 started at 15:24:45 UTC on 2026-10-05 and failed after
+26 seconds, before training or checkpoint creation. Ray 2.55.1's automatic
+`uv run` hook rejected verl's `runtime_env.working_dir=None`. Its monitor
+cancelled full run 2559085; selection/evaluation jobs 2559145–2559148 were
+automatically cancelled by their invalid dependencies. GRPO jobs 2559081–2559083
+were stopped after identifying the shared startup defect.
+
+`slurm/training-env.sh` now sets `RAY_ENABLE_UV_RUN_RUNTIME_ENV=0`; Ray workers
+use the same explicitly selected uv-managed interpreter on the shared filesystem.
+`env/check_ray.py` checks actual driver-to-worker startup and patched module paths
+with the formerly failing runtime-environment shape. The new campaign preserves
+the failed attempt's artifacts and reuses only its official base and data split.
+
+Training CPU requests are now eight cores, explicitly passed to Ray. The GRPO
+placement groups reserve six cores (three per GPU), leaving two for other work;
+Tandem reserves three in its one training-GPU group. This reduces the earlier
+16-core reservation without changing batch sizes or the learning algorithm.
+Host RAM remains 192 GB for offload, model copies and checkpoint buffers; peak
+training memory has not yet been measured. Evaluation requests four CPU cores
+for its two engines and grading.
 
 ## Historical released-checkpoint attempt (cancelled)
 

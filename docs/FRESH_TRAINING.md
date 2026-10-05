@@ -30,6 +30,7 @@ training temperature 0.6, top-p 1, top-k -1, no entropy/KL penalty. Tandem uses
 word handoffs, senior probability 0.5, gap cap 32 and zero junior-token loss.
 
 Each job reserves two H100/H200 GPUs and 192 GB host RAM. GRPO trains on both;
+Eight CPU cores are allocated and supplied explicitly to Ray.
 Tandem trains on one with its frozen junior on the other. Full jobs have a 24-hour
 limit; the paper reports 7.8 h to GRPO step 200 and 9.4 h to Tandem step 120 on
 two A100 80GBs. Actual runtime here remains unmeasured. At most three scheduler
@@ -64,6 +65,11 @@ the earlier observations. Files live under `RUN_ROOT/{grpo,tandem}-{smoke,full}`
 The two launchers now execute Python through uv and accept `TANDEM_ENV_FILE`
 (default `train/env.sh`). The batch wrapper supplies `slurm/training-env.sh`,
 with explicit site paths and no Conda dependency.
+
+That environment file also disables Ray's automatic uv runtime-environment
+rewriting, whose handling of `working_dir=None` fails with the pinned Ray.
+Workers inherit the existing shared interpreter. `env/check_ray.py` exercises
+real CPU Ray startup and verifies worker interpreter and patched module paths.
 
 After both full runs and smoke checks finish:
 
