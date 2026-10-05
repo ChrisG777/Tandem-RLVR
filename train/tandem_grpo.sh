@@ -64,6 +64,7 @@ uv run --python "${TANDEM_ENV_BIN:?}/python" --no-project --offline python -m ve
     data.train_files="$train_files" \
     data.val_files="$val_files" \
     data.train_batch_size=${TRAIN_BATCH} \
+    data.dataloader_num_workers=${DATA_WORKERS:-8} \
     data.max_prompt_length=${MAX_PROMPT} \
     data.max_response_length=${MAX_RESPONSE} \
     data.filter_overlong_prompts=True \
@@ -85,6 +86,7 @@ uv run --python "${TANDEM_ENV_BIN:?}/python" --no-project --offline python -m ve
     actor_rollout_ref.actor.entropy_coeff=0 \
     actor_rollout_ref.actor.tandem_jr_tkn_weight=${JR_TKN_WEIGHT} \
     actor_rollout_ref.rollout.name=vllm \
+    actor_rollout_ref.rollout.agent.num_workers=${AGENT_WORKERS:-8} \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.gpu_memory_utilization=${ROLLOUT_GPU_UTIL} \
     actor_rollout_ref.rollout.n=${ROLLOUT_N} \
@@ -98,6 +100,7 @@ uv run --python "${TANDEM_ENV_BIN:?}/python" --no-project --offline python -m ve
     actor_rollout_ref.rollout.val_kwargs.top_k=${VAL_TOP_K} \
     actor_rollout_ref.rollout.val_kwargs.n=${VAL_N} \
     model_engine=dp \
+    transfer_queue.backend.SimpleStorage.num_data_storage_units=${TQ_STORAGE_UNITS:-8} \
     reward.reward_manager.name=naive \
     reward.custom_reward_function.path="$reward_fn" \
     reward.custom_reward_function.name=compute_score \

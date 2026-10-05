@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Select account/partition/QoS when submitting; both engines need one GPU each.
+# Select account/partition/QoS when submitting; both engines share one GPU.
 #SBATCH --job-name=tandem-figure2
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gpus=2
+#SBATCH --gpus=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=128G
+#SBATCH --mem=48G
 #SBATCH --time=06:00:00
 #SBATCH --output=logs/figure2-%j.out
 #SBATCH --requeue

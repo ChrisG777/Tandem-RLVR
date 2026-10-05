@@ -111,7 +111,9 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="0 = all problems")
     ap.add_argument("--benchmarks", default=",".join(common.DEFAULT_SETS))
     ap.add_argument("--gpu-util", type=float, default=None)
-    ap.add_argument("--single-gpu", action="store_true", help="both engines on one card")
+    ap.add_argument("--single-gpu", action="store_true",
+                    default=len(common.visible_devices()) == 1,
+                    help="both engines on one card (automatic with one visible GPU)")
     ap.add_argument("--allow-vocab-mismatch", action="store_true")
     args = ap.parse_args()
 
