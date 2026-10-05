@@ -1,5 +1,24 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+**Superseded: all released-checkpoint jobs below are cancelled.** The active
+attempt trains both arms from the official Qwen base; see
+[FRESH_TRAINING.md](FRESH_TRAINING.md). No author-trained weights enter the new run.
+
+Fresh training campaign: `/data/vision/torralba/u/chrisge/tandem-rlvr/fresh-20261005`.
+Separate training uv environment: `/data/vision/torralba/u/chrisge/tandem-rlvr/train-venv`.
+Setup job 2559076 is running. Queued jobs:
+
+| Arm | Three-step smoke | 200-step full | CPU cancellation monitor |
+|---|---|---|---|
+| GRPO | 2559081 | 2559082 | 2559083 |
+| Tandem | 2559084 | 2559085 | 2559086 |
+
+All GPU jobs require setup completion. Full jobs additionally require monitor
+startup, with no dependency on smoke success. Training has not yet been verified
+on GPU. See `logs/train-setup-2559076.out` and `logs/{grpo,tandem}-{smoke,full,watch}-JOB.out`.
+
+## Historical released-checkpoint attempt (cancelled)
+
 Status: environment verified; corrected smoke and full GPU jobs are queued
 independently, with a running CPU failure monitor. **No measured reproduction
 results yet.** Full results remain provisional until smoke artifact checks pass.

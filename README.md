@@ -65,5 +65,13 @@ MODEL=$SENIOR TAG=step_120 RESULTS_ROOT=results/tandem bash eval/run_all.sh
 Sampling is defined once, in `eval/config.py`. See `eval/README.md`.
 
 [`eval/figure2.py`](eval/figure2.py) turns the three solo and two handoff results
-into Figure 2 with bootstrap standard-error bands. The released-checkpoint
-workflow and cluster entry point are in [docs/FIGURE2.md](docs/FIGURE2.md).
+into Figure 2 with bootstrap standard-error bands. The reproduction trains both
+arms from the official Qwen base; see [docs/FRESH_TRAINING.md](docs/FRESH_TRAINING.md)
+and [docs/FIGURE2.md](docs/FIGURE2.md).
+
+| Reproduction interface | Inputs → outputs |
+|---|---|
+| [`train-figure2.sbatch`](slurm/train-figure2.sbatch) | `ARM=grpo/tandem`, `MODE=smoke/full`, pinned base and data → checkpoints and validation logs |
+| [`verify_training`](train/figure2_checkpoint.py) | run directory, arm, step count → verified best held-out checkpoint |
+| [`select_figure2.py`](eval/select_figure2.py) | completed training campaign → `MODELS_JSON` for evaluation |
+| [`submit-training.sh`](slurm/submit-training.sh) | CSAIL paths and setup job ID → speculative full/smoke pairs and cancellation monitors |

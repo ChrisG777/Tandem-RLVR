@@ -1,10 +1,10 @@
 # Figure 2 reproduction
 
-This evaluates the authors' released base, GRPO, and Tandem checkpoints; it does
-not reproduce training. The immutable model revisions are in
-[`eval/figure2-models.json`](../eval/figure2-models.json). The trained releases have
-no model cards or step metadata, so their correspondence to the paper's selected
-GRPO step 200 and Tandem step 120 cannot be independently confirmed.
+This evaluates independently trained GRPO and Tandem policies, plus their
+official Qwen base. Follow [FRESH_TRAINING.md](FRESH_TRAINING.md) first. The base
+revision is pinned in [`eval/figure2-models.json`](../eval/figure2-models.json);
+`eval/select_figure2.py` builds the evaluation manifest from our own checkpoints.
+Authors' RL-trained checkpoints are excluded from the reproduction.
 
 Reference checks from the supplied paper's Table 2 (percentage points):
 
@@ -40,7 +40,8 @@ the separate-engine reasoning-step handoff evaluator.
 
 | Entry point | Input → output |
 |---|---|
-| [`download_figure2.py`](../eval/download_figure2.py) | model manifest → cached weights and `--out` snapshot-path JSON |
+| [`download_figure2.py`](../eval/download_figure2.py) | base-only manifest → cached base and `--out` snapshot-path JSON |
+| [`select_figure2.py`](../eval/select_figure2.py) | completed training campaign → base and selected local checkpoint paths |
 | [`figure2.sbatch`](../slurm/figure2.sbatch) | cached models, two GPUs → three solo and two handoff JSONs, figure |
 | [`figure2.py`](../eval/figure2.py) | `--results` directory → `--out` stem with `.png`, `.svg`, `.json` |
 | [`summarize`](../eval/figure2.py) | full evaluation JSON → per-benchmark and macro pass@k means/SEs in percent |
@@ -54,7 +55,8 @@ Set `REPO`, `TANDEM_ENV`, `HF_HOME`, and `UV_CACHE_DIR` for the cluster. Create
 the evaluation pins, records the resolved environment, and downloads immutable
 model snapshots to `HF_HOME`.
 
-Submit `slurm/figure2.sbatch` with the site's account, partition and QoS options.
+Submit `slurm/figure2.sbatch` with `MODELS_JSON` pointing at the locally selected
+manifest, and the site's account, partition and QoS options.
 It requests two GPUs, 16 CPUs, 128 GB host RAM, and six hours. For Engaging use
 `--partition=mit_normal_gpu --account=mit_general`; for CSAIL use a compatible
 `vision-shared-*` partition list with `--account=vision-torralba
