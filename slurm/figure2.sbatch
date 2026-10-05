@@ -18,6 +18,10 @@ export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export HF_HUB_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 export MPLCONFIGDIR="${TMPDIR:-/tmp}/tandem-mpl-${SLURM_JOB_ID}"
+export XDG_CACHE_HOME="${TMPDIR:-/tmp}/tandem-cache-${SLURM_JOB_ID}"
+export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton"
+export TORCHINDUCTOR_CACHE_DIR="$XDG_CACHE_HOME/torchinductor"
+mkdir -p "$XDG_CACHE_HOME"
 unset VLLM_TANDEM_CONFIG VLLM_TANDEM_ALL_GPUS
 TANDEM_ENV=${TANDEM_ENV:-$REPO/.venv}
 run_python() { uv run --python "$TANDEM_ENV/bin/python" --no-project --offline "$@"; }
