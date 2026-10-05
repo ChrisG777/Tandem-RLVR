@@ -6,6 +6,12 @@ base snapshot. No authors' RL-trained checkpoint is used for initialization,
 checkpoint selection, or evaluation. Earlier released-model evaluation jobs
 2559028, 2559029 and their monitor 2559040 were cancelled on 2026-10-05.
 
+The editable vLLM installation reports `0.19.2.dev1` because the patch adds one
+commit after the `v0.19.1` tag. Its source is still the pinned
+`b1388b1fbf5aaef47937fabe98931211684666a6` plus this repository's patch; native
+extensions come from the matching 0.19.1 wheel. The resolved environment is
+recorded in `RUN_ROOT/training-environment.txt`.
+
 ## Protocol
 
 Reuse `train/vanilla_grpo.sh` and `train/tandem_grpo.sh` and the repository's pinned
