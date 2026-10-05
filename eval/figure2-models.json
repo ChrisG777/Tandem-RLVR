@@ -2,13 +2,5 @@
   "base": {
     "repo_id": "Qwen/Qwen3-4B-Instruct-2507",
     "revision": "cdbee75f17c01a7cc42f958dc650907174af0554"
-  },
-  "grpo": {
-    "repo_id": "difanjiao/Vanilla-GRPO-Qwen3-4B-Instruct-2507-DeepScaleR",
-    "revision": "f21740252556c74688741a5d8a2db32c0589be43"
-  },
-  "tandem": {
-    "repo_id": "difanjiao/TT-Word-Qwen3-4B-Instruct-2507-DeepScaleR",
-    "revision": "2bf6188d7286dae32f52803b42c6602be85d05c1"
   }
 }

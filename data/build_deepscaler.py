@@ -1,4 +1,6 @@
 import argparse
+import hashlib
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -37,9 +39,12 @@ def main():
                     help="seed for the held-out draw; changing it changes the split")
     ap.add_argument("--expect-rows", type=int, default=EXPECT_ROWS,
                     help="row count to assert; 0 disables the check")
+    ap.add_argument("--revision", default=None, help="immutable dataset Hub commit")
     args = ap.parse_args()
 
-    df = load_dataset(SRC, split="train").to_pandas()
+    from huggingface_hub import HfApi
+    revision = args.revision or HfApi().dataset_info(SRC).sha
+    df = load_dataset(SRC, revision=revision, split="train").to_pandas()
     print("total:", len(df), "cols:", list(df.columns))
 
     keep = df[df["answer"].astype(str).str.len() > 0].reset_index(drop=True)
@@ -63,6 +68,11 @@ def main():
     args.out_dir.mkdir(parents=True, exist_ok=True)
     train.to_parquet(args.out_dir / "train.parquet", index=False)
     held.to_parquet(args.out_dir / "heldout.parquet", index=False)
+    manifest = {"repo_id": SRC, "revision": revision, "split_seed": args.seed,
+                "train_rows": len(train), "heldout_rows": len(held), "sha256": {}}
+    for name in ("train.parquet", "heldout.parquet"):
+        manifest["sha256"][name] = hashlib.sha256((args.out_dir / name).read_bytes()).hexdigest()
+    (args.out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"wrote {len(train)} train + {len(held)} held out -> {args.out_dir}")
     print("sample prompt:", train.iloc[0]["prompt"][0]["content"][:200])
     print("sample ground truth:", train.iloc[0]["reward_model"]["ground_truth"])

@@ -31,7 +31,7 @@ mkdir -p "$ROOT"
 git rev-parse HEAD > "$ROOT/code-commit.txt"
 nvidia-smi > "$ROOT/gpus-${SLURM_JOB_ID}.txt"
 run_python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("\n".join(d[a]["path"] for a in ("base","grpo","tandem")))' \
-    results/figure2/models.json > "$ROOT/model-paths.txt"
+    "${MODELS_JSON:?set MODELS_JSON to the base and independently trained checkpoint paths}" > "$ROOT/model-paths.txt"
 mapfile -t MODELS < "$ROOT/model-paths.txt"
 BASE=${MODELS[0]}
 GRPO=${MODELS[1]}
