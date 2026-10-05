@@ -75,7 +75,7 @@ class LauncherIsolation(unittest.TestCase):
                 shutil.copy2(REPO / "train" / name, train / name)
             (train / "env.sh").write_text(
                 "BASE_MODEL=test-model\nDATA_ROOT=/test-data\n"
-                "CKPT_ROOT=/test-checkpoints\nPROJECT_NAME=test\n")
+                "CKPT_ROOT=/test-checkpoints\nPROJECT_NAME=test\nTANDEM_ENV_BIN=/test-env/bin\n")
             recorder = binary / "python3"
             recorder.write_text(
                 f"#!{sys.executable}\nimport json, os\n"
@@ -83,11 +83,13 @@ class LauncherIsolation(unittest.TestCase):
                 "    json.dump({k: os.environ.get(k) for k in "
                 "['VLLM_TANDEM_CONFIG', 'VLLM_TANDEM_ALL_GPUS']}, f)\n")
             recorder.chmod(0o755)
+            shutil.copy2(recorder, binary / "uv")
             capture = root / "environment.json"
             env = {**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"],
                    "VALIDATION_TEST_CAPTURE": str(capture), "KL_COEF": "0.001",
                    "VLLM_TANDEM_CONFIG": '{"enabled":true,"frozen_model":"stale-junior"}',
                    "VLLM_TANDEM_ALL_GPUS": "6,7"}
+            env.pop("TANDEM_ENV_FILE", None)
             for name in launchers:
                 with self.subTest(launcher=name):
                     result = subprocess.run(["bash", str(train / name)], env=env,
