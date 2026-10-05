@@ -6,6 +6,16 @@ not reproduce training. The immutable model revisions are in
 no model cards or step metadata, so their correspondence to the paper's selected
 GRPO step 200 and Tandem step 120 cannot be independently confirmed.
 
+Reference checks from the supplied paper's Table 2 (percentage points):
+
+| Model | Macro solo pass@4 | Macro handoff pass@4 | Handoff / solo |
+|---|---:|---:|---:|
+| GRPO | 55.56 | 52.40 | 94.3% |
+| Tandem | 54.85 | 54.74 | 99.8% |
+
+Section 4.3 additionally reports a 6.6-point Tandem advantage in AIME handoff
+pass@8. These reference numbers are comparison targets, never inputs to the plot.
+
 ## Protocol
 
 - Use the shipped 1,064 problems: AMC 121, pooled AIME 90, Minerva 272,
