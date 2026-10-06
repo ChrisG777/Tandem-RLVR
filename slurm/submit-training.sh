@@ -7,9 +7,11 @@ SITE=("REPO=$REPO" "TANDEM_ENV=$TANDEM_ENV" "RUN_ROOT=$RUN_ROOT"
 GPU=(--partition=vision-shared-h200,vision-shared-h100,vision-shared-a100 --account=vision-torralba
      '--constraint=nvidia_h200|nvidia_h100_80gb_hbm3|nvidia_h100_nvl|nvidia_a100-sxm4-80gb'
      --qos=shared-if-available --export=NIL --chdir="$REPO"
-     --dependency="afterok:${SETUP_JOB:?}" --kill-on-invalid-dep=yes)
+     --kill-on-invalid-dep=yes)
+if [ -n "${SETUP_JOB:-}" ]; then GPU+=(--dependency="afterok:$SETUP_JOB"); fi
 mkdir -p "$RUN_ROOT"
-for ARM in grpo tandem; do
+for ARM in ${ARMS:-grpo tandem}; do
+    case "$ARM" in grpo|tandem) ;; *) echo "Unknown arm: $ARM" >&2; exit 2;; esac
     GPUS=2
     if [ "$ARM" = grpo ]; then GPUS=1; fi
     SMOKE=$(sbatch --parsable "${GPU[@]}" --gpus="$GPUS" --job-name="$ARM-fresh-smoke" --time=02:00:00 \
@@ -23,7 +25,9 @@ for ARM in grpo tandem; do
         "WATCH_ENV=$WATCH_ENV" "RUN_ROOT=$RUN_ROOT" "ARM=$ARM" "SMOKE=$SMOKE" "FULL=$FULL")
     # Only environment availability and monitor startup gate full training.
     # There is deliberately no dependency on smoke success.
-    scontrol update JobId="$FULL" Dependency="afterok:$SETUP_JOB,after:$WATCH"
+    DEPENDENCY="after:$WATCH"
+    if [ -n "${SETUP_JOB:-}" ]; then DEPENDENCY="afterok:$SETUP_JOB,$DEPENDENCY"; fi
+    scontrol update JobId="$FULL" Dependency="$DEPENDENCY"
     scontrol release "$FULL"
     echo "$ARM $SMOKE $FULL $WATCH" | tee -a "$RUN_ROOT/jobs.txt"
 done

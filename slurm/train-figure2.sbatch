@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gpus=2
 #SBATCH --cpus-per-task=6
-#SBATCH --mem=128G
+#SBATCH --mem=144G
 #SBATCH --time=24:00:00
 #SBATCH --requeue
 #SBATCH --output=logs/train-%j.out

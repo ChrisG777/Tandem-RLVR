@@ -5,6 +5,9 @@ export PATH="${TANDEM_ENV_BIN:?}:$PATH"
 export RAY_ENABLE_UV_RUN_RUNTIME_ENV=0
 # One trainable policy GPU; Tandem additionally reserves its frozen junior GPU.
 export TRAIN_GPUS=${TRAIN_GPUS:-1}
+# Leave room for the colocated FSDP policy before vLLM reserves its cache.
+# The vanilla launcher's 0.8 fails startup on an 80 GB GPU with one training rank.
+export ROLLOUT_GPU_UTIL=${ROLLOUT_GPU_UTIL:-0.65}
 # Single-node rollout storage: one storage CPU + one controller CPU, plus
 # three CPUs in verl's policy placement group and one for scheduling progress.
 export TQ_STORAGE_UNITS=${TQ_STORAGE_UNITS:-1}

@@ -115,6 +115,7 @@ class LauncherIsolation(unittest.TestCase):
                         actual = json.loads(capture.read_text())
                         for arg in ("trainer.n_gpus_per_node=1", "data.dataloader_num_workers=2",
                                     "actor_rollout_ref.rollout.agent.num_workers=4",
+                                    "actor_rollout_ref.rollout.gpu_memory_utilization=0.65",
                                     "transfer_queue.backend.SimpleStorage.num_data_storage_units=1",
                                     "data.train_batch_size=16", "actor_rollout_ref.rollout.n=8"):
                             self.assertIn(arg, actual["argv"])

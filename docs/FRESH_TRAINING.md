@@ -30,11 +30,14 @@ training temperature 0.6, top-p 1, top-k -1, no entropy/KL penalty. Tandem uses
 word handoffs, senior probability 0.5, gap cap 32 and zero junior-token loss.
 
 GRPO reserves one GPU; Tandem reserves two, one for training and one for its
-frozen junior. Both request six CPU cores and 128 GiB host RAM. Training accepts
+frozen junior. Both request six CPU cores and 144 GiB host RAM. Training accepts
 A100 80 GB, H100 and H200 nodes with explicit memory-class feature constraints.
 The CPU allocation is supplied explicitly to Ray. Full jobs have a 24-hour
 limit; the paper reports 7.8 h to GRPO step 200 and 9.4 h to Tandem step 120 on
-two A100 80GBs. Actual runtime here remains unmeasured; our single-GPU GRPO
+two A100 80GBs. Our Tandem three-step smoke took 39m12s on two A100 80GBs,
+including startup, validation and checkpoint saving. Its first two steps took
+10.4 and 8.1 minutes; extrapolating these short measurements suggests a full run
+may need checkpoint resumption beyond one 24-hour allocation. Our single-GPU GRPO
 layout differs from the paper's two-GPU layout while retaining its global batch,
 mini-batch and optimizer settings. At most three scheduler
 restarts are allowed, resuming only that run's own optimizer checkpoint.
@@ -51,11 +54,20 @@ accept all observed 80 GB-or-larger A100/H100/H200 types, rather than H100/H200
 only. Tandem's second GPU is a backend placement requirement, not a claim that
 every implementation mathematically needs two GPUs.
 
-The 128 GiB host budget allows roughly 45 GiB for offloaded parameters/Adam,
+The original 128 GiB host budget allowed roughly 45 GiB for offloaded parameters/Adam,
 45 GiB for temporary checkpoint/loading copies, a capped 4 GiB Ray object store,
 and 34 GiB for Python workers, data and transient headroom. Not all buffers are
-live simultaneously; this is a phase-based estimate until training peak RSS is
-available. Earlier startup failures provide no representative memory measurement.
+live simultaneously. Completed Tandem smoke 2560589 reported peak batch RSS
+134,207,636 KiB (128.0 GiB), leaving essentially no margin. Requests now use
+144 GiB, adding 16 GiB (12.5%) above that observed peak. This is justified
+headroom, not a measured minimum. The trainer's CPU-memory metric is not used
+as a per-job peak measurement.
+
+GRPO smoke 2560586 failed before training: vLLM's 0.8 memory fraction requested
+63.34 GiB with only 62.45 GiB free beside FSDP. The batch environment now uses
+0.65 for both arms (already the successful Tandem setting). This changes cache
+capacity, preserving batch sizes, decoding and optimizer settings. Standalone
+vanilla launcher defaults remain unchanged.
 
 Each arm has one trainable-GPU placement group reserving three Ray CPUs. One
 TransferQueue storage actor and its controller reserve one CPU each; a sixth
@@ -84,10 +96,13 @@ the matching vLLM binary wheel, runs tests, downloads only the base and builds
 the common data split. Site inputs: `REPO`, `TANDEM_ENV`, `HF_HOME`,
 `UV_CACHE_DIR`, `RUN_ROOT`, `DATA_ROOT`.
 
-`slurm/submit-training.sh` additionally takes `SETUP_JOB` and `WATCH_ENV` (the
-existing evaluation environment for the CPU monitors). It submits a three-step
+`slurm/submit-training.sh` additionally takes `WATCH_ENV` (the existing evaluation
+environment for the CPU monitors), optional `SETUP_JOB` (omit only when setup is
+already verified), and optional space-separated `ARMS` (default `grpo tandem`,
+use `grpo` to recover that arm alone). It submits a three-step
 smoke and a 200-step full run for each arm immediately. GPU jobs depend on setup
-completion. Full jobs depend on monitor startup, **not smoke success**. Each CPU
+completion when a setup job is supplied. Full jobs depend on monitor startup,
+**not smoke success**. Each CPU
 monitor checks the smoke's exit, every step's finite policy loss, the Tandem
 senior fraction (0.3–0.7), held-out validation and saved safetensors shard lengths.
 Failure or monitor termination cancels the associated full run. No automatic
