@@ -1,24 +1,21 @@
 # Tandem RLVR: reusable shorthand
 
-Test whether tandem RLVR preserves understandable reasoning when repeated operations and limited response budgets make shorthand useful.
+Test whether solo RL develops useful but opaque shorthand on repeated reasoning tasks, before testing whether tandem RLVR prevents it.
 
-**Status:** proposed pilot; task research and CSAIL setup checked, implementation and jobs awaiting the interface/design check. This branch extends [Tandem-RLVR](https://github.com/CSSLab/Tandem-RLVR) using its existing patched vLLM/verl trainer.
+## Pilot
 
-## Experiment
+Four **solo GRPO** runs: [Reasoning Gym](https://github.com/open-thought/reasoning-gym) matrix transformations and string rewriting, each with 256- and 1,024-token responses. Qwen3-4B-Instruct-2507; 100 updates, batch 16, eight rollouts/prompt, LR 1e-6, seed 42. Reward is final-answer correctness only; no supplied shorthand. Tandem runs are deferred.
 
-- Tasks: [Reasoning Gym](https://github.com/open-thought/reasoning-gym) matrix transformations and string rewriting, using its generators and oracle answers.
-- Eight pilot runs: two tasks × solo/tandem GRPO × 256/1,024 response tokens.
-- Same Qwen3-4B-Instruct-2507 initialization, data, and correctness-only reward. Tandem uses a frozen initial-model copy with 50% word-boundary authorship.
-- Proposed training: 100 updates, batch 16, eight rollouts/prompt, LR 1e-6, seed 42. No supplied shorthand or readability reward.
-- Disjoint generated splits and longer-chain tests; evaluate seniors alone at both budgets. Save accuracy, traces, lengths, and truncation rates. Readability requires reader comprehension tests, not token-frequency claims.
+Each task has 4,096 train, 128 validation, 256 test, 256 longer-chain test, and 64 calibration examples. Base and trained policies are evaluated alone at both budgets. Calibration gates training; matched, blinded trace pairs support checking whether notation is new, reusable, and difficult to understand. Shorter output alone is not evidence of jargon.
 
 ## Interfaces
 
-| Interface | Inputs → outputs | Status |
-|---|---|---|
-| [Dataset builder](docs/SHORTHAND_EXPERIMENT.md#interfaces) | Pinned generator/config/seed → Parquet splits and manifest | Proposed |
-| [Reward adapter](docs/SHORTHAND_EXPERIMENT.md#interfaces) | Task/response/target → binary correctness and format diagnostics | Proposed |
-| [Training launchers](train/README.md) | Model/data/budget/arm → checkpoints and metrics | Existing; task overrides planned |
-| [Evaluation](docs/SHORTHAND_EXPERIMENT.md#interfaces) | Checkpoint/test split/budget → solo traces and scores | Proposed |
+| Interface | Inputs → outputs |
+|---|---|
+| [build_dataset](data/build_shorthand.py) | Pinned generator/config/seed → disjoint Parquet splits and manifest |
+| [compute_score](reward/shorthand_reward.py) | Task/response/target → binary correctness and answer-format diagnostics |
+| [Submit pilot](slurm/submit-shorthand.sh) | CSAIL paths/calibration job → four solo runs, evaluations, review artifacts |
+| [evaluate](eval/shorthand.py) | Checkpoint/test split/budget → solo traces, accuracy, lengths, truncation |
+| [build_review](eval/review_shorthand.py) | Completed evaluations → paired metrics, blinded trace pairs, answer key |
 
-[Experimental details and sources](docs/SHORTHAND_EXPERIMENT.md) · [Tandem architecture](docs/ARCHITECTURE.md) · [Original reproduction](docs/FRESH_TRAINING.md)
+[Protocol, sources, and setup](docs/SHORTHAND_EXPERIMENT.md) · [Job status](docs/SHORTHAND_RUN.md) · [Tandem architecture](docs/ARCHITECTURE.md)

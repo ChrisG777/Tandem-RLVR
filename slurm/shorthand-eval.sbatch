@@ -38,6 +38,7 @@ case "${PHASE:?}" in
     TASK=${TASKS[$((SLURM_ARRAY_TASK_ID / 2))]}
     BUDGETS=(256 1024); BUDGET=${BUDGETS[$((SLURM_ARRAY_TASK_ID % 2))]}
     NAME="$TASK-b$BUDGET"
+    test -f "$RUN_ROOT/train/$NAME/verified.json"
     MODEL="$RUN_ROOT/train/$NAME/hf/global_step_100"
     OUTPUT="$RUN_ROOT/eval/$NAME"
     DATA=("$DATA_ROOT/$TASK/test.parquet" "$DATA_ROOT/$TASK/long.parquet");;

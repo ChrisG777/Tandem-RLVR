@@ -36,8 +36,8 @@ def check_calibration(root: Path, data_root: Path) -> dict:
     """Require calibrated difficulty, usable format, and full training-data integrity.
 
     The 1,024-token base accuracy must lie strictly between 0 and 0.98, with
-    at least 50% complete answer blocks. The 256-token arm is allowed to fail:
-    that is evidence about compression pressure, not a reason to tune the test.
+    at least 50% complete answer blocks. The 256-token arm must have at least one success, so training has
+    a nonzero correctness signal. All-zero rewards require a revised budget.
     Check all prompt lengths using the same base tokenizer as evaluation.
     """
     from transformers import AutoTokenizer
@@ -48,7 +48,8 @@ def check_calibration(root: Path, data_root: Path) -> dict:
         results = [json.loads((root / f"{task}-calibration-b{budget}.json").read_text())
                    for budget in (256, 1024)]
         score = results[1]["metrics"]
-        if not 0 < score["accuracy"] < 0.98 or score["answer_present"] < 0.5:
+        if (not 0 < score["accuracy"] < 0.98 or score["answer_present"] < 0.5
+                or results[0]["metrics"]["accuracy"] == 0):
             raise ValueError(f"Task needs recalibration before training: {task}: {score}")
         if tokenizer is None:
             tokenizer = AutoTokenizer.from_pretrained(results[1]["provenance"]["model"])
