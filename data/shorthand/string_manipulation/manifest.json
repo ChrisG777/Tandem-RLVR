@@ -1,0 +1,78 @@
+{
+  "task": "string_manipulation",
+  "revision": "49b07130b3fcd12f2d064bba7c43869543a0e7e7",
+  "seed": 42,
+  "source": "https://github.com/open-thought/reasoning-gym",
+  "splits": {
+    "calibration": {
+      "rows": 64,
+      "seed": 1000042,
+      "config": {
+        "min_string_length": 12,
+        "max_string_length": 24,
+        "min_num_rules": 8,
+        "max_num_rules": 12
+      },
+      "examined": 122,
+      "rejected": 58,
+      "sha256": "aa434936a1ea0b67f75bd4164895beeddc1377f91d369900a29152cde7132a35",
+      "max_prompt_chars": 1981
+    },
+    "train": {
+      "rows": 4096,
+      "seed": 2000042,
+      "config": {
+        "min_string_length": 12,
+        "max_string_length": 24,
+        "min_num_rules": 8,
+        "max_num_rules": 12
+      },
+      "examined": 8407,
+      "rejected": 4311,
+      "sha256": "5967dab7bed65e5916aa2bfa1d7f9f9f0d54c821b3748a5d68279c4c333f784c",
+      "max_prompt_chars": 2012
+    },
+    "validation": {
+      "rows": 128,
+      "seed": 3000042,
+      "config": {
+        "min_string_length": 12,
+        "max_string_length": 24,
+        "min_num_rules": 8,
+        "max_num_rules": 12
+      },
+      "examined": 273,
+      "rejected": 145,
+      "sha256": "69ddf10a9ea5ab1cb807375e6ff03eea21f61bb9a5237c2a8083711d66a52370",
+      "max_prompt_chars": 1970
+    },
+    "test": {
+      "rows": 256,
+      "seed": 4000042,
+      "config": {
+        "min_string_length": 12,
+        "max_string_length": 24,
+        "min_num_rules": 8,
+        "max_num_rules": 12
+      },
+      "examined": 541,
+      "rejected": 285,
+      "sha256": "181c9721743992f2958e70c29d623bb908f2a706ba8cb0a7fea4b1b57d9b6d33",
+      "max_prompt_chars": 1982
+    },
+    "long": {
+      "rows": 256,
+      "seed": 5000042,
+      "config": {
+        "min_string_length": 12,
+        "max_string_length": 24,
+        "min_num_rules": 8,
+        "max_num_rules": 12
+      },
+      "examined": 2606,
+      "rejected": 2350,
+      "sha256": "5ca2f0de523f18244920535ae812c2d1fab7d05ec09cfcb0f7226535c43cc443",
+      "max_prompt_chars": 1985
+    }
+  }
+}
