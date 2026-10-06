@@ -76,4 +76,4 @@ and [docs/FIGURE2.md](docs/FIGURE2.md).
 | [`verify_training`](train/figure2_checkpoint.py) | run directory, arm, step count → verified best held-out checkpoint |
 | [`check_ray.py`](env/check_ray.py) | sourced batch environment → verified Ray worker interpreter and fork paths |
 | [`select_figure2.py`](eval/select_figure2.py) | completed training campaign → `MODELS_JSON` for evaluation |
-| [`submit-training.sh`](slurm/submit-training.sh) | CSAIL paths and setup job ID → speculative full/smoke pairs and cancellation monitors |
+| [`submit-training.sh`](slurm/submit-training.sh) | CSAIL paths, optional setup job and `ARMS` → speculative full/smoke pairs and cancellation monitors |
