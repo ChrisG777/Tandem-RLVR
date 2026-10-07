@@ -1,5 +1,54 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Allocation-policy audit: 2026-10-06 Pacific
+
+Read the synchronized `GPU_ALLOCATION.md` and both cluster guides. Earlier
+allocation notes below are historical, not defaults for new submissions.
+
+| Work | Audit and action |
+|---|---|
+| CSAIL GRPO 2562647 | Running; one 80-GB-class GPU, six CPUs, 144 GiB. Sampled smoke RSS was approximately 144 GiB and observed GPU peak approximately 77 GiB, so shrinking it is unjustified. Existing checkpoint resumption is evidenced by two real restarts. |
+| CSAIL Tandem 2560590 | Running; two 80-GB-class GPUs, six effective CPUs, 144 GiB. Current launcher puts the frozen model/cache on a separate device. Two GPUs are a validated placement requirement, not proof that one H200 can never work; colocation would require changing cache sizing and validating the implementation. Preserve this running experiment. Slurm retains stale `TresPerTask=cpu=8` metadata, but actual allocated CPUs and CPUs/task are six; Slurm refused an in-place correction on a running job. |
+| CSAIL shorthand 2581354_0–1 | Both completed, in 3m06s/3m09s. No holds or cancellation during this audit. Existing per-budget atomic results provided restart points. |
+| CSAIL evaluation 2562652/2562653 | One GPU each, four CPUs, 48 GiB (two concurrent model engines). Changed in place to account `csail`, QoS `shared-if-available`, partitions `csail-shared-h200,csail-shared-l40s` after comparing dry-run estimates with vision-shared. IDs, dependencies and requeue preserved. |
+| Engaging base evaluation | Removed H200-only restriction; one untyped GPU on `mit_normal_gpu,mit_preemptable`, QoS `normal`, four CPUs, 32 GiB, six hours, requeue. Live inventory admits A100/A40/L40S/H100/H200/RTX Pro 6000 nodes, excluding smaller GPUs and unavailable/reserved nodes. Inventory and exclusions are recorded in the campaign. |
+
+Torralba H100/H200 GPUs were fully occupied by main/interactive QoS jobs, none
+in `vision-torralba-main`'s preemption list. Checked configured CPUs/RAM,
+owner pending jobs and reservations as well. Older Torralba hardware does not
+meet the existing evaluation memory/runtime envelope. Both shared routes were
+dry-run checked; CSAIL-wide estimates were earlier at this snapshot. Estimates
+are not reservations and dependency-blocked evaluations need reassessment when
+the trained checkpoints become available. Data/runtime locality supports keeping
+existing training on CSAIL and the prepared independent base evaluation on Engaging.
+
+Solo/handoff evaluation now atomically checkpoints every 16 problems, with
+input-signature checks and successful simulated-interruption tests. The five-phase
+legacy CSAIL evaluation remains one serial allocation; splitting those independent
+phases would require replacing the already-spooled job and its guard/dependencies.
+It was preserved under the instruction not to cancel CSAIL jobs, so this orchestration
+aspect is not yet fully aligned with the new policy. No training GPU placement or
+optimization settings were changed.
+
+CPU monitor **2582174** is running (one CPU, 256 MiB, two days), monitoring the
+two existing training IDs. It can requeue each once before walltime, only with
+saved model/optimizer/extra-state/data artifacts and within the launcher's native
+three-restart bound. It never retries application failures. Monitor 2582166 failed
+at startup because `--export=NIL` omitted PATH; the corrected monitor explicitly
+sets scheduler PATH. Mocked continuation/restart tests pass; no actual walltime
+continuation has been needed yet.
+
+The broadened Engaging job 25113963 started on an L40S within minutes, then failed
+after 47 seconds: Triton's JIT inherited an unmounted host compiler path. The
+runtime image also lacked an assembler/toolchain. Replaced the image with official
+CUDA 12.8.1 **devel** / Ubuntu 22.04, pinned amd64 digest
+`sha256:6617a625f4090c76c545a0e7d63f2e441718ef9af7f4efe7dd1242a29e289fd7`,
+and select container-local GCC/G++. Setup now checks C compilation before admitting
+GPU work. Submitted setup **25119986** and dependent evaluation **25119987** on
+the broadened route above. These were pending at submission; GPU execution of
+the corrected image is not yet verified. Failed outputs are preserved; no GPU
+job was manually cancelled. Code and tests were pushed to `main`.
+
 ## Priority update: 2026-10-07 00:53 UTC
 
 The critical path is Tandem training (job 2560590, last completed step 49/200),
