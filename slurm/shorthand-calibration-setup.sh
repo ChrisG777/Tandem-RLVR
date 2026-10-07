@@ -12,14 +12,20 @@ if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; th
   export APPTAINER_TMPDIR="${TMPDIR:-/tmp}/shorthand-image-${SLURM_JOB_ID}"
   mkdir -p "$APPTAINER_CACHEDIR" "$APPTAINER_TMPDIR" "$(dirname "$APPTAINER_IMAGE")"
   if [ ! -f "$APPTAINER_IMAGE" ]; then
-    # Official NVIDIA CUDA 12.8.1 runtime / Ubuntu 22.04, pinned amd64 manifest.
+    # CUDA devel supplies the C/CUDA toolchain needed by Triton's runtime JIT.
+    # Official NVIDIA CUDA 12.8.1 devel / Ubuntu 22.04, pinned amd64 manifest.
     apptainer build --mksquashfs-args "-processors ${SLURM_CPUS_PER_TASK:-4} -mem 2048M" \
       "$APPTAINER_IMAGE" \
-      docker://nvidia/cuda@sha256:fcbbd60a5ad3db3a1c7375bf14546b369b54064c513224310b2026df50c7a9bd
+      docker://nvidia/cuda@sha256:6617a625f4090c76c545a0e7d63f2e441718ef9af7f4efe7dd1242a29e289fd7
   fi
   export TANDEM_CONTAINER_ACTIVE=1
   exec apptainer exec --bind "$CONTAINER_BIND" "$APPTAINER_IMAGE" \
     bash "$REPO/slurm/shorthand-calibration-setup.sh"
+fi
+if [ "${TANDEM_CONTAINER_ACTIVE:-0}" = 1 ]; then
+  export CC=/usr/bin/gcc CXX=/usr/bin/g++
+  printf 'int main(void){return 0;}\n' | "$CC" -x c - -o "/tmp/tandem-cc-${SLURM_JOB_ID}"
+  "/tmp/tandem-cc-${SLURM_JOB_ID}"
 fi
 export PATH="${UV_BIN_DIR:-${HOME:?}/.local/bin}:${PATH:-/usr/bin:/bin}"
 mkdir -p "$RUN_ROOT" "$HF_HOME" "$UV_CACHE_DIR"
