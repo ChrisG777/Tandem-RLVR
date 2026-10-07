@@ -255,7 +255,7 @@ the two changed jobs' original Nice values if they survive the reproduction.
 
 ## Engaging checkpoint continuation (2026-10-07)
 
-Both CSAIL training jobs were preempted again at 03:16 / 03:29 PDT, after logging
+Both CSAIL training jobs were preempted again at 07:16 / 07:29 PDT, after logging
 Solo step 136 and Tandem step 86. Their latest complete checkpoints are steps
 120 and 80. The user authorized rsync transfer of those latest checkpoints.
 A direct Duo-authenticated CSAIL→Engaging connection avoids the slow laptop relay;
