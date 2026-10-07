@@ -30,6 +30,10 @@ abandoned observations, and missing metrics remain gaps without interpolation.
   (16 prompts, eight rollouts each). Thin lines show raw values; thick lines show
   trailing means requiring ten consecutive observed steps. Batch difficulty
   makes these curves noisy.
+  Both arms intentionally share the data-order seed and initial base model, so
+  easy/hard batches can produce highly correlated reward and length curves.
+  Similar curves alone do not verify or falsify Tandem: check the separate frozen
+  model, token provenance, senior-only loss, and distinct checkpoint updates.
 - Held-out pass@4 is measured every 20 steps. GRPO uses solo rollouts and Tandem
   uses tandem rollouts; these curves do not compare their solo capabilities.
   The final Figure 2 evaluation makes that comparison separately.

@@ -41,7 +41,7 @@ class SeniorGate(unittest.TestCase):
         for authors, expected in (([1, 0, 1, 0], [1, 3]),
                                   ([1, 1, 1, 1], [1, 2, 3, 4])):
             with self.subTest(authors=authors):
-                config = ActorConfig(strategy="fsdp", use_dynamic_bsz=True,
+                config = ActorConfig(strategy="fsdp", use_dynamic_bsz=True, rollout_n=8,
                                      tandem_jr_tkn_weight=0.0)
                 data = TensorDict({
                     "prompts": torch.tensor([[10, 11]]),
