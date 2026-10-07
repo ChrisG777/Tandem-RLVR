@@ -31,6 +31,35 @@ def gate(jr_tkn_weight=0.0, response_mask=None, tandem_mask=TANDEM_MASK):
 @unittest.skipIf(_apply_tandem_senior_gate is None,
                  f"verl not importable: {IMPORT_ERROR}")
 class SeniorGate(unittest.TestCase):
+    def test_full_ppo_loss_has_no_direct_gradient_at_junior_tokens(self):
+        from tensordict import TensorDict
+        from verl.workers.config import ActorConfig
+        from verl.workers.utils.losses import ppo_loss
+
+        # Two prompt tokens, then four response tokens. Model log-probs are
+        # shifted by one by the real no-padding conversion inside ppo_loss.
+        for authors, expected in (([1, 0, 1, 0], [1, 3]),
+                                  ([1, 1, 1, 1], [1, 2, 3, 4])):
+            with self.subTest(authors=authors):
+                config = ActorConfig(strategy="fsdp", use_dynamic_bsz=True,
+                                     tandem_jr_tkn_weight=0.0)
+                data = TensorDict({
+                    "prompts": torch.tensor([[10, 11]]),
+                    "responses": torch.tensor([[12, 13, 14, 15]]),
+                    "attention_mask": torch.ones(1, 6, dtype=torch.bool),
+                    "response_mask": torch.ones(1, 4, dtype=torch.bool),
+                    "tandem_model_mask": torch.tensor([authors]),
+                    "old_log_probs": torch.zeros(1, 4),
+                    "advantages": torch.ones(1, 4),
+                }, batch_size=[])
+                for key, value in (("dp_size", 1), ("batch_num_tokens", None),
+                                   ("global_batch_size", None)):
+                    data.set_non_tensor(key, value)
+                log_probs = torch.zeros(6, requires_grad=True)
+                loss, _ = ppo_loss(config, {"log_probs": log_probs}, data)
+                loss.backward()
+                self.assertEqual(log_probs.grad.nonzero().flatten().tolist(), expected)
+
     def test_junior_positions_are_zeroed(self):
         gated, _ = gate()
         self.assertEqual(gated.tolist(),
