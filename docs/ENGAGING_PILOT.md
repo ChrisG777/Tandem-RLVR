@@ -44,3 +44,19 @@ Submitted implementation: `f70d51e`. Engaging normalized the generic GPU request
 to one L40S per array element; each has four CPUs, 32 GiB and a one-hour limit.
 Training has not been resubmitted: selecting viable budgets requires these
 calibration results. No CSAIL jobs were cancelled by this submission.
+
+## Engaging runtime compatibility recovery
+
+Setup 25111321 failed after 59 seconds on Rocky 8 (glibc 2.28). The pinned
+vLLM 0.19.1 Linux wheel requires glibc 2.31; uv fell back to a source build,
+which failed with `CUDA_HOME is not set` on the CPU setup node. Array 25111322
+was automatically cancelled by its failed dependency and consumed no GPU time.
+
+Engaging setup and calibration now accept `APPTAINER_IMAGE` and `CONTAINER_BIND`.
+Setup builds an official NVIDIA CUDA 12.8.1 runtime / Ubuntu 22.04 image pinned
+to its amd64 OCI digest, then installs the same pinned packages inside that
+userspace. GPU calibration uses the same image with Apptainer `--nv` to expose
+the allocated GPU and host driver. The environment, datasets, model cache and
+outputs are mounted from scratch. Setup uses `--only-binary vllm` so an
+incompatible platform fails explicitly instead of starting a source build.
+CSAIL's native runtime is unchanged.

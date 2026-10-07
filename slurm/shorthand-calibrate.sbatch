@@ -11,6 +11,11 @@ set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 : "${RUN_ROOT:?}" "${DATA_ROOT:?}" "${TANDEM_ENV:?}" "${HF_HOME:?}" "${UV_CACHE_DIR:?}"
+if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
+  export TANDEM_CONTAINER_ACTIVE=1
+  exec apptainer exec --nv --bind "${CONTAINER_BIND:?}" "$APPTAINER_IMAGE" \
+    bash "$REPO/slurm/shorthand-calibrate.sbatch"
+fi
 export PATH="${UV_BIN_DIR:-${HOME:?}/.local/bin}:${PATH:-/usr/bin:/bin}"
 export HF_HUB_OFFLINE=1 TOKENIZERS_PARALLELISM=false VLLM_WORKER_MULTIPROC_METHOD=spawn
 export OMP_NUM_THREADS=1
