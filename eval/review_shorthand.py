@@ -9,11 +9,12 @@ from random import Random
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", type=Path, required=True)
+    parser.add_argument("--expected-comparisons", type=int, default=16)
     args = parser.parse_args()
-    print(json.dumps(build_review(args.run_root), indent=2))
+    print(json.dumps(build_review(args.run_root, expected_comparisons=args.expected_comparisons), indent=2))
 
 
-def build_review(run_root: Path, seed: int = 61) -> dict:
+def build_review(run_root: Path, seed: int = 61, *, expected_comparisons: int = 16) -> dict:
     """Write metrics, blinded pairs, and a separate answer key from completed evaluations.
 
     Compare identical prompts at identical evaluation budgets. Uniform pairs use
@@ -28,6 +29,8 @@ def build_review(run_root: Path, seed: int = 61) -> dict:
         if not directory.is_dir() or directory.name == "base":
             continue
         for path in sorted(directory.glob("*.json")):
+            if path.name.endswith(".progress.json"):
+                continue
             base = json.loads((run_root / "eval/base" / path.name).read_text())
             trained = json.loads(path.read_text())
             for field in ("data_sha256", "max_tokens", "seed", "n", "temperature", "top_p"):
@@ -57,8 +60,8 @@ def build_review(run_root: Path, seed: int = 61) -> dict:
                                     "A": samples[0][0], "B": samples[1][0]}
                     pairs.append({"id": pair_id, "subset": subset, "prompt": base_row["prompt"],
                                   "target": base_row["target"], "A": samples[0][1], "B": samples[1][1]})
-    if len(summary) != 16:
-        raise ValueError(f"Expected all 16 trained evaluations, found {len(summary)}")
+    if len(summary) != expected_comparisons:
+        raise ValueError(f"Expected all {expected_comparisons} trained evaluations, found {len(summary)}")
     report = {"seed": seed, "comparisons": summary, "pairs": len(pairs),
               "interpretation": "Descriptive pilot. Blinded semantic review remains required; no jargon conclusion is automated."}
     (output / "metrics.json").write_text(json.dumps(report, indent=2) + "\n")

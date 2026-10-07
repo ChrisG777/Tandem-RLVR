@@ -30,20 +30,20 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 
 ## Solo shorthand pilot
 
-Reasoning Gym matrix transformations and string rewriting at 256- and 1,024-token
-budgets test whether useful opaque conventions emerge before adding Tandem arms.
+Reasoning Gym tasks test whether useful opaque conventions emerge before adding
+Tandem arms. The calibrated pilot uses matrix transformations at two token budgets.
 
 | Entry point | Essential inputs → outputs |
 |---|---|
 | [Build dataset](data/build_shorthand.py) | Pinned generator/configuration/seed → disjoint Parquet splits and manifest |
 | [Reward](reward/shorthand_reward.py) | Task/response/target → binary correctness and format diagnostics |
-| [Submit pilot](slurm/submit-shorthand.sh) | CSAIL paths/calibration job → four solo runs, evaluations, and review artifacts |
-| [Calibration/training checks](train/check_shorthand.py) | Calibration or training artifacts → verified gate status |
+| [Submit Engaging pilot](slurm/submit-engaging-pilot.sh) | Prepared environments/calibration jobs/site paths → two solo runs, CPU checks, evaluations, and review |
+| [Calibration/training checks](train/check_shorthand.py) | Calibration or training artifacts and task/budget selection → verified gate status |
 | [Calibration array](slurm/shorthand-calibrate.sbatch) | Site paths and task index 0–1 → independent larger-budget calibration traces ([setup](slurm/shorthand-calibration-setup.sh)) |
 | [Evaluate](eval/shorthand.py) | Checkpoint/test split/budget → solo traces and metrics |
-| [Prepare review](eval/review_shorthand.py) | Completed evaluations → paired metrics, blinded traces, and authorship key |
+| [Prepare review](eval/review_shorthand.py) | Completed evaluations/expected comparison count → paired metrics, blinded traces, and authorship key |
 
-[Protocol, data, and setup](docs/SHORTHAND_EXPERIMENT.md) · [Run history](docs/SHORTHAND_RUN.md)
+[Engaging campaign](docs/ENGAGING_PILOT.md) · [Protocol, data, and setup](docs/SHORTHAND_EXPERIMENT.md) · [Run history](docs/SHORTHAND_RUN.md)
 
 Reasoning Gym supplies task generators/oracles; pinned vLLM and verl forks provide
 rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),

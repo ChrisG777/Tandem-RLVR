@@ -17,11 +17,13 @@ def main() -> None:
     parser.add_argument("--data-root", type=Path)
     parser.add_argument("--steps", type=int, default=100)
     parser.add_argument("--task", choices=TASKS)
+    parser.add_argument("--tasks", choices=TASKS, nargs="+", default=list(TASKS))
+    parser.add_argument("--budgets", type=int, nargs=2, default=[256, 1024])
     args = parser.parse_args()
     if args.calibration:
         if args.data_root is None:
             parser.error("--data-root required for calibration")
-        result = check_calibration(args.calibration, args.data_root)
+        result = check_calibration(args.calibration, args.data_root, args.tasks, args.budgets)
         path = args.calibration / "verified.json"
     else:
         if args.task is None:
@@ -32,21 +34,25 @@ def main() -> None:
     print(json.dumps(result), flush=True)
 
 
-def check_calibration(root: Path, data_root: Path) -> dict:
+def check_calibration(root: Path, data_root: Path, tasks=TASKS, budgets=(256, 1024)) -> dict:
     """Require calibrated difficulty, usable format, and full training-data integrity.
 
-    The 1,024-token base accuracy must lie strictly between 0 and 0.98, with
-    at least 50% complete answer blocks. The 256-token arm must have at least one success, so training has
+    The longer-budget base accuracy must lie strictly between 0 and 0.98, with
+    at least 50% complete answer blocks. The shorter-budget arm must have at least one success, so training has
     a nonzero correctness signal. All-zero rewards require a revised budget.
     Check all prompt lengths using the same base tokenizer as evaluation.
     """
+    if len(budgets) != 2 or not 0 < budgets[0] < budgets[1]:
+        raise ValueError("Require two increasing positive token budgets")
     from transformers import AutoTokenizer
     import pandas as pd
     summary = {}
     tokenizer = None
-    for task in TASKS:
+    for task in tasks:
         results = [json.loads((root / f"{task}-calibration-b{budget}.json").read_text())
-                   for budget in (256, 1024)]
+                   for budget in budgets]
+        if any(result["provenance"]["max_tokens"] != budget for result, budget in zip(results, budgets)):
+            raise ValueError("Calibration token budget mismatch")
         score = results[1]["metrics"]
         if (not 0 < score["accuracy"] < 0.98 or score["answer_present"] < 0.5
                 or results[0]["metrics"]["accuracy"] == 0):
@@ -72,7 +78,7 @@ def check_calibration(root: Path, data_root: Path) -> dict:
         if max_prompt > 1536:
             raise ValueError(f"Prompt exceeds training budget: {task}: {max_prompt}")
         summary[task] = {"calibration": [r["metrics"] for r in results], "max_prompt_tokens": max_prompt}
-    return {"verified": True, "tasks": summary}
+    return {"verified": True, "tasks": summary, "budgets": list(budgets)}
 
 
 def check_training(root: Path, steps: int, task: str) -> dict:

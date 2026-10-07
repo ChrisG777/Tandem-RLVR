@@ -12,7 +12,14 @@ if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; th
     exec "${APPTAINER_BIN_DIR:-/orcd/software/core/001/pkg/apptainer/1.4.2/bin}/apptainer" exec \
         --bind "${CONTAINER_BIND:?}" "$APPTAINER_IMAGE" bash "$REPO/slurm/training-setup.sh"
 fi
-if [ "${TANDEM_CONTAINER_ACTIVE:-0}" = 1 ]; then export CC=/usr/bin/gcc CXX=/usr/bin/g++; fi
+if [ "${TANDEM_CONTAINER_ACTIVE:-0}" = 1 ]; then
+    export CC=/usr/bin/gcc CXX=/usr/bin/g++
+    # CPU nodes lack a driver. Link-check extensions against CUDA's supplied stub;
+    # GPU jobs use --nv and the real driver, never this setup-only search path.
+    mkdir -p "$RUN_ROOT/cuda-stubs"
+    ln -sf /usr/local/cuda/lib64/stubs/libcuda.so "$RUN_ROOT/cuda-stubs/libcuda.so.1"
+    export LD_LIBRARY_PATH="$RUN_ROOT/cuda-stubs:${LD_LIBRARY_PATH:-}"
+fi
 export UV_LINK_MODE=hardlink
 export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-/data/scratch/${SLURM_JOB_USER:-chrisge}/.local/share/uv/python}"
 export XDG_CACHE_HOME="/tmp/tandem-setup-${SLURM_JOB_ID}"

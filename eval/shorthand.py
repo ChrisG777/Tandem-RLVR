@@ -66,19 +66,30 @@ def evaluate(model: str, data_path: Path, out_path: Path, max_tokens: int,
     lengths = [len(tokenizer.encode(prompt)) for prompt in prompts]
     if not rows or max(lengths) + max_tokens > common.MAX_MODEL_LEN:
         raise ValueError("Empty dataset or evaluation exceeds context length")
-    outputs = engine.generate(prompts, SamplingParams(n=n, temperature=0.6, top_p=1.0,
-                              top_k=-1, max_tokens=max_tokens, seed=seed))
-    generations = []
-    for row, output, prompt_tokens in zip(rows, outputs, lengths):
-        samples = []
-        for completion in output.outputs:
-            score = compute_score(row["data_source"], completion.text, row["reward_model"]["ground_truth"])
-            samples.append({"text": completion.text, "tokens": len(completion.token_ids),
-                            "finish_reason": completion.finish_reason, **score})
-        generations.append({"prompt_sha256": row["extra_info"]["prompt_sha256"],
-                            "prompt": row["prompt"][0]["content"],
-                            "target": row["reward_model"]["ground_truth"],
-                            "prompt_tokens": prompt_tokens, "samples": samples})
+    problems = [{"set": data_path.parent.name, "idx": i,
+                 "prompt_sha256": row["extra_info"]["prompt_sha256"]}
+                for i, row in enumerate(rows)]
+    progress_path, progress = common.load_progress(str(out_path), provenance, problems)
+    generations = progress["gens"]
+    for start in range(len(generations), len(rows), common.EVAL_BATCH_SIZE):
+        stop = start + common.EVAL_BATCH_SIZE
+        outputs = engine.generate(prompts[start:stop], SamplingParams(n=n, temperature=0.6, top_p=1.0,
+                                  top_k=-1, max_tokens=max_tokens, seed=seed))
+        batch = []
+        for i, output in enumerate(outputs, start):
+            row, prompt_tokens = rows[i], lengths[i]
+            samples = []
+            for completion in output.outputs:
+                score = compute_score(row["data_source"], completion.text, row["reward_model"]["ground_truth"])
+                samples.append({"text": completion.text, "tokens": len(completion.token_ids),
+                                "finish_reason": completion.finish_reason, **score})
+            batch.append({**problems[i], "prompt": row["prompt"][0]["content"],
+                          "target": row["reward_model"]["ground_truth"],
+                          "prompt_tokens": prompt_tokens, "samples": samples})
+        if len(batch) != len(rows[start:stop]):
+            raise ValueError("Incomplete generation batch")
+        generations.extend(batch)
+        common.save_json(progress_path, progress)
     samples = [s for g in generations for s in g["samples"]]
     total = len(samples)
     metrics = {"accuracy": sum(s["acc"] for s in samples) / total,

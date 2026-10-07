@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "eval"))
 import common
 import solo
 import handoff
+import shorthand
 
 
 class EvaluationResume(unittest.TestCase):
@@ -73,6 +74,34 @@ class EvaluationResume(unittest.TestCase):
             self.assertEqual(calls[2], [str(i) for i in range(16, 20)])
             self.assertEqual(len(result["gens"]), 20)
             self.assertEqual(result["metrics"]["macro"]["pass@1"], 1)
+
+    def test_interrupted_shorthand_reuses_completed_batch(self):
+        import pandas as pd
+        rows = [{"data_source": "string_manipulation",
+                 "prompt": [{"role": "user", "content": str(i)}],
+                 "reward_model": {"ground_truth": "abc"},
+                 "extra_info": {"prompt_sha256": str(i)}} for i in range(20)]
+        calls = []
+        def generate(prompts, params):
+            calls.append(list(prompts))
+            if len(calls) == 2:
+                raise RuntimeError("simulated preemption")
+            sample = SimpleNamespace(text="<answer>abc</answer>", token_ids=[1], finish_reason="stop")
+            return [SimpleNamespace(outputs=[sample]) for _ in prompts]
+        tok = SimpleNamespace(encode=lambda text: [1])
+        with tempfile.TemporaryDirectory() as tmp:
+            data, out = Path(tmp) / "test.parquet", Path(tmp) / "result.json"
+            pd.DataFrame(rows).to_parquet(data)
+            with patch.dict(sys.modules, {"vllm": SimpleNamespace(SamplingParams=lambda **kw: kw)}), \
+                 patch.object(common, "chat_prefix", side_effect=lambda tok, text: text):
+                args = ("base", data, out, 2048)
+                kwargs = dict(engine=SimpleNamespace(generate=generate), tokenizer=tok, n=1)
+                with self.assertRaisesRegex(RuntimeError, "preemption"):
+                    shorthand.evaluate(*args, **kwargs)
+                result = shorthand.evaluate(*args, **kwargs)
+            self.assertEqual(calls[2], [str(i) for i in range(16, 20)])
+            self.assertEqual(result["metrics"]["accuracy"], 1)
+            self.assertEqual(len(result["generations"]), 20)
 
     def test_changed_model_or_problem_rejects_progress(self):
         with tempfile.TemporaryDirectory() as tmp:

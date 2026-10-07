@@ -1,4 +1,52 @@
-# Independent Engaging calibration race
+# Engaging solo pilot
+
+## Active matrix pilot (2026-10-07)
+
+CSAIL calibration 2581354 completed. Matrix accuracy/completion were 41.0%/47.3%
+at 2,048 tokens and 71.5%/90.2% at 3,072. Strings remained almost entirely truncated
+(0.8% accuracy, 2.3% completion at 3,072), so only matrix advances. No held-out test
+scores were used to choose this scope. These are calibration observations, not
+evidence of learned jargon.
+
+The Engaging campaign uses the unchanged matrix data, pinned Qwen base, binary
+correctness reward and full-parameter solo GRPO: two independent budgets (2,048
+and 3,072), 100 updates each, training seed 42, batch 16, minibatch 8, eight
+rollouts per prompt, temperature 0.6, top-p 1, learning rate 1e-6, no KL/entropy
+bonus. Save every 10 updates, validate every 25, compare fixed final checkpoints.
+Test and longer-composition splits each have 256 problems, four samples at both
+evaluation budgets (seed 17). Eight matched comparisons feed blinded trace review;
+shorter traces alone do not establish jargon. Strings are deferred.
+
+[Submit](../slurm/submit-engaging-pilot.sh) consumes successful setup/calibration
+job IDs and explicit site paths; it queues the CPU calibration/data gate, two
+GPU training arms, two CPU checkpoint checks, base/trained GPU evaluations, and
+a CPU review. Calibration reruns on Engaging to verify the migrated runtime; it
+is not an additional scientific seed. The gate keeps its original thresholds
+(longer-budget accuracy strictly between 0 and .98, completion at least .5,
+shorter-budget accuracy nonzero) with explicit task/budget parameters.
+
+CPU work uses `mit_normal`, `mit_general`, `normal`. Training uses one GPU per
+arm, six CPUs and 144 GiB RAM (based on the running 4B reproduction), six-hour
+allocations across `mit_normal_gpu,mit_preemptable`. Admit A100 80 GB, H100, H200
+and RTX Pro 6000 96 GB via live inventory exclusions; reject smaller GPUs.
+[ORCD inventory](https://orcd-docs.mit.edu/running-jobs/available-resources/) supplies
+VRAM mapping. GPU inference uses four CPUs and 32 GiB RAM. All GPU jobs requeue;
+training restores full optimizer/RNG/data state and handles the pre-walltime
+signal outside the container, requeuing only with a complete checkpoint and at
+most three restarts. Evaluation saves/reuses complete 16-problem batches.
+
+The CUDA 12.8.1 **devel** Ubuntu 22.04 image is the same working image as Figure 2
+base evaluation. Training has its own uv environment and the pinned patched
+vLLM/verl forks; base/trained evaluation uses the separate stock-vLLM environment.
+CPU setup uses CUDA driver stubs only for imports; GPU jobs use the real driver
+through `--nv`. No stub path is supplied to training.
+
+Campaign: `/orcd/scratch/orcd/013/cge7/tandem-rlvr/matrix-pilot-20261007`.
+CSAIL reproduction training, checkpoint selection, and scheduler monitors stay
+on CSAIL because their live inputs and job IDs are local. No CSAIL jobs are held
+or cancelled. The remainder below is historical.
+
+## Earlier calibration race
 
 The first CSAIL calibration (2565219) failed: at 256 tokens both tasks had zero
 correct/complete answers. At 1,024 tokens matrix accuracy was 3.9%, with only
