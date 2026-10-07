@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -20,7 +21,10 @@ def main() -> None:
     parser.add_argument("--job", action="append", required=True, help="JOB_ID=CHECKPOINT_ROOT")
     parser.add_argument("--state", type=Path, required=True)
     args = parser.parse_args()
+    # CSAIL's --export=NIL batch environment does not provide a usable PATH.
+    os.environ["PATH"] = "/usr/bin:/bin:" + os.environ.get("PATH", "")
     jobs = dict(item.split("=", 1) for item in args.job)
+    print(f"Monitoring existing jobs: {', '.join(jobs)}", flush=True)
     state = json.loads(args.state.read_text()) if args.state.exists() else {}
     while jobs:
         for job, root in list(jobs.items()):
