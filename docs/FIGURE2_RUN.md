@@ -235,3 +235,20 @@ synthetic local layout check as a successful scientific reproduction.
 - Earlier failed/cancelled setup and dependent job attempts are superseded by
   the job IDs above. Only this attempt's jobs were managed; unrelated jobs were
   left alone.
+
+## Requeue priority over our other CSAIL work (2026-10-07)
+
+At the user's request, reproduction training 2560590/2562647 and its downstream
+jobs retain Slurm `Nice=0`. The other active CSAIL jobs, 2582199 (NLA GPU) and
+2582214 (NLA CPU monitor), were updated in place from `Nice=0` to `Nice=1000`.
+Verified priorities immediately afterward: reproduction training 33, downstream
+reproduction 21–26, and both other jobs 1. All running jobs continued, with no
+holds, cancellations, or forced restarts.
+
+The shared GPU allocation policy now instructs agents to use `--nice=1000` for
+new non-reproduction CSAIL submissions until this reproduction finishes, and
+`--nice=0` for the reproduction. Nice remains part of an existing job across
+native requeues; newly submitted jobs need the explicit flag. This is queue
+preference within Slurm's site rules, not preemption of already running work or
+a guarantee of immediate capacity. Engaging priorities are unchanged. Restore
+the two changed jobs' original Nice values if they survive the reproduction.
