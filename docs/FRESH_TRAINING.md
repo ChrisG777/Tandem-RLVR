@@ -115,6 +115,13 @@ held-out problems; it saves and validates at step 3. Full runs validate on all
 metrics retain earlier observations after preemption; resumed steps supersede
 the earlier observations. Files live under `RUN_ROOT/{grpo,tandem}-{smoke,full}`.
 
+A preemption after checkpoint saving but before metric logging can leave one
+unobserved step. The verifier accepts such an interior gap only with explicit
+evidence of this run's model, optimizer, RNG and scheduler being restored,
+adjacent metric-attempt boundaries, and intact HF weights. Missing metrics stay
+missing; that step cannot participate in validation-based selection. All observed
+metrics and final validation are still checked. See [monitoring and recovery](TRAINING_PROGRESS.md).
+
 The two launchers now execute Python through uv and accept `TANDEM_ENV_FILE`
 (default `train/env.sh`). The batch wrapper supplies `slurm/training-env.sh`,
 with explicit site paths and no Conda dependency.

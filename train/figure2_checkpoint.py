@@ -155,7 +155,8 @@ def _resume_messages(root: Path, step: int) -> list[str]:
 
 def _read_attempts(root: Path) -> list[tuple[Path, list[dict]]]:
     return [(path, [json.loads(line) for line in path.read_text().splitlines() if line.strip()])
-            for path in sorted(root.glob("metrics-*.jsonl"), key=lambda p: p.stat().st_mtime_ns)]
+            for path in sorted(root.glob("metrics-*.jsonl"),
+                               key=lambda p: (p.stat().st_mtime_ns, tuple(map(int, re.findall(r"\d+", p.stem)))))]
 
 
 def finite(value: object, label: str) -> float:

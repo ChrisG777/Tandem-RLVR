@@ -74,6 +74,8 @@ and [docs/FIGURE2.md](docs/FIGURE2.md).
 |---|---|
 | [`train-figure2.sbatch`](slurm/train-figure2.sbatch) | `ARM=grpo/tandem`, `MODE=smoke/full`, pinned base and data → checkpoints and validation logs |
 | [`verify_training`](train/figure2_checkpoint.py) | run directory, arm, step count → verified best held-out checkpoint |
+| [`record_resume_gap`](train/figure2_checkpoint.py) | run directory, missing step, resume log → checked resume evidence, without inventing metrics |
+| [`training_progress.py`](eval/training_progress.py) | campaign directory or saved snapshot → reward/validation curves and health summary ([usage](docs/TRAINING_PROGRESS.md)) |
 | [`check_ray.py`](env/check_ray.py) | sourced batch environment → verified Ray worker interpreter and fork paths |
 | [`select_figure2.py`](eval/select_figure2.py) | completed training campaign → `MODELS_JSON` for evaluation |
 | [`submit-training.sh`](slurm/submit-training.sh) | CSAIL paths, optional setup job and `ARMS` → speculative full/smoke pairs and cancellation monitors |

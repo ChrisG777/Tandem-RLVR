@@ -1,5 +1,6 @@
 """Exercise training integrity and validation-only checkpoint selection."""
 import json
+import os
 from pathlib import Path
 import struct
 import sys
@@ -57,6 +58,9 @@ class TrainingCheckpoint(unittest.TestCase):
         rows = self.fixture(root)
         self.write_rows(root, rows[:1])
         (root / "metrics-1-1.jsonl").write_text(json.dumps(rows[2]) + "\n")
+        # Cluster filesystems can give successive attempts identical timestamps.
+        for path in root.glob("metrics-*.jsonl"):
+            os.utime(path, ns=(1_000_000_000, 1_000_000_000))
         actor = root.resolve() / "global_step_2" / "actor"
         log = root / "resume.log"
         log.write_text("\n".join(
