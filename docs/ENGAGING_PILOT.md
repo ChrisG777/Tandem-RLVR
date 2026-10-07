@@ -27,3 +27,20 @@ setup. Calibration needs one 40 GB-or-larger GPU, four CPUs, 32 GiB RAM and one
 hour per element; either documented L40S or H200 fits the 4B inference model.
 No array throttle, duplicate third GPU worker, or automatic cross-cluster
 cancellation is used. Code is cloned/pulled through GitHub HTTPS on Engaging.
+
+## Submitted 2026-10-07 UTC
+
+| Cluster | Job | Work |
+|---|---|---|
+| Engaging | 25111321 | CPU environment/model setup; four CPUs, 16 GiB, 90 minutes |
+| Engaging | 25111322_0–1 | Matrix/string calibration, dependent on successful setup |
+| CSAIL | 2581354_0–1 | Matching calibration using the existing training environment |
+
+Engaging checkout: `/orcd/scratch/orcd/013/cge7/Tandem-RLVR`, branch `main`.
+Campaign: `/orcd/scratch/orcd/013/cge7/tandem-rlvr/calibration-race-20261007`.
+CSAIL checkout: `/data/scratch/chrisge/Tandem-RLVR-shorthand`, branch `main`.
+Campaign: `/data/vision/torralba/u/chrisge/tandem-rlvr/shorthand-calibration-race-20261007`.
+Submitted implementation: `f70d51e`. Engaging normalized the generic GPU request
+to one L40S per array element; each has four CPUs, 32 GiB and a one-hour limit.
+Training has not been resubmitted: selecting viable budgets requires these
+calibration results. No CSAIL jobs were cancelled by this submission.
