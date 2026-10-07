@@ -12,6 +12,8 @@ if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 : "${RUN_ROOT:?}" "${DATA_ROOT:?}" "${TANDEM_ENV:?}" "${HF_HOME:?}" "${UV_CACHE_DIR:?}"
 if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
+  export CODE_COMMIT=$(git rev-parse HEAD)
+  export PATH="${APPTAINER_BIN_DIR:-/orcd/software/core/001/pkg/apptainer/1.4.2/bin}:${PATH:-/usr/bin:/bin}"
   export TANDEM_CONTAINER_ACTIVE=1
   exec apptainer exec --nv --bind "${CONTAINER_BIND:?}" "$APPTAINER_IMAGE" \
     bash "$REPO/slurm/shorthand-calibrate.sbatch"
@@ -29,7 +31,11 @@ run_python() { uv run --python "$TANDEM_ENV/bin/python" --no-project --offline p
 TASKS=(manipulate_matrix string_manipulation)
 TASK=${TASKS[${SLURM_ARRAY_TASK_ID:?}]}
 MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["path"])' "$RUN_ROOT/base.json")
-git rev-parse HEAD > "$RUN_ROOT/calibration/code-${SLURM_JOB_ID}.txt"
+if [ -n "${CODE_COMMIT:-}" ]; then
+  echo "$CODE_COMMIT" > "$RUN_ROOT/calibration/code-${SLURM_JOB_ID}.txt"
+else
+  git rev-parse HEAD > "$RUN_ROOT/calibration/code-${SLURM_JOB_ID}.txt"
+fi
 nvidia-smi > "$RUN_ROOT/calibration/gpus-${SLURM_JOB_ID}.txt"
 # These probe larger budgets after the original 256/1024 pilot failed its gate.
 # They do not certify training eligibility or select a budget using test results.

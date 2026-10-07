@@ -49,6 +49,20 @@ the separate-engine reasoning-step handoff evaluator.
 
 ## Running
 
+`MODE=base` on `slurm/figure2.sbatch` evaluates only the pinned frozen base with
+the full 32 samples/problem and all benchmarks. It accepts a base-only model
+manifest and can run before training finishes. `MODE=full` (default) keeps the
+original five-phase workflow. Optional `APPTAINER_IMAGE` and `CONTAINER_BIND`
+run evaluation in the same pinned Ubuntu/CUDA userspace used for Engaging setup.
+The host records the code revision because the minimal image need not contain git.
+Engaging explicitly uses the shared Apptainer 1.4.2 installation: the system
+binary on the login node is not available on every compute node.
+
+Before reusing an Engaging base result in the CSAIL full evaluation, verify its
+pinned model revision, decoding, complete problem/sample coverage and code
+provenance, then transfer the completed artifact. A queued independent base job
+does not automatically populate the CSAIL campaign.
+
 All commands run from the repository root. Use uv for Python and dependencies.
 Set `REPO`, `TANDEM_ENV`, `HF_HOME`, and `UV_CACHE_DIR` for the cluster. Create
 `logs/`, then run `bash slurm/figure2-setup.sh` on a CPU allocation. This installs

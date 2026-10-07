@@ -5,6 +5,8 @@ if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 : "${RUN_ROOT:?}" "${TANDEM_ENV:?}" "${HF_HOME:?}" "${UV_CACHE_DIR:?}"
 if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
+  # Login nodes have /usr/bin/apptainer; some compute nodes need the shared module.
+  export PATH="${APPTAINER_BIN_DIR:-/orcd/software/core/001/pkg/apptainer/1.4.2/bin}:${PATH:-/usr/bin:/bin}"
   : "${CONTAINER_BIND:?}"
   export APPTAINER_CACHEDIR="$RUN_ROOT/apptainer-cache"
   export APPTAINER_TMPDIR="${TMPDIR:-/tmp}/shorthand-image-${SLURM_JOB_ID}"
