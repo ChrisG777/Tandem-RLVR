@@ -16,6 +16,7 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 
 | Entry point | Essential inputs → outputs |
 |---|---|
+| [Migration gate](slurm/prepare-migrated-training.sbatch) | Transfer marker, source verification receipts and checkpoint state → verified local continuation |
 | [Training job](slurm/train-figure2.sbatch) | Base/data paths, arm, smoke/full mode → checkpoints and validation logs |
 | [Tandem](train/tandem_grpo.sh) / [solo GRPO](train/vanilla_grpo.sh) | Model/data configuration → policy updates; Tandem trains only senior-authored tokens |
 | [Checkpoint verification](train/figure2_checkpoint.py) | Run directory, arm, step count → best verified held-out checkpoint; resume evidence records missing metrics explicitly |

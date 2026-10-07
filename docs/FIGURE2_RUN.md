@@ -283,3 +283,12 @@ and preserves the imported HF weights independently of checkpoint retention.
 Only then can GPU training start. CPU checkpoint selection follows both runs;
 four independent GPU evaluation phases reuse the completed frozen-base evaluation,
 then a CPU job renders Figure 2. CSAIL jobs remain queued during migration.
+
+Engaging continuation submissions: import/CPU gate **25173823**, Tandem
+**25173824**, Solo **25173825**, checkpoint selection **25173826**, independent
+GRPO solo / Tandem solo / GRPO handoff / Tandem handoff evaluations
+**25173827–25173830**, final CPU figure **25173831**. Campaign:
+`/orcd/scratch/orcd/013/cge7/tandem-rlvr/figure2-resume-20261007`.
+At submission the gate was running while rsync copied the pinned 120/80
+checkpoints; GPU jobs remained dependent on its successful verification.
+Neither training resume nor its queue wait is guaranteed by successful submission.
