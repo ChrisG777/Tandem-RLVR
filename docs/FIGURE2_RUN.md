@@ -289,6 +289,13 @@ Engaging continuation submissions: import/CPU gate **25173823**, Tandem
 GRPO solo / Tandem solo / GRPO handoff / Tandem handoff evaluations
 **25173827–25173830**, final CPU figure **25173831**. Campaign:
 `/orcd/scratch/orcd/013/cge7/tandem-rlvr/figure2-resume-20261007`.
-At submission the gate was running while rsync copied the pinned 120/80
-checkpoints; GPU jobs remained dependent on its successful verification.
-Neither training resume nor its queue wait is guaranteed by successful submission.
+The direct transfer completed and CPU gate 25173823 passed at 09:59 PDT,
+verifying source-history hashes, retained best weights, data hashes and saved
+resume state. Solo 25173825 started on node2000 (A100) at 09:59 PDT; Tandem
+25173824 remains queued. At 10:00 PDT Slurm forecast Tandem at 13:50 PDT today,
+with `QOSMaxGRESPerUser` as its pending reason; this is a changing estimate,
+not a reservation. The four preemptible GPUs were occupied by Solo, the running
+pilot arm and two NLA jobs. By 10:03 PDT the forecast had moved to 10:08 PDT,
+illustrating its instability. Solo's log confirms loading the step-120 model,
+optimizer, RNG and learning-rate scheduler at 10:03 PDT; no new optimizer step
+had completed at this check. Both CSAIL training jobs remain untouched.
