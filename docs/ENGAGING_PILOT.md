@@ -60,3 +60,10 @@ the allocated GPU and host driver. The environment, datasets, model cache and
 outputs are mounted from scratch. Setup uses `--only-binary vllm` so an
 incompatible platform fails explicitly instead of starting a source build.
 CSAIL's native runtime is unchanged.
+
+Replacement submissions: CPU setup **25112692**, then GPU calibration array
+**25112693_0–1** with a successful-setup dependency. Both were pending at
+submission. Implementation commit: `4c15a46`. New campaign:
+`/orcd/scratch/orcd/013/cge7/tandem-rlvr/calibration-container-20261007`.
+The earlier failed environment/campaign is preserved. Container execution is
+not yet verified; these job IDs supersede 25111321/25111322 on Engaging only.
