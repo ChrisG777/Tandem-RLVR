@@ -32,6 +32,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import torch
 root = Path(os.environ["RUN_ROOT"])
 data = root / "data/deepscaler"
 manifest = json.loads((data / "manifest.json").read_text())
@@ -49,5 +50,11 @@ for arm, step in (("grpo", 120), ("tandem", 80)):
             raise ValueError(f"Missing resume state: {path}")
     if not (checkpoint / "data.pt").stat().st_size:
         raise ValueError("Missing dataloader state")
+    # These are trusted, locally produced training artifacts, not downloaded code.
+    data_state = torch.load(checkpoint / "data.pt", map_location="cpu", weights_only=False)
+    extra = torch.load(checkpoint / "actor/extra_state_world_size_1_rank_0.pt",
+                       map_location="cpu", weights_only=False)
+    if not isinstance(data_state, dict) or not data_state or not extra.get("rng") or not extra.get("lr_scheduler"):
+        raise ValueError("Incomplete dataloader/RNG/scheduler resume state")
 print("MIGRATION VERIFIED: source history, retained best weights, resume files and data manifest")
 PY
