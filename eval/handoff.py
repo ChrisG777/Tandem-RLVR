@@ -135,31 +135,35 @@ def main():
         for pr in prompts
     ]
 
+    progress_path, progress = common.load_progress(args.out, {
+        "phase": "handoff", "senior": args.senior, "junior": args.junior,
+        "n": args.n, "sampling": config.record(), "max_rounds": MAX_ROUNDS,
+        "same_vocab": same_vocab,
+    }, problems)
     engines = build_engines(args.senior, args.junior, util, args.single_gpu)
-    chains = make_chains(problems, prompts, budgets, args.n)
-    run_all_rounds(engines, chains)
+    gens = progress["gens"]
+    for start in range(len(gens), len(problems), common.EVAL_BATCH_SIZE):
+        end = start + common.EVAL_BATCH_SIZE
+        batch = problems[start:end]
+        chains = make_chains(batch, prompts[start:end], budgets[start:end], args.n)
+        run_all_rounds(engines, chains)
+        progress["unfinished_chains"] += sum(not c["done"] for c in chains)
+        for i, p in enumerate(batch):
+            sample = chains[i * args.n:(i + 1) * args.n]
+            gens.append({"set": p["set"], "idx": p["idx"],
+                         "texts": [c["text"] for c in sample],
+                         "correct": [common.grade(c["text"], p["gt"]) for c in sample]})
+        common.save_json(progress_path, progress)
 
-    unfinished = sum(1 for c in chains if not c["done"])
+    unfinished = progress["unfinished_chains"]
     if unfinished:
         print(
-            f"[warn] {unfinished}/{len(chains)} chains hit the MAX_ROUNDS={MAX_ROUNDS} "
+            f"[warn] {unfinished}/{len(problems) * args.n} chains hit the MAX_ROUNDS={MAX_ROUNDS} "
             "cap before exhausting their token budget",
             file=sys.stderr,
         )
 
-    counts, gens = [], []
-    for i, p in enumerate(problems):
-        sample = chains[i * args.n : (i + 1) * args.n]
-        correct = [common.grade(c["text"], p["gt"]) for c in sample]
-        counts.append(int(sum(correct)))
-        gens.append(
-            {
-                "set": p["set"],
-                "idx": p["idx"],
-                "texts": [c["text"] for c in sample],
-                "correct": correct,
-            }
-        )
+    counts = [int(sum(g["correct"])) for g in gens]
 
     result = {
         "phase": "handoff",
@@ -169,6 +173,7 @@ def main():
         "limit": args.limit,
         "n": args.n,
         "sampling": config.record(),
+        "batch_size": common.EVAL_BATCH_SIZE,
         "max_rounds": MAX_ROUNDS,
         "unfinished_chains": unfinished,
         "same_vocab": same_vocab,

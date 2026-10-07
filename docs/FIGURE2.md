@@ -84,8 +84,13 @@ environment. Use an absolute `--output` path and `--chdir` to the checkout.
 For a smoke test use `LIMIT=2 SOLO_N=2 HANDOFF_N=2
 RESULTS_ROOT=results/figure2-smoke` and a short walltime. Default execution uses
 `results/figure2`. Do not mix smoke or changed-protocol outputs with full outputs:
-existing completed phase JSONs are skipped on restart. Full phases are atomic;
-an interrupted phase must be rerun. Plotting rejects incomplete benchmark panels,
+existing completed phase JSONs are skipped on restart. Solo and handoff now also
+atomically save `.progress.json` after each 16-problem batch and resume matching
+inputs. Interruption repeats at most the current batch, not a whole phase.
+The checkpoint signature covers model paths, sampling, ordered problem content,
+and batch size. This changes inference batching, not the sampling distribution
+or requested sample counts; bit-for-bit agreement with the old single-batch
+execution is not assumed. Plotting rejects incomplete benchmark panels,
 insufficient sample counts, wrong decoding, and handoff round-cap truncation.
 
 Queue the full run alongside the smoke job without an `afterok` dependency.

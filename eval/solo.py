@@ -18,18 +18,24 @@ def main():
 
     sets = common.parse_sets(args.benchmarks)
     problems = common.load_problems(sets, args.limit)
+    progress_path, progress = common.load_progress(args.out, {
+        "phase": "solo", "model": args.model, "n": args.n,
+        "sampling": config.record(), "seed": 17,
+    }, problems)
     tok = AutoTokenizer.from_pretrained(args.model)
     llm = common.build_engine(args.model, args.gpu_util)
 
-    prompts = [common.chat_prefix(tok, p["content"]) for p in problems]
-    outs = llm.generate(prompts, config.sampling_params(n=args.n, seed=17))
-
-    counts, gens = [], []
-    for p, o in zip(problems, outs):
-        texts = [c.text for c in o.outputs]
-        correct = [common.grade(t, p["gt"]) for t in texts]
-        counts.append(int(sum(correct)))
-        gens.append({"set": p["set"], "idx": p["idx"], "texts": texts, "correct": correct})
+    gens = progress["gens"]
+    for start in range(len(gens), len(problems), common.EVAL_BATCH_SIZE):
+        batch = problems[start:start + common.EVAL_BATCH_SIZE]
+        prompts = [common.chat_prefix(tok, p["content"]) for p in batch]
+        outs = llm.generate(prompts, config.sampling_params(n=args.n, seed=17))
+        for p, o in zip(batch, outs, strict=True):
+            texts = [c.text for c in o.outputs]
+            correct = [common.grade(t, p["gt"]) for t in texts]
+            gens.append({"set": p["set"], "idx": p["idx"], "texts": texts, "correct": correct})
+        common.save_json(progress_path, progress)
+    counts = [int(sum(g["correct"])) for g in gens]
 
     result = {
         "phase": "solo",
@@ -38,6 +44,7 @@ def main():
         "limit": args.limit,
         "n": args.n,
         "sampling": config.record(),
+        "batch_size": common.EVAL_BATCH_SIZE,
         "metrics": common.metrics_by_set(problems, counts, args.n),
         "gens": gens,
     }

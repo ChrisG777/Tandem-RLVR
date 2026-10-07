@@ -1,4 +1,5 @@
 import json
+import hashlib
 import math
 import os
 import sys
@@ -19,9 +20,34 @@ DEFAULT_SETS = (*AIME_SETS, "amc23_25", "minerva", "olympiad")
 ALL_SETS = ("aime24", "aime25", "aime26", "amc23_25", "math500", "minerva", "olympiad")
 
 KS = (1, 2, 4, 8, 16, 32)
+EVAL_BATCH_SIZE = 16
 
 MAX_MODEL_LEN = 4096
 CONTEXT_RESERVE = 8
+
+
+def load_progress(out_path: str, identity: dict, problems: list[dict]) -> tuple[Path, dict]:
+    """Load compatible completed evaluation batches; reject changed inputs.
+
+    Progress lives beside the final JSON and is committed atomically after each
+    batch. Only complete batches are reused; interruption repeats at most one.
+    """
+    path = Path(str(out_path) + ".progress.json")
+    signature = hashlib.sha256(json.dumps(
+        {"identity": identity, "problems": problems, "batch_size": EVAL_BATCH_SIZE},
+        sort_keys=True).encode()).hexdigest()
+    if path.exists():
+        progress = json.loads(path.read_text())
+        if progress["signature"] != signature:
+            raise ValueError(f"Evaluation inputs differ from saved progress: {path}")
+        gens = progress["gens"]
+        if len(gens) > len(problems) or any(
+            (g["set"], g["idx"]) != (p["set"], p["idx"])
+            for g, p in zip(gens, problems)
+        ):
+            raise ValueError(f"Invalid evaluation progress: {path}")
+        return path, progress
+    return path, {"signature": signature, "gens": [], "unfinished_chains": 0}
 
 
 def parse_sets(spec):
