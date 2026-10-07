@@ -67,3 +67,10 @@ submission. Implementation commit: `4c15a46`. New campaign:
 `/orcd/scratch/orcd/013/cge7/tandem-rlvr/calibration-container-20261007`.
 The earlier failed environment/campaign is preserved. Container execution is
 not yet verified; these job IDs supersede 25111321/25111322 on Engaging only.
+
+Subsequent check: 25112692 failed on node1602 after one second with
+`apptainer: command not found`; 25112693 was automatically cancelled before GPU
+execution. The shared Apptainer 1.4.2 installation is now selected explicitly.
+Recovery resources are being used first for [reproduction base evaluation](FIGURE2_RUN.md),
+not another Engaging calibration submission. CSAIL calibration 2581354 remains
+queued (a temporary hold was released at the user's request).

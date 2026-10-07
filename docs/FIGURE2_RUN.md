@@ -1,5 +1,38 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Priority update: 2026-10-07 00:53 UTC
+
+The critical path is Tandem training (job 2560590, last completed step 49/200),
+matched solo GRPO training (2562647, step 71/200), checkpoint verification and
+selection (2562651), then solo/handoff evaluation (2562652–2562654). Both
+training jobs are running on A100 80 GB GPUs; neither was interrupted or changed.
+The dedicated Torralba H200 node had all eight GPUs allocated at this check.
+The tables below this update retain historical submission-time states.
+
+Engaging can evaluate the exact pinned base now, and the selected trained
+checkpoints later. Submitted CPU environment setup **25113961** and dependent
+base-only evaluation **25113963**, both pending at submission. The base job
+requests one H200, four CPUs, 48 GiB and six hours, retaining all 1,064 problems,
+32 samples/problem and the original decoding/grader. It uses `MODE=base` in the
+existing evaluation launcher; implementation `5e19b1a`. GPU execution remains
+unverified. Campaign:
+`/orcd/scratch/orcd/013/cge7/tandem-rlvr/figure2-engaging-20261007`.
+
+The container setup explicitly uses Engaging's shared Apptainer 1.4.2 executable;
+the prior calibration setup failed because the login node's system Apptainer
+was absent on its compute node. This setup reuses the pinned evaluation package
+installer and base downloader, without launching shorthand calibration.
+Completed Engaging results must be verified and transferred before the CSAIL
+workflow can reuse them; the existing full evaluator otherwise computes its own
+base result. Checkpoints for trained policies are not yet available for final
+evaluation and have not been transferred.
+
+Tinker is unsuitable for this exact reproduction: the pinned Qwen3-4B-Instruct-2507
+is retired there, and its supported LoRA training differs from these full-parameter
+runs. No Tinker work has been launched. The pending CSAIL shorthand array 2581354
+was briefly held, then released at the user's request; leave it in the queue.
+No CSAIL jobs were cancelled.
+
 **Independent training is in progress; no Figure 2 results yet.** Both arms
 initialize from the official Qwen base, with the authors' patched vLLM/verl.
 No author-trained weights enter this attempt. See [FRESH_TRAINING.md](FRESH_TRAINING.md).
