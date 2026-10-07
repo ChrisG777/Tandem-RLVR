@@ -63,6 +63,7 @@ class PilotMigration(unittest.TestCase):
                     source "$REPO/slurm/shorthand-runtime.sh"
                 '''
                 env = {**os.environ, "REPO": str(ROOT), "RUN_ROOT": str(root),
+                       "TANDEM_CONTAINER_ACTIVE": "0",
                        "APPTAINER_IMAGE": "test.sif", "APPTAINER_BIN_DIR": str(root),
                        "CONTAINER_BIND": str(root), "PILOT_ENTRYPOINT": "shorthand-train.sbatch",
                        "PILOT_TASKS": "manipulate_matrix", "PILOT_BUDGETS": "2048 3072",

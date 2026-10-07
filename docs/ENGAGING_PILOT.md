@@ -122,3 +122,22 @@ execution. The shared Apptainer 1.4.2 installation is now selected explicitly.
 Recovery resources are being used first for [reproduction base evaluation](FIGURE2_RUN.md),
 not another Engaging calibration submission. CSAIL calibration 2581354 remains
 queued (a temporary hold was released at the user's request).
+
+## Matrix migration submissions
+
+| Engaging job | Work |
+|---|---|
+| 25123090 | CPU pinned training environment/setup (replaces failed CPU import check 25122629) |
+| 25122707_0 | Matrix calibration using the working evaluation environment |
+| 25123206 | CPU calibration gate and full dataset integrity check |
+| 25123207_0–1 | Solo RL, 2,048 / 3,072 tokens, 100 updates each |
+| 25123208_0–1 | CPU final checkpoint/metric verification |
+| 25123209 | Matched frozen-base evaluation |
+| 25123212_0–1 | Matched trained-policy evaluations |
+| 25123213 | CPU metrics and blinded trace-review preparation |
+
+Submitted from `4f0c902`; all dependent stages use successful local Slurm
+prerequisites. The setup retry was running at the submission audit; GPU
+calibration was waiting for the per-user GPU cap. Both training arms and their
+checks/evaluations were pending dependencies. GPU allocation is not yet proof
+of successful training. Figure 2 base evaluation 25119987 remains active on Engaging.

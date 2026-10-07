@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from figure2_checkpoint import finite, verify_weights
+from figure2_checkpoint import finite, read_training_records, verify_weights
 
 TASKS = ("manipulate_matrix", "string_manipulation")
 
@@ -83,12 +83,8 @@ def check_calibration(root: Path, data_root: Path, tasks=TASKS, budgets=(256, 10
 
 def check_training(root: Path, steps: int, task: str) -> dict:
     """Require all updates, finite gradients, final validation and intact final weights."""
-    records = {}
-    for path in sorted(root.glob("metrics-*.jsonl"), key=lambda p: p.stat().st_mtime_ns):
-        for line in path.read_text().splitlines():
-            row = json.loads(line)
-            if 1 <= row["step"] <= steps:
-                records.setdefault(row["step"], {}).update(row["data"])
+    records = {step: metrics for step, metrics in read_training_records(root).items()
+               if 1 <= step <= steps}
     if set(records) != set(range(1, steps + 1)):
         raise ValueError("Incomplete training step history")
     for step, metrics in records.items():
