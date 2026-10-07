@@ -1,0 +1,96 @@
+"""Evaluate base/trained seniors alone at matched budgets, retaining raw traces."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import sys
+
+import pandas as pd
+
+import common
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "reward"))
+from shorthand_reward import compute_score
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--data", type=Path, nargs="+", required=True)
+    parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--budgets", type=int, nargs="+", default=[256, 1024])
+    parser.add_argument("--n", type=int, default=4)
+    parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument("--gpu-util", type=float, default=0.75)
+    args = parser.parse_args()
+    # One engine handles all splits and budgets; outputs are independent files.
+    os.environ.pop("VLLM_TANDEM_CONFIG", None)
+    os.environ.pop("VLLM_TANDEM_ALL_GPUS", None)
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    engine = common.build_engine(args.model, args.gpu_util, max_num_batched_tokens=4096)
+    for path in args.data:
+        for budget in args.budgets:
+            out = args.out_dir / f"{path.parent.name}-{path.stem}-b{budget}.json"
+            result = evaluate(args.model, path, out, budget, args.seed,
+                              engine=engine, tokenizer=tokenizer, n=args.n)
+            print(json.dumps({"output": str(out), **result["metrics"]}), flush=True)
+
+
+def evaluate(model: str, data_path: Path, out_path: Path, max_tokens: int,
+             seed: int = 17, *, engine=None, tokenizer=None, n: int = 4) -> dict:
+    """Generate solo GPU rollouts and atomically write scores, lengths, and full traces.
+
+    Uses temperature 0.6/top-p 1 for both base and trained policies. Existing
+    complete files may be reused only when their inputs match exactly.
+    """
+    from vllm import SamplingParams
+    provenance = {"model": model, "data": str(data_path),
+                  "data_sha256": hashlib.sha256(data_path.read_bytes()).hexdigest(),
+                  "max_tokens": max_tokens, "seed": seed, "n": n, "temperature": 0.6,
+                  "top_p": 1.0, "phase": "solo"}
+    if out_path.exists():
+        previous = json.loads(out_path.read_text())
+        if previous["provenance"] != provenance:
+            raise ValueError(f"Refusing to overwrite different evaluation: {out_path}")
+        return previous
+    os.environ.pop("VLLM_TANDEM_CONFIG", None)
+    os.environ.pop("VLLM_TANDEM_ALL_GPUS", None)
+    if tokenizer is None:
+        from transformers import AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(model)
+    if engine is None:
+        engine = common.build_engine(model, 0.75, max_num_batched_tokens=4096)
+    rows = pd.read_parquet(data_path).to_dict("records")
+    prompts = [common.chat_prefix(tokenizer, row["prompt"][0]["content"]) for row in rows]
+    lengths = [len(tokenizer.encode(prompt)) for prompt in prompts]
+    if not rows or max(lengths) + max_tokens > common.MAX_MODEL_LEN:
+        raise ValueError("Empty dataset or evaluation exceeds context length")
+    outputs = engine.generate(prompts, SamplingParams(n=n, temperature=0.6, top_p=1.0,
+                              top_k=-1, max_tokens=max_tokens, seed=seed))
+    generations = []
+    for row, output, prompt_tokens in zip(rows, outputs, lengths):
+        samples = []
+        for completion in output.outputs:
+            score = compute_score(row["data_source"], completion.text, row["reward_model"]["ground_truth"])
+            samples.append({"text": completion.text, "tokens": len(completion.token_ids),
+                            "finish_reason": completion.finish_reason, **score})
+        generations.append({"prompt_sha256": row["extra_info"]["prompt_sha256"],
+                            "prompt": row["prompt"][0]["content"],
+                            "target": row["reward_model"]["ground_truth"],
+                            "prompt_tokens": prompt_tokens, "samples": samples})
+    samples = [s for g in generations for s in g["samples"]]
+    total = len(samples)
+    metrics = {"accuracy": sum(s["acc"] for s in samples) / total,
+               "pass_at_n": sum(any(s["acc"] for s in g["samples"]) for g in generations) / len(rows),
+               "answer_present": sum(s["answer_present"] for s in samples) / total,
+               "mean_tokens": sum(s["tokens"] for s in samples) / total,
+               "truncated": sum(s["finish_reason"] == "length" for s in samples) / total,
+               "max_prompt_tokens": max(lengths), "problems": len(rows), "samples": total}
+    result = {"provenance": provenance, "metrics": metrics, "generations": generations}
+    common.save_json(out_path, result)
+    return result
+
+
+if __name__ == "__main__":
+    main()

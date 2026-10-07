@@ -1,0 +1,108 @@
+{
+  "task": "manipulate_matrix",
+  "revision": "49b07130b3fcd12f2d064bba7c43869543a0e7e7",
+  "seed": 42,
+  "source": "https://github.com/open-thought/reasoning-gym",
+  "splits": {
+    "calibration": {
+      "rows": 64,
+      "seed": 1000042,
+      "config": {
+        "min_rows": 3,
+        "max_rows": 4,
+        "min_cols": 3,
+        "max_cols": 4,
+        "min_transforms": 6,
+        "max_transforms": 10,
+        "w_crop": -1000,
+        "w_remove_every_nth_row": -1000,
+        "w_remove_every_nth_col": -1000,
+        "w_zero_divisible": -1000
+      },
+      "examined": 105,
+      "rejected": 41,
+      "sha256": "31751d3ed023373c0a64d6223ed92629e0170f829e501b9d0547c6867b036737",
+      "max_prompt_chars": 993
+    },
+    "train": {
+      "rows": 4096,
+      "seed": 2000042,
+      "config": {
+        "min_rows": 3,
+        "max_rows": 4,
+        "min_cols": 3,
+        "max_cols": 4,
+        "min_transforms": 6,
+        "max_transforms": 10,
+        "w_crop": -1000,
+        "w_remove_every_nth_row": -1000,
+        "w_remove_every_nth_col": -1000,
+        "w_zero_divisible": -1000
+      },
+      "examined": 5971,
+      "rejected": 1875,
+      "sha256": "65f7e513296ed89df71ceca204fe618e9b8f15184c26cd0cc236f6cb4965d903",
+      "max_prompt_chars": 1027
+    },
+    "validation": {
+      "rows": 128,
+      "seed": 3000042,
+      "config": {
+        "min_rows": 3,
+        "max_rows": 4,
+        "min_cols": 3,
+        "max_cols": 4,
+        "min_transforms": 6,
+        "max_transforms": 10,
+        "w_crop": -1000,
+        "w_remove_every_nth_row": -1000,
+        "w_remove_every_nth_col": -1000,
+        "w_zero_divisible": -1000
+      },
+      "examined": 188,
+      "rejected": 60,
+      "sha256": "2b9cba041841221c7d2af2ad79ec19193fbe21570eea8c985beba3638bf3b5d5",
+      "max_prompt_chars": 986
+    },
+    "test": {
+      "rows": 256,
+      "seed": 4000042,
+      "config": {
+        "min_rows": 3,
+        "max_rows": 4,
+        "min_cols": 3,
+        "max_cols": 4,
+        "min_transforms": 6,
+        "max_transforms": 10,
+        "w_crop": -1000,
+        "w_remove_every_nth_row": -1000,
+        "w_remove_every_nth_col": -1000,
+        "w_zero_divisible": -1000
+      },
+      "examined": 364,
+      "rejected": 108,
+      "sha256": "8cb68c4e5611e58b8c8ee1392ca37d4f53b4259f07a062691eb4948524a0a6a5",
+      "max_prompt_chars": 1014
+    },
+    "long": {
+      "rows": 256,
+      "seed": 5000042,
+      "config": {
+        "min_rows": 3,
+        "max_rows": 4,
+        "min_cols": 3,
+        "max_cols": 4,
+        "min_transforms": 12,
+        "max_transforms": 16,
+        "w_crop": -1000,
+        "w_remove_every_nth_row": -1000,
+        "w_remove_every_nth_col": -1000,
+        "w_zero_divisible": -1000
+      },
+      "examined": 456,
+      "rejected": 200,
+      "sha256": "d35eb4558983b1fbd355b09552a6b2d121766c4b592a4ed1d388e5857d17f349",
+      "max_prompt_chars": 1265
+    }
+  }
+}
