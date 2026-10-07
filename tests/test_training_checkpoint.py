@@ -1,5 +1,6 @@
 """Exercise training integrity and validation-only checkpoint selection."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import struct
@@ -12,6 +13,31 @@ from figure2_checkpoint import VALIDATION, verify_training, record_resume_gap, r
 
 
 class TrainingCheckpoint(unittest.TestCase):
+    def test_migration_keeps_prior_best_and_rejects_changed_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            prior = verify_training(root, "tandem", 2)
+            metrics = root / "metrics-1-0.jsonl"
+            receipt = {"source_verification": prior, "metrics_sha256": {
+                metrics.name: hashlib.sha256(metrics.read_bytes()).hexdigest()}}
+            (root / "migration.json").write_text(json.dumps(receipt))
+            import shutil
+            shutil.rmtree(root / "hf/global_step_1")
+            self.assertEqual(verify_training(root, "tandem", 3)["step"], 2)
+            metrics.write_text(metrics.read_text() + "\n")
+            with self.assertRaisesRegex(ValueError, "history changed"):
+                verify_training(root, "tandem", 3)
+
+    def test_migration_refuses_latest_checkpoint_if_an_earlier_one_was_best(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            prior = verify_training(root, "tandem", 3)
+            (root / "migration.json").write_text(json.dumps({"source_verification": prior}))
+            with self.assertRaisesRegex(ValueError, "latest-and-best"):
+                verify_training(root, "tandem", 3)
+
     def fixture(self, root):
         rows = []
         for step, score in ((1, 0.4), (2, 0.6), (3, 0.5)):

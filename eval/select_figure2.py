@@ -18,8 +18,14 @@ def main() -> None:
     if set(manifest) != {"base"}:
         raise ValueError("Initialization manifest must contain only the official base")
     for arm in ("grpo", "tandem"):
-        verify_training(args.root / f"{arm}-smoke", arm, 3)
         root = args.root / f"{arm}-full"
+        migration = root / "migration.json"
+        if migration.exists():
+            smoke = json.loads(migration.read_text())["source_smoke_verification"]
+            if not smoke["verified"] or smoke["arm"] != arm or smoke["training_steps"] != 3:
+                raise ValueError(f"Missing verified source smoke test for {arm}")
+        else:
+            verify_training(args.root / f"{arm}-smoke", arm, 3)
         if json.loads((root / "initialization.json").read_text()) != {"base": manifest["base"]}:
             raise ValueError(f"Unexpected initialization for {arm}")
         manifest[arm] = verify_training(root, arm, 200)

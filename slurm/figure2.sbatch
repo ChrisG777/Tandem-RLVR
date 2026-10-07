@@ -44,7 +44,7 @@ else
 fi
 nvidia-smi > "$ROOT/gpus-${SLURM_JOB_ID}.txt"
 MODE=${MODE:-full}
-case "$MODE" in base|full) ;; *) echo 'MODE must be base or full' >&2; exit 2;; esac
+case "$MODE" in base|full|grpo-solo|tandem-solo|grpo-handoff|tandem-handoff) ;; *) echo 'Unknown evaluation mode' >&2; exit 2;; esac
 run_python -c 'import json,sys; d=json.load(open(sys.argv[1])); arms=("base",) if sys.argv[2]=="base" else ("base","grpo","tandem"); print("\n".join(d[a]["path"] for a in arms))' \
     "${MODELS_JSON:?set MODELS_JSON to the pinned checkpoint paths}" "$MODE" > "$ROOT/model-paths.txt"
 mapfile -t MODELS < "$ROOT/model-paths.txt"
@@ -57,7 +57,12 @@ HANDOFF_N=${HANDOFF_N:-8}
 
 # Individual phases write atomically; a retry reuses only finished phases.
 ARMS=(base grpo tandem)
-if [ "$MODE" = base ]; then ARMS=(base); fi
+HANDOFF_ARMS=(grpo tandem)
+case "$MODE" in
+    base) ARMS=(base); HANDOFF_ARMS=();;
+    *-solo) ARMS=("${MODE%-solo}"); HANDOFF_ARMS=();;
+    *-handoff) ARMS=(); HANDOFF_ARMS=("${MODE%-handoff}");;
+esac
 for ARM in "${ARMS[@]}"; do
     case "$ARM" in base) MODEL=$BASE;; grpo) MODEL=$GRPO;; tandem) MODEL=$TANDEM;; esac
     OUT="$ROOT/$ARM/solo.json"
@@ -66,8 +71,7 @@ for ARM in "${ARMS[@]}"; do
         run_python eval/solo.py --model "$MODEL" --out "$OUT" --n "$SOLO_N" --limit "$LIMIT"
     fi
 done
-if [ "$MODE" = base ]; then echo "DONE base $(date -u +%FT%TZ)"; exit 0; fi
-for ARM in grpo tandem; do
+for ARM in "${HANDOFF_ARMS[@]}"; do
     case "$ARM" in grpo) MODEL=$GRPO;; tandem) MODEL=$TANDEM;; esac
     OUT="$ROOT/$ARM/handoff.json"
     if [ ! -f "$OUT" ]; then
@@ -76,7 +80,7 @@ for ARM in grpo tandem; do
             --out "$OUT" --n "$HANDOFF_N" --limit "$LIMIT"
     fi
 done
-if [ "$LIMIT" = 0 ] && [ "$SOLO_N" -ge 32 ] && [ "$HANDOFF_N" -ge 8 ]; then
+if [ "$MODE" = full ] && [ "$LIMIT" = 0 ] && [ "$SOLO_N" -ge 32 ] && [ "$HANDOFF_N" -ge 8 ]; then
     run_python eval/figure2.py --results "$ROOT" --out "$ROOT/figure2"
 fi
 echo "DONE $(date -u +%FT%TZ)"

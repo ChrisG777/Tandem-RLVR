@@ -22,7 +22,7 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 | [Training progress](eval/training_progress.py) | Campaign directory or snapshot → reward/validation plots and health summary |
 | [Walltime continuation](slurm/continue-training.py) | Existing job IDs/checkpoint roots → bounded same-job requeue before expiry; resumes through the training launcher |
 | [Solo](eval/solo.py), [handoff](eval/handoff.py), [legibility](eval/legibility.py) | Model(s), benchmark configuration → accuracy or junior cross-entropy |
-| [Evaluation job](slurm/figure2.sbatch) | Pinned model manifest, `MODE=base` or `full` → frozen-base solo evaluation or all five evaluations and figure |
+| [Evaluation job](slurm/figure2.sbatch) | Pinned model manifest and phase → base, individual solo/handoff phases, or full evaluation |
 | [Figure 2](eval/figure2.py) | Completed solo/handoff evaluations → figure and bootstrap statistics |
 
 [Training protocol/setup](docs/FRESH_TRAINING.md) · [Evaluation protocol](docs/FIGURE2.md)

@@ -42,8 +42,12 @@ def verify_training(root: Path, arm: str, steps: int) -> dict:
     Test-benchmark scores never participate in checkpoint selection.
     """
     records = {step: data for step, data in read_training_records(root).items() if step <= steps}
+    migration = _read_migration(root, arm, records)
+    imported_step = migration["training_steps"] if migration else 0
     gaps = sorted(set(range(1, steps + 1)) - records.keys())
     for step in gaps:
+        if migration and step <= imported_step and step in migration["unobserved_metric_steps"]:
+            continue
         if step in (1, steps) or step - 1 not in records or step + 1 not in records:
             raise ValueError(f"Unexplained training gap at step {step} in {root}")
         path = root / "resume-evidence" / f"step-{step}.json"
@@ -60,7 +64,7 @@ def verify_training(root: Path, arm: str, steps: int) -> dict:
                 raise ValueError(f"Tandem senior fraction is not near 0.5 at {step}: {fraction}")
     candidates = []
     for step, data in records.items():
-        if VALIDATION in data:
+        if VALIDATION in data and step >= imported_step:
             score = finite(data[VALIDATION], f"validation at {step}")
             if not 0 <= score <= 1:
                 raise ValueError(f"Invalid validation probability {score}")
@@ -75,6 +79,33 @@ def verify_training(root: Path, arm: str, steps: int) -> dict:
             "training_steps": steps, "verified": True,
             "unobserved_metric_steps": gaps,
             "verification_scope": "Observed metrics and validated checkpoint/resume evidence; missing metrics are not imputed"}
+
+
+def _read_migration(root: Path, arm: str, records: dict[int, dict]) -> dict | None:
+    """Check a source-verification receipt and byte-identical imported log history.
+
+    Latest-checkpoint-only migration is allowed only when that checkpoint was
+    also the source run's best validation checkpoint. Older weights need not be
+    copied: they cannot win selection. Source-verified gaps remain explicit.
+    """
+    path = root / "migration.json"
+    if not path.exists():
+        return None
+    receipt = json.loads(path.read_text())
+    prior = receipt["source_verification"]
+    step = prior["training_steps"]
+    if not prior["verified"] or prior["arm"] != arm or prior["step"] != step:
+        raise ValueError("Migration requires a verified latest-and-best checkpoint")
+    hashes = receipt["metrics_sha256"]
+    if not hashes:
+        raise ValueError("Migration is missing its source history")
+    for name, digest in hashes.items():
+        if Path(name).name != name or hashlib.sha256((root / name).read_bytes()).hexdigest() != digest:
+            raise ValueError("Migrated metric history changed")
+    if records.get(step, {}).get(VALIDATION) != prior["validation_pass4"]:
+        raise ValueError("Migrated validation differs from verified source")
+    verify_weights(root / "hf" / f"global_step_{step}")
+    return prior
 
 
 def read_training_records(root: Path) -> dict[int, dict]:

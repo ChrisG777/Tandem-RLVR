@@ -112,3 +112,7 @@ Raw generations remain in `results/figure2/{base,grpo,tandem}/`. Preserve them o
 the cluster; publish only compact scores, provenance, and the plot through git.
 The existing evaluator is unchanged except that its shared k list now extends to
 32 (values greater than the number of sampled completions are still omitted).
+
+Individual Engaging evaluation jobs use `MODE=grpo-solo`, `tandem-solo`,
+`grpo-handoff`, or `tandem-handoff` with the same model manifest and decoding
+settings. CPU postprocessing selects checkpoints and plots the combined results.

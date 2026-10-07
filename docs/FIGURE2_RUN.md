@@ -252,3 +252,34 @@ native requeues; newly submitted jobs need the explicit flag. This is queue
 preference within Slurm's site rules, not preemption of already running work or
 a guarantee of immediate capacity. Engaging priorities are unchanged. Restore
 the two changed jobs' original Nice values if they survive the reproduction.
+
+## Engaging checkpoint continuation (2026-10-07)
+
+Both CSAIL training jobs were preempted again at 03:16 / 03:29 PDT, after logging
+Solo step 136 and Tandem step 86. Their latest complete checkpoints are steps
+120 and 80. The user authorized rsync transfer of those latest checkpoints.
+A direct Duo-authenticated CSAIL→Engaging connection avoids the slow laptop relay;
+source files are pinned with hard links so later CSAIL checkpoint retention cannot
+remove the transferred versions. Optimizer, RNG/scheduler and dataloader state
+travel with the model. Scientific settings remain unchanged.
+
+Both imported checkpoints were also their run's best validation checkpoints.
+A migration receipt records the source verifier result, verified three-step smoke
+run and SHA256 of each original metric log. On Engaging, the verifier checks these
+hashes, preserves the source-verified step-20 metric gap, and compares the retained
+best checkpoint with every new validation checkpoint. Inferior historical weights
+are not transferred. Unsaved steps will be replayed. Original logs are retained,
+and new attempts replace abandoned steps through the existing merge logic.
+
+Engaging runs use the pinned patched training environment and working CUDA devel
+container, six CPUs/144 GiB per arm, one Solo GPU or two Tandem GPUs (one trainable
+rank plus frozen junior). Both normal/preemptible routes remain eligible with
+six-hour chunks; save every ten steps, validate every twenty, and resume before
+walltime from complete checkpoints. Recovery is bounded at eight restarts for
+this migration, allowing the longer Tandem run to span allocations.
+
+A CPU gate waits for successful transfer, verifies datasets/checkpoint history,
+and preserves the imported HF weights independently of checkpoint retention.
+Only then can GPU training start. CPU checkpoint selection follows both runs;
+four independent GPU evaluation phases reuse the completed frozen-base evaluation,
+then a CPU job renders Figure 2. CSAIL jobs remain queued during migration.
