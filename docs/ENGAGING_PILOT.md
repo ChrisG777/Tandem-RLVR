@@ -129,15 +129,21 @@ queued (a temporary hold was released at the user's request).
 |---|---|
 | 25123090 | CPU pinned training environment/setup (replaces failed CPU import check 25122629) |
 | 25122707_0 | Matrix calibration using the working evaluation environment |
-| 25123206 | CPU calibration gate and full dataset integrity check |
-| 25123207_0–1 | Solo RL, 2,048 / 3,072 tokens, 100 updates each |
-| 25123208_0–1 | CPU final checkpoint/metric verification |
-| 25123209 | Matched frozen-base evaluation |
-| 25123212_0–1 | Matched trained-policy evaluations |
-| 25123213 | CPU metrics and blinded trace-review preparation |
+| 25124017 | CPU calibration gate and full dataset integrity check |
+| 25124018_0–1 | Solo RL, 2,048 / 3,072 tokens, 100 updates each |
+| 25124019_0–1 | CPU final checkpoint/metric verification |
+| 25124020 | Matched frozen-base evaluation |
+| 25124021_0–1 | Matched trained-policy evaluations |
+| 25124022 | CPU metrics and blinded trace-review preparation |
 
-Submitted from `4f0c902`; all dependent stages use successful local Slurm
-prerequisites. The setup retry was running at the submission audit; GPU
-calibration was waiting for the per-user GPU cap. Both training arms and their
-checks/evaluations were pending dependencies. GPU allocation is not yet proof
-of successful training. Figure 2 base evaluation 25119987 remains active on Engaging.
+Submitted from `e8ed77d`; all dependent stages use successful local Slurm
+prerequisites. Setup **completed**, including pinned fork imports and **57 passing
+tests**. Its first retry exposed a test-isolation bug (the simulated host wrapper
+inherited the container-active flag); fixing the test and requeuing setup resolved
+it. The original dependent submissions (25123206–25123213) auto-cancelled and were
+replaced by the IDs above; none consumed GPU time.
+
+At the final audit, calibration was pending the per-user GPU cap, and both
+training arms and their checks/evaluations were pending valid dependencies.
+Training has not started yet. Figure 2 base evaluation 25119987 remains active
+on Engaging. No CSAIL jobs were modified during this migration.
