@@ -37,6 +37,7 @@ budgets test whether useful opaque conventions emerge before adding Tandem arms.
 | [Reward](reward/shorthand_reward.py) | Task/response/target → binary correctness and format diagnostics |
 | [Submit pilot](slurm/submit-shorthand.sh) | CSAIL paths/calibration job → four solo runs, evaluations, and review artifacts |
 | [Calibration/training checks](train/check_shorthand.py) | Calibration or training artifacts → verified gate status |
+| [Calibration array](slurm/shorthand-calibrate.sbatch) | Site paths and task index 0–1 → independent larger-budget calibration traces ([setup](slurm/shorthand-calibration-setup.sh)) |
 | [Evaluate](eval/shorthand.py) | Checkpoint/test split/budget → solo traces and metrics |
 | [Prepare review](eval/review_shorthand.py) | Completed evaluations → paired metrics, blinded traces, and authorship key |
 
