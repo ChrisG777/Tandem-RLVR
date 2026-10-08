@@ -1,0 +1,79 @@
+{
+  "status": "partial_blinded_review",
+  "reviewer": "Codex qualitative semantic review; not a human comprehension study",
+  "recorded_at": "2026-10-08T10:35:00-07:00",
+  "source": "/orcd/scratch/orcd/013/cge7/tandem-rlvr/matrix-pilot-20261007/review/blinded_pairs.jsonl",
+  "source_sha256": "cf83c39cd52809889cdcfe2c71a1cf71efb88795da2e4c481e32226df4bdc18a",
+  "source_pairs": 128,
+  "reviewed_pairs": 4,
+  "answer_key_read": false,
+  "next_pair": "pair-0004",
+  "rubric": "docs/SHORTHAND_EXPERIMENT.md#how-to-decide-whether-jargon-emerged",
+  "shared_observation": "Across these four pairs, step labels, explicit matrix states, arrows, transpose and row/column reversals recur coherently. These are prompt-defined or conventional mathematics, not opaque learned conventions. Recoverability is the reviewer's judgment; no independent reader was tested. Do not infer authorship or generalize to unreviewed pairs.",
+  "ratings": [
+    {
+      "id": "pair-0000",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Conventional matrix rows, arrows, row/column indices and a coordinate transformation expression; operations are explained in ordinary language.",
+        "recoverability": "Meaning is recoverable from the prompt and explicit matrices. Several equivalent explanations of 180-degree rotation repeat rather than introduce an encoding.",
+        "reasoning": "Trace truncates during operation 11 of 17; saved accuracy 0 and no answer. A reader could continue from the shown matrix using the supplied operations."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Prompt-defined transformations, explicit matrices and ordinary replacement arrows; no omitted private definition.",
+        "recoverability": "All operations can be followed directly. Transpose dimensions are checked repeatedly in prose.",
+        "reasoning": "Completes all 17 operations and gives the target matrix; saved accuracy 1. Reduced repetition accompanies completion but is not jargon."
+      }
+    },
+    {
+      "id": "pair-0001",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Explicit matrices and standard transpose/reversal descriptions; the 270-degree rotation formula is corrected in prose.",
+        "recoverability": "Definitions and displayed intermediate states suffice to follow the calculation without an extra codebook.",
+        "reasoning": "Reaches the correct tagged final matrix at the 2048-token boundary; finish_reason is length but answer_present and accuracy are 1."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Row lists, conventional matrix dimensions and restated prompt definitions. No novel compact terms.",
+        "recoverability": "Recoverable despite redundant self-questioning about a symmetric row and matrix dimensions.",
+        "reasoning": "Truncates during the no-op mapping of 4 to 7 (its step 9, prompt operation 10); no final answer and saved accuracy 0. Repetition consumes the budget."
+      }
+    },
+    {
+      "id": "pair-0002",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Conventional matrix states and verbal operation definitions; anti-diagonal is explicitly related to the prompt's counterdiagonal.",
+        "recoverability": "The intended operations are recoverable. The claim that reversing rows or columns after transposition gives the same rotation is an ordinary incorrect statement, not a coherent new convention.",
+        "reasoning": "Displayed calculation reaches operation 14 before truncation, without final answer; saved accuracy 0."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Standard arrows and full matrices, with explicit definitions of rotations and mirrors.",
+        "recoverability": "Recoverable from shown operations. The mistaken no-zero claim at operation 13 is immediately corrected to map the visible zero to six.",
+        "reasoning": "Reaches operation 17 but truncates before completing it; saved accuracy 0 and no final answer. Greater progress is not evidence of an opaque convention."
+      }
+    },
+    {
+      "id": "pair-0003",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Prompt-defined mirrors, explicit rows and lettered substeps; all labels are locally explained.",
+        "recoverability": "Intended meaning is clear, but operation 3 copies the wrong row while reversing columns, introducing numerical errors. This is a calculation/copy error, not an encoding.",
+        "reasoning": "Subsequent states propagate errors and the trace truncates in operation 8; saved accuracy 0. A reader can identify the error from the previous matrix."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Explicit matrix states, standard rotation equivalences and lettered substeps, without hidden definitions.",
+        "recoverability": "Meaning is recoverable. Rotation wording briefly contradicts itself but is resolved by an explicit correct procedure.",
+        "reasoning": "Calculations advance through operation 11 and into 12 before truncation; no tagged answer and saved accuracy 0."
+      }
+    }
+  ]
+}

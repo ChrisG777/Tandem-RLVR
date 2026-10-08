@@ -1,5 +1,40 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 10:35 PDT
+
+Live `squeue`/`scontrol` and duplicate-aware `sacct -D` agree: Tandem
+**25248795** is running on node5106, restart 2, with metrics through **193/200**
+and committed resume **step 190**. Observed losses/gradients remain finite;
+step-193 senior-token fraction is 0.504316. The step-190 model, optimizer,
+extra-state and dataloader ZIP structures pass inspection; the most recent
+validation HF weights (step 180) pass the existing safetensors verifier.
+These are structural checks, not a full tensor reload.
+
+Solo remains successfully complete. Re-running the existing verifier selects
+**step 160**, whose resolved path differs from final manifest **step 200**.
+Final jobs **25299322/25299323** are running without restarts and have saved
+**160 solo / 64 handoff problems**, respectively, at 10:35 PDT. All saved
+identities are unique and have the required 32 / 8 samples. Neither evaluation
+is complete. The completed Solo curves already contain step-200 validation;
+no new training record requires another plot refresh.
+
+Selection **25248797** waits only for Tandem. The four best-validation
+evaluations still depend on successful selection, and **25248804** depends on
+all four evaluations. No job replacement or dependency repair is needed.
+Before consuming the generated manifest, confirm its GRPO entry still matches
+the verified step-160 selection; retain the final/best distinction.
+
+Quota report timestamp **10:19 PDT**: scratch 785.6/1024 GB, pool 651.7/1024 GB,
+home 103.4/200 GB. Reported headroom remains adequate, allowing for report lag.
+Direct SSH still fails authentication after scoped sandbox escalation; the
+existing authenticated CSAIL-to-Engaging relay succeeds. No Duo push was sent.
+
+Pilot compute stages remain completed. Blinded semantic review has begun:
+four of 128 pairs are recorded in the [review ledger](../results/pilot-review/blinded-ratings-20261008.json).
+The answer key remains unread and no learned-jargon conclusion is available.
+Keep the existing timer enabled for training, both evaluation selections,
+Figure 2 export and the remaining semantic review.
+
 ## Scheduled check: 2026-10-08 09:59 PDT
 
 Solo **25248796 completed successfully at 09:29 PDT**, including final

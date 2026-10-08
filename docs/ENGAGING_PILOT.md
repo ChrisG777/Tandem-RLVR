@@ -6,6 +6,27 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 10:35 PDT
+
+Live queue and historical accounting still confirm all pilot compute stages
+completed successfully; no jobs were resubmitted. Started the required blinded
+semantic review and recorded pairs **0000–0003** in a
+[review ledger](../results/pilot-review/blinded-ratings-20261008.json), keyed to
+the SHA256 of the unchanged 128-pair source. This is an incremental review,
+**4/128 pairs complete**, with no unblinding or population conclusion.
+
+All eight inspected traces use prompt-defined matrix operations, conventional
+notation and explicit intermediate matrices. Their differences concern
+repetition, calculation errors and reaching the answer before truncation;
+none of these four pairs supplies an opaque task-useful convention. This is
+an assistant's qualitative reading, not an independent reader-comprehension
+measurement or evidence that the remaining traces lack jargon.
+
+Continue at **pair-0004**, apply all four rubric questions, and preserve A/B
+blinding until ratings for all 128 pairs are written. Then consult the answer
+key to compare prevalence within each matched comparison and sampling subset.
+Do not rerun completed training/evaluation or infer model identity from style.
+
 ## Scheduled check: 2026-10-08 09:11 PDT
 
 Rechecked at **09:59 PDT** through the authenticated CSAIL-to-Engaging fallback:
