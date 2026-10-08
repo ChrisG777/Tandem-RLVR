@@ -1,5 +1,39 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 11:15 PDT
+
+Tandem **25248795** has committed **step 200** and is running final validation
+on node5106 (restart 2). Metrics are complete through **199/200**, with finite
+observed losses/gradients and step-199 senior-token fraction **0.499651**.
+The step-200 model, optimizer, extra-state and dataloader ZIP structures and HF
+safetensors pass structural checks. Final validation and successful job exit
+remain necessary before declaring training complete; no partial save was promoted.
+
+Solo remains complete, and the existing verifier again selects **step 160**,
+distinct from the final manifest's **step 200**. Its full curves already contain
+the final validation record and need no refresh. At **11:14 PDT**, final jobs
+**25299322/25299323** have **400 solo / 128 handoff problems** saved, respectively.
+Saved identities are unique, each has the expected 32 / 8 samples, and both
+progress files report zero unfinished chains. Both jobs remain running without
+restarts; these counts are partial evaluation progress, not final scores.
+
+Live queue/control and historical `sacct -D` agree. Selection **25248797** still
+waits on Tandem, all four best-validation evaluations wait on selection, and
+plot **25248804** waits on those evaluations. No new failure, replacement or
+dependency repair was needed. Confirm the generated manifest's GRPO path is
+the verified step-160 path before using the best-validation outputs; the
+step-160 and step-200 evaluations are distinct work.
+
+Quota report timestamp **10:49 PDT**: scratch **785.6/1024 GB**, pool
+**651.7/1024 GB**, home **103.4/200 GB**. Reported headroom remains adequate,
+subject to report lag. Direct SSH fails authentication after scoped escalation;
+the existing authenticated CSAIL-to-Engaging relay works. No Duo push was sent.
+
+Pilot compute remains completed. Blinded review now covers **8/128 pairs**;
+continue at **pair-0008** without opening the answer key. The timer remains
+enabled for final Tandem validation, both evaluation selections, Figure 2
+export and the remaining semantic review.
+
 ## Scheduled check: 2026-10-08 10:35 PDT
 
 Live `squeue`/`scontrol` and duplicate-aware `sacct -D` agree: Tandem

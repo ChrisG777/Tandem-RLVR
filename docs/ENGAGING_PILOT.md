@@ -6,6 +6,24 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 11:15 PDT
+
+Live queue and historical accounting confirm the pilot training, checks,
+evaluations and review preparation remain successfully completed. No pilot
+compute was rerun. Continued blinded semantic review with **pairs 0004–0007**;
+the [ledger](../results/pilot-review/blinded-ratings-20261008.json) now records
+**8/128 pairs**, all against the unchanged source SHA256. The answer key remains
+unread; continue at **pair-0008**.
+
+The new pairs use explicit matrices and conventional transformations. One trace
+explains the conventional term "involution"; another illustrates alternating
+states using A/B labels. Neither needs a private definition. Wrong answers
+include a skipped final mirror and a copied incorrect intermediate state;
+other traces truncate. These observations do not establish learned jargon or
+population prevalence. Each new rating records notation, recoverability,
+recurrence and reasoning; reader recoverability remains the assistant's
+judgment, not a measured independent-reader result.
+
 ## Scheduled check: 2026-10-08 10:35 PDT
 
 Live queue and historical accounting still confirm all pilot compute stages

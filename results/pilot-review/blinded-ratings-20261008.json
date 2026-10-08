@@ -1,15 +1,15 @@
 {
   "status": "partial_blinded_review",
   "reviewer": "Codex qualitative semantic review; not a human comprehension study",
-  "recorded_at": "2026-10-08T10:35:00-07:00",
+  "recorded_at": "2026-10-08T11:15:00-07:00",
   "source": "/orcd/scratch/orcd/013/cge7/tandem-rlvr/matrix-pilot-20261007/review/blinded_pairs.jsonl",
   "source_sha256": "cf83c39cd52809889cdcfe2c71a1cf71efb88795da2e4c481e32226df4bdc18a",
   "source_pairs": 128,
-  "reviewed_pairs": 4,
+  "reviewed_pairs": 8,
   "answer_key_read": false,
-  "next_pair": "pair-0004",
+  "next_pair": "pair-0008",
   "rubric": "docs/SHORTHAND_EXPERIMENT.md#how-to-decide-whether-jargon-emerged",
-  "shared_observation": "Across these four pairs, step labels, explicit matrix states, arrows, transpose and row/column reversals recur coherently. These are prompt-defined or conventional mathematics, not opaque learned conventions. Recoverability is the reviewer's judgment; no independent reader was tested. Do not infer authorship or generalize to unreviewed pairs.",
+  "shared_observation": "Across these eight pairs, step labels, explicit matrix states, arrows, transpose and row/column reversals recur coherently. These are prompt-defined or conventional mathematics, not opaque learned conventions. Recoverability is the reviewer's judgment; no independent reader was tested. Do not infer authorship or generalize to unreviewed pairs.",
   "ratings": [
     {
       "id": "pair-0000",
@@ -73,6 +73,78 @@
         "notation": "Explicit matrix states, standard rotation equivalences and lettered substeps, without hidden definitions.",
         "recoverability": "Meaning is recoverable. Rotation wording briefly contradicts itself but is resolved by an explicit correct procedure.",
         "reasoning": "Calculations advance through operation 11 and into 12 before truncation; no tagged answer and saved accuracy 0."
+      }
+    },
+    {
+      "id": "pair-0004",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Explicit matrix indices and the formula N[i][j] = M[3-j][3-i]; involution is immediately explained as applying twice gives identity.",
+        "recoverability": "Definitions and all intermediate entries are explicit. Long discussion of counterdiagonal reflection does not introduce a private codebook.",
+        "recurrence": "Matrix displays and explained index transformations match ordinary notation in earlier pairs; no recurrent opaque convention is apparent.",
+        "reasoning": "Truncates while introducing operation 6 of 13, with no tagged answer and saved accuracy 0. The shown state permits continuing the computation."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Prompt-defined operation names, replacement arrows and full matrices; all meanings are stated.",
+        "recoverability": "A transpose-copy error in operation 2 is explicitly corrected from 7 4 8 6 to 7 5 8 6. This is an ordinary correction, not an encoding.",
+        "recurrence": "The same explicit step-and-matrix presentation recurs across the reviewed pairs; no omitted private definition recurs.",
+        "reasoning": "Advances into operation 10 before truncation; no tagged answer and saved accuracy 0. Greater progress within the budget does not establish jargon."
+      }
+    },
+    {
+      "id": "pair-0005",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Conventional rotation equivalences, transpose and explicit matrix states, with no compact invented terms.",
+        "recoverability": "Initial uncertainty about 270-degree rotation and a copied row are corrected in prose. Subsequent intended operations are recoverable.",
+        "recurrence": "Repeated transformation descriptions use the same prompt-defined meanings seen in other pairs; no opaque convention recurs.",
+        "reasoning": "Stops with a tagged wrong answer after operation 15, omitting the fifth final horizontal mirror (operation 16). Saved accuracy 0; a reader can identify and apply the missing operation."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Uses A and B as locally interpretable placeholders for two alternating transpose states, alongside explicit matrices.",
+        "recoverability": "The A/B alternation is followed by the actual states at operations 6-8. Rotation definitions are repetitive but understandable.",
+        "recurrence": "The alternating-state shorthand is conventional and locally illustrated; it is not evidence of a cross-example opaque vocabulary.",
+        "reasoning": "Truncates during operation 11 with no answer and saved accuracy 0. Explicit state and remaining prompt operations allow continuation."
+      }
+    },
+    {
+      "id": "pair-0006",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Conventional row/column indices, replacement arrows and full matrices; transformation rules are restated.",
+        "recoverability": "The trace is explicit enough to follow, although it repeatedly explains the counterdiagonal operation.",
+        "recurrence": "The same conventional notation and redundant definitions recur in the other reviewed traces, without a hidden encoding.",
+        "reasoning": "Truncates in operation 13 while listing columns for the transpose. No tagged answer and saved accuracy 0; the calculation can be continued from those columns."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Prompt-defined operations and explicit matrices, without omitted definitions or novel symbols.",
+        "recoverability": "Operation 11 claims to reverse each row but instead shows the earlier operation-9 matrix, reversing row order relative to the expected result. The numerical inconsistency is inspectable.",
+        "recurrence": "This is a state-copy/calculation error within conventional notation, not a coherent alternative convention recurring across examples.",
+        "reasoning": "Completes all 16 operations with a tagged but incorrect matrix; saved accuracy 0. A reader can locate the first incorrect state and recompute onward."
+      }
+    },
+    {
+      "id": "pair-0007",
+      "subset": "uniform",
+      "A": {
+        "opaque_task_useful_convention": false,
+        "notation": "Full matrices, conventional transformation names and explicitly explained replacement operations.",
+        "recoverability": "Each operation is connected to its preceding and resulting matrix; no extra codebook is needed.",
+        "recurrence": "The same transparent step labels and matrix displays recur across reviewed examples; no opaque convention appears.",
+        "reasoning": "Completes all 15 operations and gives the target tagged matrix; saved accuracy 1. Correct reasoning here uses ordinary notation."
+      },
+      "B": {
+        "opaque_task_useful_convention": false,
+        "notation": "Conventional row lists, arrows, full matrices and zero-based operation labels, with explicit definitions.",
+        "recoverability": "At its step 5 (prompt operation 6), it reverses entries in each row while claiming a horizontal mirror. This contradicts its own definition, rather than expressing a hidden convention.",
+        "recurrence": "The inconsistent horizontal-mirror calculation is not a coherent new rule; surrounding traces use the prompt's conventional meaning.",
+        "reasoning": "Truncates at its step-13 heading, before finishing the last two prompt operations; no answer and saved accuracy 0. Earlier state error remains visible to a reader."
       }
     }
   ]
