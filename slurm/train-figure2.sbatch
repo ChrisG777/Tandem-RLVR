@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gpus=2
 #SBATCH --cpus-per-task=6
-#SBATCH --mem=144G
+#SBATCH --mem=160G
 #SBATCH --time=24:00:00
 #SBATCH --requeue
 #SBATCH --signal=B:USR1@300
@@ -58,6 +58,8 @@ bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
     "ray_kwargs.ray_init.num_cpus=${SLURM_CPUS_PER_TASK}" \
     actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 \
     actor_rollout_ref.rollout.top_k=-1 trainer.resume_mode=auto \
-    "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" "${EXTRA[@]}"
+    "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" "${EXTRA[@]}" &
+TRAIN_PID=$!
+wait "$TRAIN_PID"
 run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" \
     --mode "$MODE"
