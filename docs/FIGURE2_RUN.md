@@ -1,5 +1,51 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 12:32 PDT
+
+**Both reproduction arms have completed 200 steps and final validation.**
+Tandem **25248795** completed successfully at **12:10:38 PDT**; selection
+**25248797** completed at **12:11:23 PDT**. Live queue/control and duplicate-aware
+historical accounting agree. Re-running the existing verifier passes both arms;
+Tandem's documented missing metric steps 20 and 160 remain explicit, not imputed.
+Both step-200 commit markers, four resume-state ZIP structures per arm, and final
+HF safetensors pass structural checks (not a full tensor reload).
+
+| Arm | Best-validation selection | Final step-200 validation pass@4 |
+|---|---|---|
+| Solo GRPO | Step 160, 67.3520% | 67.2548% |
+| Tandem | Step 180, 65.6210% | 64.4738% |
+
+The generated `models.json` selects these verified paths. Its resolved GRPO
+checkpoint differs from `models-final-grpo.json` step 200, confirming the two
+evaluation selections are distinct. Keep both chains. The existing full Solo
+curves already include final validation and require no refresh. Tandem's final
+senior-token fraction is 0.505932; observed losses/gradients pass finite checks.
+
+At **12:29 PDT**, final jobs **25299322/25299323** have saved **560 solo / 336
+handoff problems**. Best-validation jobs **25248799/25248800/25248802** began at
+12:12:23 PDT and have saved **48 GRPO solo / 48 Tandem solo / 16 GRPO handoff
+problems**. All saved identities are unique, sample counts are 32 solo / 8
+handoff, and unfinished-chain counts are zero. These are partial counts, not
+final benchmark scores. Recent logs show no new application errors.
+
+Tandem handoff **25248803** is eligible and waiting on `QOSMaxGRESPerUser`;
+plot **25248804** retains successful dependencies on all four best-validation
+evaluations. No jobs were replaced, requeued manually, or duplicated. All five
+running evaluations have zero restarts. The final jobs' current six-hour limits
+end at **15:16:35 PDT**; check progress before then and, if continuation is needed,
+preserve complete batches and job dependencies. The launcher resumes batches on
+restart but does not install a pre-walltime requeue trap; native `--requeue`
+alone does not handle timeout. Do not launch a concurrent replacement.
+
+Quota timestamp **12:20 PDT**: scratch **785.6/1024 GB**, pool **666.5/1024 GB**,
+home **103.4/200 GB**. Reported headroom is adequate subject to report lag.
+Direct SSH still fails authentication after scoped escalation; the authenticated
+CSAIL-to-Engaging relay works. No Duo push or CSAIL job action occurred.
+
+Pilot compute remains complete, and blinded review now covers **16/128 pairs**;
+continue at **pair-0016**, with the answer key unread. Keep the existing timer
+enabled for both evaluation selections, Figure 2 export and remaining review.
+
 ## Scheduled check: 2026-10-08 11:49 PDT
 
 Tandem **25248795** remains in final step-200 validation on node5106,

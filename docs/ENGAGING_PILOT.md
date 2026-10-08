@@ -6,6 +6,23 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 12:32 PDT
+
+Live queue and duplicate-aware accounting confirm all pilot compute stages
+remain completed; no jobs were rerun. Reviewed **pairs 0012–0015**, bringing the
+[blinded ledger](../results/pilot-review/blinded-ratings-20261008.json) to
+**16/128 pairs** against the unchanged source SHA256. Continue at **pair-0016**;
+the answer key remains unread.
+
+These four pairs are in the **both-correct selected subset**. They use explicit
+matrices, conventional indices and explained transformations. Pair 0012-A
+contains a correct tagged answer despite its length finish reason. Pair 0013-A
+corrects an incomplete counterdiagonal definition before calculating; pair
+0015-B corrects an omitted matrix row. These are recoverable explanations and
+visible corrections, with no opaque task-useful convention identified. This
+is partial qualitative review, not a population conclusion or an independent
+reader-comprehension measurement.
+
 ## Scheduled check: 2026-10-08 11:49 PDT
 
 Live queue and duplicate-aware accounting still confirm successful completion
