@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+import textwrap
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -19,6 +21,24 @@ def patched_function():
 
 
 class CheckpointStorage(unittest.TestCase):
+    def test_resume_adopts_old_states_but_not_future_partial_checkpoints(self):
+        text = (Path(__file__).resolve().parents[1] / "third_party/verl-tandem.patch").read_text()
+        section = text.split("diff --git a/verl/utils/checkpoint/fsdp_checkpoint_manager.py", 1)[1]
+        added = textwrap.dedent("\n".join(line[1:] for line in section.splitlines()
+                                        if line.startswith("+") and not line.startswith("+++")))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for step in (10, 20, 60, 70):
+                path = root / f"global_step_{step}"
+                path.mkdir()
+                (path / "data.pt").write_bytes(b"saved loader")
+                if step != 20:  # a checkpoint whose actor was already rotated out
+                    (path / "actor").mkdir()
+            state = SimpleNamespace(rank=0)
+            exec(added, {"self": state, "local_path": str(root / "global_step_60/actor")})
+            self.assertEqual(state.previous_saved_paths,
+                             [str(root / f"global_step_{step}/actor") for step in (10, 60)])
+
     def test_rotation_keeps_weights_without_duplicate_blocks(self):
         with tempfile.TemporaryDirectory() as directory:
             actor = Path(directory) / "global_step_20/actor"
