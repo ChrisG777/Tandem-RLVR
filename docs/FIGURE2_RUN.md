@@ -1,5 +1,37 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Solo final-checkpoint evaluation: 2026-10-08 09:16 PDT
+
+The user requested full Solo curves and evaluation of its final model. The
+step-200 commit marker, dataloader state, model/optimizer/extra-state files and
+HF safetensors structure were verified; training was still finishing its final
+validation, so the monitoring snapshot has all steps 1–199 and validation through
+180. [Solo curves](../results/training-progress/solo-20261008.png),
+[summary](../results/training-progress/solo-20261008.json) and the timestamped
+source snapshot are under `results/training-progress/`.
+
+Independent Engaging jobs **25299322** (`grpo-solo`, 32 samples/problem) and
+**25299323** (`grpo-handoff`, 8 samples/problem) evaluate immutable step-200
+weights. Both were submitted with no training dependency and were pending
+priority at the submission check. They use one compatible GPU, four CPUs,
+48 GiB RAM, six hours, native requeue and per-batch evaluation progress across
+`mit_normal_gpu,mit_preemptable`; only incompatible L4 nodes are excluded.
+The existing decoding settings, benchmark splits and frozen base are unchanged.
+
+Manifest: recovery `reproduction/models-final-grpo.json`; outputs:
+`reproduction/eval-final-grpo/grpo/{solo,handoff}.json`; logs:
+`logs/final-grpo-{solo,handoff}-JOB.out`. This is **final-checkpoint** evaluation,
+distinct from the still-pending best-validation reproduction chain. Preserve
+that distinction in comparisons. If best validation selects step 200, reuse the
+matching completed final evaluation instead of performing duplicate work. The
+user was asked whether to retain the best-checkpoint comparison as well; no
+answer had arrived at submission, so its existing dependent jobs were unchanged.
+
+The evaluation launcher now accepts manifests containing only the base and the
+arm required by its phase. Per-job model-path files avoid concurrent phases
+overwriting one another. Shell syntax and diff checks passed; the final jobs'
+GPU execution is pending.
+
 ## Scheduled check: 2026-10-08 09:11 PDT
 
 The authenticated `orcd-login` connection works with scoped automatic approval;
