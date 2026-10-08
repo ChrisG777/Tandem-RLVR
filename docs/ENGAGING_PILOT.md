@@ -6,6 +6,43 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 09:11 PDT
+
+SSH access is restored through scoped automatic approval. Both arms reached
+100/100 steps and passed their fixed-final-checkpoint checks. Live queue and
+historical accounting confirm the following completed chain:
+
+| Work | Job | Completion (PDT, October 8) |
+|---|---|---|
+| 2,048-token training | 25248946_0 | 07:43:50, after five native/walltime restarts |
+| 3,072-token training | 25248946_1 | 02:31:55 |
+| Checkpoint checks | 25248947_0 / _1 | 07:44:41 / 02:33:03 |
+| Trained evaluations | 25248948_0 / _1 | 08:47:27 / 04:25:46 |
+| Review preparation | 25248949 | 08:48:42 |
+
+All 12 evaluation outputs (four base and eight trained) contain 256 problems
+and four samples per problem. All observed training losses/gradients are finite;
+both step-100 commit markers, model/optimizer/RNG/data archive structures and
+final HF weights pass structural inspection. Verified validation pass@4 is
+0.9634140625 (2,048-trained) and 0.9857265625 (3,072-trained).
+
+Descriptive per-sample test accuracy, from `review/metrics.json`:
+
+| Split / evaluation budget | Base | Trained at 2,048 | Trained at 3,072 |
+|---|---:|---:|---:|
+| Test / 2,048 | 34.28% | 90.33% | 59.96% |
+| Test / 3,072 | 68.46% | 94.14% | 92.38% |
+| Longer composition / 2,048 | 3.81% | 47.85% | 7.13% |
+| Longer composition / 3,072 | 33.30% | 83.30% | 58.20% |
+
+`review/blinded_pairs.jsonl` contains 128 pairs for all eight matched comparisons.
+**Semantic review is still required** using the [documented rubric](SHORTHAND_EXPERIMENT.md#how-to-decide-whether-jargon-emerged),
+before consulting `review/answer_key.json`. The completed CPU job prepares that
+review; it does not perform it. Accuracy/length changes do not establish learned
+jargon, and this remains a single-seed exploratory pilot. Do not retrain or rerun
+completed evaluations. Preserve all artifacts under the existing campaign root;
+the overall timer remains enabled for reproduction and unfinished semantic review.
+
 ## Active matrix pilot (2026-10-07)
 
 CSAIL calibration 2581354 completed. Matrix accuracy/completion were 41.0%/47.3%

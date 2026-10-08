@@ -1,5 +1,76 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 09:11 PDT
+
+The authenticated `orcd-login` connection works with scoped automatic approval;
+the 09:03 sandbox failure below is superseded. No Duo renewal was needed.
+Engaging remains the sole execution cluster. No job IDs were replaced.
+
+| Work | Live evidence |
+|---|---|
+| Tandem 25248795 | Running on node5106, two RTX Pro 6000 GPUs, restart 2. Committed step 180/200; metrics through 179 while validation runs. |
+| Solo 25248796 | Running on node4004, one RTX Pro 6000 GPU, restart 1. Committed step 200/200; metrics through 199 while final validation runs. This is not yet verified completion. |
+| Selection 25248797 | Valid `afterok` dependencies on both training jobs. |
+| Evaluations 25248799/25248800/25248802/25248803 | Valid `afterok` dependency on selection. |
+| Plot 25248804 | Valid `afterok` dependencies on all four evaluations. |
+| Matrix pilot | Both 100-step arms, checks, evaluations and review preparation completed; semantic review remains outstanding. See [pilot results](ENGAGING_PILOT.md#scheduled-check-2026-10-08-0911-pdt). |
+
+Historical `sacct -D` preemptions and the 05:54:33 Tandem allocation ending in
+REQUEUED agree with live restarts; they are not new application failures.
+Tandem's current load log confirms restoring model, optimizer, RNG and scheduler
+from step 160. Recent observed losses/gradients are finite; step-179 senior-token
+fraction is 0.50588. At 09:10 PDT both Tandem GPUs were active (36%/33% utilization).
+The long step-180 validation has not emitted its final metric yet; inspect its
+progress at the next check rather than claiming a completed step from the save.
+
+Checkpoint audit: latest committed model/optimizer/extra-state/dataloader files
+are present with readable ZIP structures for both reproduction and both pilot
+arms. Retained validation HF files pass the existing safetensors checks. These
+are structural checks, not a full tensor reload/bytewise checksum. The old Solo
+`hf/global_step_130` from the quota failure remains invalid and preserved; it is
+not a validation candidate or a current resume checkpoint. Historical
+`selected.json` files still describe step 120 and must not be used as final
+selections.
+
+Fixed a forthcoming verification failure in `f5ce275`: resume-evidence matching
+now accepts a logged absolute storage alias only when it resolves to the exact
+expected checkpoint file. Eleven focused tests pass locally and on Engaging,
+including rejection of an alias redirected to another run. Pushed to reproduction
+`main` and deployed by Git fast-forward. Recorded
+`tandem-full/resume-evidence/step-160.json` from the actual four load messages
+and adjacent attempts. Step-160 metrics/validation remain explicitly missing
+and are excluded from selection; no values were imputed. The imported step-20
+gap remains covered by its migration receipt.
+
+Quota report timestamp **08:47:18 PDT**, observed at 09:05 PDT: scratch
+785.3/1,024 GB (76.68%), pool 635.4/1,024 GB (62.05%), home 103.4/200 GB.
+This leaves reported scratch/pool margins of 238.7/388.6 GB, subject to report
+lag and intervening writes. No data was deleted or moved during this check.
+Keep the existing timer enabled: reproduction training/selection/evaluation/export
+and pilot semantic review remain incomplete.
+
+## Scheduled check: 2026-10-08 09:03 PDT — access blocked
+
+The independent scheduled monitor found no `latest-status.md` in
+`~/Library/Logs/tandem-rlvr-monitor/`. It read the campaign documents and shared
+allocation/cluster guides, then tried `ssh orcd-login` with batch authentication.
+The session sandbox denied access to the local ControlMaster socket
+(`Operation not permitted`); hostname resolution also failed. The authorized
+CSAIL-to-Engaging fallback could not reach CSAIL because its local ControlMaster
+socket was likewise denied. Neither attempt reached a cluster command.
+
+Live queue/accounting, training metrics, checkpoint integrity, dependencies and
+the timestamped scratch/pool quota report are **unverified at this check**. The
+recovery status below is historical evidence, not a fresh observation. No jobs,
+experimental data, authentication settings or timer configuration were changed;
+no Duo push was sent. Authentication expiry has not been established. Completion
+cannot be established, so the existing timer remains enabled. Cluster inspection
+requires a session with permitted access to the existing SSH connections; do not
+infer a training failure or submit replacements from this access failure.
+
+At that check this entry remained local pending Git publication. Scoped automatic
+approval restored access at the next check above; both records are now published.
+
 ## Failure recovery: 2026-10-08 Pacific
 
 **Current execution: Engaging only.** At 00:32 PDT the user ended the earlier
