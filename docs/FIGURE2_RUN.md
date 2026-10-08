@@ -27,6 +27,8 @@ chains. These counts are partial progress, not benchmark scores. Log scans show
 only the two expected preemption terminations, with no new application errors.
 Plot **25248804** retains all four successful evaluation dependencies. No manual
 requeue, replacement, duplicate evaluation or other-project job action occurred.
+At the **13:55 PDT** closing check, best Solo **25248799** had restarted on
+node2418 under its existing ID; best Tandem solo was still pending the GPU cap.
 
 **Next-check priority:** final handoff **25299323** is unlikely to finish before
 its **15:16:35 PDT** allocation limit. Inspect its valid saved batches and current
