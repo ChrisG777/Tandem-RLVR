@@ -6,6 +6,27 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 15:12 PDT
+
+Pilot compute remains complete in duplicate-aware accounting. Both step-100
+markers, four resume-state ZIP structures per arm and final HF weights pass
+structural checks. Reviewed **pair 0028**, bringing the
+[blinded ledger](../results/pilot-review/blinded-ratings-20261008.json) to
+**29/128 pairs**, against the unchanged source SHA256. Continue at **pair-0029**;
+the model-identity answer key remains unread. A larger trace read was truncated
+and access failed before the missing portions could be retrieved, so the other
+attempted pairs were not added to the ledger.
+
+Pair 0028 belongs to the **both-correct selected subset**. Both traces use full
+matrices and conventional explained transformations. A fails to reverse one
+row at step 7 and again during step 11; these errors cancel before the correct
+final answer. B follows the full sequence correctly. No opaque task-useful
+convention was identified. This remains partial qualitative review, without
+a prevalence conclusion or independent reader-comprehension measurement.
+
+The authenticated relay failed mid-check; see the access blocker and final
+Solo deadline in [Figure 2 status](FIGURE2_RUN.md). No pilot compute was rerun.
+
 ## Scheduled check: 2026-10-08 14:29 PDT
 
 Pilot compute remains complete in duplicate-aware accounting; both step-100

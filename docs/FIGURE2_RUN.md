@@ -1,5 +1,53 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 15:12 PDT — access interrupted
+
+At approximately **15:02 PDT**, live queue/control, duplicate-aware accounting,
+saved batches and logs were checked through the authenticated relay. Both
+200-step training arms and selection remain complete; the existing verifier
+selects Solo **160**, Tandem **180**. Solo best/final resolved paths differ.
+Both step-200 commit markers, four resume-state ZIP structures per arm and
+final HF weights pass structural checks (not full tensor reloads). The local
+Solo curves already contain all 200 steps and final validation.
+
+| Selection / evaluation | Job | Saved problems / 1,064 | Last verified state |
+|---|---|---:|---|
+| Final Solo / solo | 25299322 | 1,040 | Running, restart 0 |
+| Final Solo / handoff | 25299323 | 544 | Pending QOSMaxGRESPerUser, restart 1 |
+| Best Solo / solo | 25248799 | 800 | Running, restart 1 |
+| Best Tandem / solo | 25248800 | 528 | Running, restart 1 |
+| Best Solo / handoff | 25248802 | 224 | Running, restart 0 |
+| Best Tandem / handoff | 25248803 | 64 | Running, restart 0 |
+
+Every saved problem identity is unique, all samples have the expected count
+(32 solo / 8 handoff), and unfinished-chain counts are zero. These are partial
+progress counts. No new application errors appeared. Plot **25248804** retains
+its four successful-evaluation dependencies. No jobs were changed or duplicated.
+Final handoff has not yet resumed; normal GPU-cap waiting is not a failure.
+
+**Access then failed during the check.** The relay began closing connections;
+by **15:10 PDT** both local control sockets were absent. Scoped escalated direct
+Engaging SSH still returned `Permission denied (keyboard-interactive)`. The
+CSAIL jump route timed out during banner exchange; direct CSAIL port 22 refused
+connection. These are current access failures, not sandbox-only failures.
+Requested Engaging authentication renewal once; no Duo push was sent.
+
+**Urgent next action after access returns:** inspect final Solo **25299322**
+against its **15:16:35 PDT** deadline. Only 24 problems remained, so it was left
+running while other checks proceeded; completion or timeout is now unverified.
+If still running and incomplete near expiry, validate saved progress and requeue
+the same ID. If it timed out, preserve its complete batches and resume only this
+affected job after verifying it is no longer active. Do not race a replacement.
+Other current deadlines: best Solo solo **19:55 PDT**, best Tandem solo
+**20:28 PDT**, best Solo handoff **18:12 PDT**, best Tandem handoff **19:43 PDT**;
+native restarts may change them. Launcher still lacks a pre-walltime requeue trap.
+
+Quota timestamp **14:53 PDT**: scratch **785.6/1024 GB**, pool **666.6/1024 GB**,
+home **103.4/200 GB**; reported headroom is adequate subject to lag. Pilot compute
+and step-100 checkpoint structures pass checks. Blinded review is **29/128**,
+next **pair-0029**; answer key remains unread. Keep the timer enabled. This
+check's notes require deployment through Git once authenticated access returns.
+
 ## Scheduled check: 2026-10-08 14:29 PDT
 
 Both 200-step training arms and selection remain complete in duplicate-aware
