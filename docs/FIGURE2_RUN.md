@@ -1,5 +1,25 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 16:32 PDT — authentication still unavailable
+
+Direct Engaging SSH failed sandbox DNS resolution; retrying the exact read-only
+monitoring command with scoped approval reached the server but failed with
+`Permission denied (keyboard-interactive)`. The approved existing CSAIL relay
+closed with `Connection closed by UNKNOWN port 65535`. No authenticated cluster
+command succeeded. Authentication renewal remains outstanding from the earlier
+request; no new Duo push was sent. No jobs or dependencies were changed.
+
+Live queue/accounting, logs, checkpoint integrity and quotas remain unverified.
+Final Solo **25299322** is still the first recovery check: its recorded 15:16:35
+deadline has passed, and its last verified progress is **1,040/1,064** at about
+15:02. Check final handoff **25299323** and all best-validation jobs alongside
+it; preserve saved batches and confirm no active continuation before any resume.
+The last quota timestamp (14:53) is now about 99 minutes old. Local Solo plot
+artifacts remain present, and their summary confirms 200 training steps plus
+step-200 validation (67.2547548% pass@4). No plot refresh is needed. Pilot review
+remains **29/128**, awaiting inaccessible source traces. Keep the existing timer
+enabled; deploy the monitoring notes through Git when cluster access returns.
+
 ## Scheduled check: 2026-10-08 16:00 PDT — authentication still unavailable
 
 Direct `ssh orcd-login` first hit sandbox DNS restrictions; the same command
