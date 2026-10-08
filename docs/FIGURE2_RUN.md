@@ -1,5 +1,38 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 11:49 PDT
+
+Tandem **25248795** remains in final step-200 validation on node5106,
+restart 2. Metrics remain through 199, with finite observed losses/gradients
+and senior-token fraction 0.499651. Its log shows continuing validation data
+activity through 11:44 PDT; there is no new application failure. The step-200
+commit marker, four resume-state ZIP structures and HF safetensors pass
+structural inspection for both reproduction arms. Successful final validation
+and job exit are still required for Tandem completion.
+
+Solo remains complete. Re-running the verifier selects **step 160**, whose
+resolved path differs from final manifest **step 200**. Full Solo curves already
+contain the final validation record. At 11:49 PDT final evaluations
+**25299322/25299323** have saved **512 solo / 176 handoff problems**. All saved
+identities are unique, with 32 / 8 samples per problem and zero unfinished
+chains. Both jobs are running without restarts; these are partial counts.
+
+Live queue/control and duplicate-aware historical accounting agree. Selection
+**25248797** still waits on Tandem; all four best-validation evaluations and
+plot **25248804** retain their successful dependencies. No jobs were replaced
+or duplicated. Confirm the generated GRPO manifest path matches the verified
+step-160 selection when selection finishes.
+
+Quota timestamp **11:19 PDT**: scratch **785.6/1024 GB**, pool **666.3/1024 GB**,
+home **103.4/200 GB**. Headroom remains adequate subject to report lag. Direct
+SSH fails authentication after scoped escalation; the authenticated
+CSAIL-to-Engaging relay works. No Duo push or CSAIL job action occurred.
+
+Pilot compute remains completed. Blinded review now covers **12/128 pairs**;
+continue at **pair-0012**, keeping the answer key unread. The timer remains
+enabled for final Tandem validation, both evaluation selections, Figure 2
+export and remaining semantic review.
+
 ## Scheduled check: 2026-10-08 11:15 PDT
 
 Tandem **25248795** has committed **step 200** and is running final validation

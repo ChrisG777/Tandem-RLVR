@@ -6,6 +6,23 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 11:49 PDT
+
+Live queue and duplicate-aware accounting still confirm successful completion
+of all pilot compute stages. No pilot jobs were rerun. Blinded review advanced
+through **pairs 0008–0011**, bringing the [ledger](../results/pilot-review/blinded-ratings-20261008.json)
+to **12/128 pairs** against the unchanged source hash. Continue at
+**pair-0012**; the answer key remains unread.
+
+These four pairs belong to the **both-correct selected subset**, not the uniform
+sample. All use explicit matrices and conventional, explained operations.
+Pair 0009-A illustrates why correct final answers do not establish correct
+reasoning: it omits column reversal in both counterdiagonal operations, and
+the errors cancel by the final answer. Other traces correct copying or rotation
+wording errors explicitly. No opaque task-useful convention was identified in
+these pairs. This remains partial qualitative review, with no population or
+post-RL prevalence claim and no independent reader-comprehension measurement.
+
 ## Scheduled check: 2026-10-08 11:15 PDT
 
 Live queue and historical accounting confirm the pilot training, checks,
