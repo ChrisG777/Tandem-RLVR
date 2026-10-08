@@ -1,5 +1,11 @@
 # Engaging solo pilot
 
+Current instruction (2026-10-08): do not race duplicate jobs across clusters.
+Keep one submitted continuation per experiment and one downstream evaluation
+chain. Both the reproduction and matrix pilot now run only on Engaging; see
+[recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
+The earlier submissions below are historical records, not launch instructions.
+
 ## Active matrix pilot (2026-10-07)
 
 CSAIL calibration 2581354 completed. Matrix accuracy/completion were 41.0%/47.3%
@@ -42,22 +48,22 @@ CPU setup uses CUDA driver stubs only for imports; GPU jobs use the real driver
 through `--nv`. No stub path is supplied to training.
 
 Campaign: `/orcd/scratch/orcd/013/cge7/tandem-rlvr/matrix-pilot-20261007`.
-CSAIL reproduction training, checkpoint selection, and scheduler monitors stay
-on CSAIL because their live inputs and job IDs are local. No CSAIL jobs are held
-or cancelled. The remainder below is historical.
+At that submission, CSAIL reproduction training and its downstream jobs remained
+on CSAIL. This placement was superseded by the 2026-10-08 Engaging-only recovery.
+The remainder below is historical.
 
-## Earlier calibration race
+## Historical calibration submissions (superseded)
 
 The first CSAIL calibration (2565219) failed: at 256 tokens both tasks had zero
 correct/complete answers. At 1,024 tokens matrix accuracy was 3.9%, with only
 4.7% complete answers; string accuracy/completion were both zero. Dependent
 pilot jobs were automatically cancelled before training. Existing Figure 2
-training jobs are separate and are not cancelled by this race.
+training jobs were separate and were not cancelled by those submissions.
 
-Probe 2,048 and 3,072 generated tokens on the existing 64-example calibration
+Those submissions probed 2,048 and 3,072 generated tokens on the existing 64-example calibration
 split per task, four samples each, keeping the base revision, data, prompt,
 temperature 0.6, top-p 1, and evaluation seed 17 fixed. The 4,096-token inference
-context remains unchanged. Each cluster writes to its own new campaign directory.
+context remained unchanged. Each cluster wrote to its own new campaign directory.
 These are diagnostic calibration results, not extra independent scientific seeds.
 Do not launch training until a usable reward signal and completion rate are
 established; the original calibration gate remains intact.

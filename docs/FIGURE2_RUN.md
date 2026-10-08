@@ -3,7 +3,9 @@
 ## Failure recovery: 2026-10-08 Pacific
 
 **Current execution: Engaging only.** At 00:32 PDT the user ended the earlier
-cross-cluster race. CSAIL training 2596961/2596962 and downstream jobs
+cross-cluster race. Earlier race permission is withdrawn: keep one submitted
+continuation per experiment and one downstream chain across clusters.
+CSAIL training 2596961/2596962 and downstream jobs
 2596963–2596968 were cancelled and verified cancelled in Slurm; their files are
 preserved. They were redundant continuations of the same experiments from step
 120, not independent replications. Keep Engaging training 25248795/25248796 and

@@ -4,7 +4,7 @@ Update (2026-10-07 UTC): calibration 2565219 failed its scientific gate because
 the short budgets truncated almost all answers. Dependent pilot training and
 evaluation were automatically cancelled before starting. No policy was trained
 by this pilot and there is no conclusion about jargon emergence. See the
-[larger-budget calibration race](ENGAGING_PILOT.md). The table below records the
+[larger-budget calibration history](ENGAGING_PILOT.md). The table below records the
 original submissions.
 
 | Job | ID | Purpose |
