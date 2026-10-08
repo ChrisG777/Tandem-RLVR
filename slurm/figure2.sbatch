@@ -46,9 +46,10 @@ fi
 nvidia-smi > "$ROOT/gpus-${SLURM_JOB_ID}.txt"
 MODE=${MODE:-full}
 case "$MODE" in base|full|grpo-solo|tandem-solo|grpo-handoff|tandem-handoff) ;; *) echo 'Unknown evaluation mode' >&2; exit 2;; esac
-run_python -c 'import json,sys; d=json.load(open(sys.argv[1])); arms=("base",) if sys.argv[2]=="base" else ("base","grpo","tandem"); print("\n".join(d[a]["path"] for a in arms))' \
-    "${MODELS_JSON:?set MODELS_JSON to the pinned checkpoint paths}" "$MODE" > "$ROOT/model-paths.txt"
-mapfile -t MODELS < "$ROOT/model-paths.txt"
+MODEL_PATHS="$ROOT/model-paths-${SLURM_JOB_ID}.txt"
+run_python -c 'import json,sys; d=json.load(open(sys.argv[1])); mode=sys.argv[2]; required={"base","grpo","tandem"} if mode=="full" else {"base",mode.split("-")[0]}; print("\n".join(d[a]["path"] if a in required else "" for a in ("base","grpo","tandem")))' \
+    "${MODELS_JSON:?set MODELS_JSON to the pinned checkpoint paths}" "$MODE" > "$MODEL_PATHS"
+mapfile -t MODELS < "$MODEL_PATHS"
 BASE=${MODELS[0]}
 GRPO=${MODELS[1]:-}
 TANDEM=${MODELS[2]:-}
