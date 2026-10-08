@@ -1,5 +1,50 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 13:05 PDT
+
+Both 200-step training arms and selection remain successfully completed in
+duplicate-aware accounting. Re-running the existing verifier passes both arms;
+Solo selects **160**, Tandem **180**. The resolved Solo best/final manifest paths
+remain different. Step-200 commit markers, four resume-state ZIP structures per
+arm and final HF safetensors pass structural inspection, not a full tensor reload.
+The full Solo curves already include step-200 validation and need no refresh.
+
+At **13:05 PDT**, saved complete-problem counts (out of 1,064 per evaluation) are:
+
+| Selection / evaluation | Job | Saved problems | State |
+|---|---|---:|---|
+| Final Solo / solo | 25299322 | 720 | Running |
+| Final Solo / handoff | 25299323 | 480 | Running |
+| Best Solo / solo | 25248799 | 192 | Running |
+| Best Tandem / solo | 25248800 | 192 | Running |
+| Best Solo / handoff | 25248802 | 48 | Running |
+| Best Tandem / handoff | 25248803 | 0 | Pending QOSMaxGRESPerUser |
+
+Saved problem identities are unique, with 32 solo / 8 handoff samples each and
+zero unfinished chains. These are partial counts, not benchmark scores. All
+five running jobs have zero restarts; full evaluation-log error scans found no
+new application errors. Handoff logs are quiet after initialization, but their
+saved progress has advanced. Plot **25248804** retains all four successful
+evaluation dependencies. No jobs were replaced or duplicated.
+
+The final jobs end their current allocations at **15:16:35 PDT**. Handoff may
+need continuation; reassess at subsequent checks and preserve complete batches
+and dependencies. Its launcher resumes batches after restart, but has no
+pre-walltime requeue trap. Do not wait for timeout or start a concurrent copy;
+if needed, requeue the existing job before expiry after checking valid saved
+progress and the restart bound. Best-validation jobs currently end at
+**18:12:23 PDT** (subject to native preemption/requeue).
+
+Quota timestamp **12:50 PDT**: scratch **785.6/1024 GB**, pool **666.5/1024 GB**,
+home **103.4/200 GB**; reported headroom remains adequate subject to report lag.
+Direct SSH still fails authentication after scoped escalation; the existing
+authenticated CSAIL-to-Engaging relay works. No Duo push or CSAIL job action.
+
+Pilot compute remains complete; both step-100 resume archives and final weights
+pass structural checks. Blinded review now covers **20/128 pairs**; continue at
+**pair-0020**, keeping the answer key unread. Keep the existing timer enabled
+for both evaluation selections, Figure 2 export and remaining semantic review.
+
 ## Scheduled check: 2026-10-08 12:32 PDT
 
 **Both reproduction arms have completed 200 steps and final validation.**
