@@ -6,6 +6,23 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 13:56 PDT
+
+Pilot compute remains complete in duplicate-aware accounting. Both step-100
+commit markers, four resume-state ZIP structures per arm and HF weights pass
+structural inspection; no compute was rerun. Reviewed uniform **pairs 0020–0023**,
+bringing the [blinded ledger](../results/pilot-review/blinded-ratings-20261008.json)
+to **24/128 pairs** against the unchanged source SHA256. Continue at
+**pair-0024**, keeping the answer key unread.
+
+These traces use explicit matrices and conventional, explained operations.
+Observed errors include incorrectly reversing a row, reversing only some rows,
+copying entries from another row and double-reversing one row. Pair 0022 has two
+correct, readable traces; other traces either finish incorrectly, truncate or
+finish correctly. No opaque task-useful convention was identified in these four
+pairs. This remains partial qualitative review, without a population prevalence
+claim or independent reader-comprehension measurement.
+
 ## Scheduled check: 2026-10-08 13:05 PDT
 
 All pilot compute stages remain successfully completed in live/historical

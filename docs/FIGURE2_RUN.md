@@ -1,5 +1,49 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 13:56 PDT
+
+Both 200-step training arms and selection remain complete. The existing verifier
+passes again: Solo selects **160**, Tandem **180**. Resolved Solo best/final
+manifest paths remain distinct. Both step-200 commit markers, four resume-state
+ZIP structures per arm and final HF weights pass structural inspection (not a
+full tensor reload). The Solo curves already contain final validation.
+
+At **13:54 PDT**, complete saved problems out of 1,064 are:
+
+| Selection / evaluation | Job | Saved problems | State |
+|---|---|---:|---|
+| Final Solo / solo | 25299322 | 848 | Running |
+| Final Solo / handoff | 25299323 | 512 | Running |
+| Best Solo / solo | 25248799 | 512 | Pending QOSMaxGRESPerUser, restart 1 |
+| Best Tandem / solo | 25248800 | 496 | Pending QOSMaxGRESPerUser, restart 1 |
+| Best Solo / handoff | 25248802 | 96 | Running |
+| Best Tandem / handoff | 25248803 | 0 | Running since 13:43:24 PDT |
+
+The two best solo jobs were natively preempted at **13:43:21 PDT** and requeued
+under their original IDs. Live control and duplicate-aware accounting agree;
+this is not an application failure. Their committed batches remain valid. All
+saved identities are unique, with 32 solo / 8 handoff samples and zero unfinished
+chains. These counts are partial progress, not benchmark scores. Log scans show
+only the two expected preemption terminations, with no new application errors.
+Plot **25248804** retains all four successful evaluation dependencies. No manual
+requeue, replacement, duplicate evaluation or other-project job action occurred.
+
+**Next-check priority:** final handoff **25299323** is unlikely to finish before
+its **15:16:35 PDT** allocation limit. Inspect its valid saved batches and current
+restart count, then requeue the same job before expiry (aim by **14:50 PDT** if
+still incomplete). It currently has zero restarts, with launcher limit 12. The
+launcher resumes committed batches but has no pre-walltime trap; do not rely on
+native `--requeue` to recover timeout. Check final solo against the same deadline.
+Best GRPO handoff currently ends at **18:12:23 PDT**, Tandem handoff at
+**19:43:24 PDT**; preemption may change these limits.
+
+Quota timestamp **13:51 PDT**: scratch **785.6/1024 GB**, pool **666.6/1024 GB**,
+home **103.4/200 GB**. Headroom remains adequate subject to report lag. Direct
+SSH fails authentication after scoped escalation; the authenticated relay works.
+No Duo push was sent. Pilot checkpoints remain structurally valid; blinded review
+is **24/128 pairs**, next **pair-0024**, with the answer key unread. Keep the
+existing timer enabled for evaluations, Figure 2 export and semantic review.
+
 ## Scheduled check: 2026-10-08 13:05 PDT
 
 Both 200-step training arms and selection remain successfully completed in
