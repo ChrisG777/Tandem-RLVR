@@ -2,6 +2,15 @@
 
 ## Failure recovery: 2026-10-08 Pacific
 
+**Current execution: Engaging only.** At 00:32 PDT the user ended the earlier
+cross-cluster race. CSAIL training 2596961/2596962 and downstream jobs
+2596963–2596968 were cancelled and verified cancelled in Slurm; their files are
+preserved. They were redundant continuations of the same experiments from step
+120, not independent replications. Keep Engaging training 25248795/25248796 and
+its evaluation chain. The separate shorthand pilot remains on Engaging.
+At 00:33 PDT Solo was running; Tandem had been preempted on node2100 and
+automatically requeued (restart 1), without an application traceback.
+
 The previous Engaging Solo job reached its step-130 save and failed with
 `EDQUOT`; `data.pt` and the commit marker were not written, so it must resume
 from 120. Engaging scratch reached its 1,024-GB user quota despite 252 TB free
@@ -45,7 +54,7 @@ CSAIL Tandem step 120 is transferred separately; Engaging Solo keeps step 120.
 
 | Cluster | Training | Downstream jobs |
 |---|---|---|
-| CSAIL | Tandem 2596961; Solo 2596962 | Selection 2596963; four evals 2596964–2596967; plot 2596968 |
+| CSAIL (cancelled duplicate chain) | Tandem 2596961; Solo 2596962 | Selection 2596963; four evals 2596964–2596967; plot 2596968 |
 | Engaging reproduction | Gate 25248793; Tandem 25248795; Solo 25248796 | Selection 25248797; evals 25248799, 25248800, 25248802, 25248803; plot 25248804 |
 | Engaging pilot | Array 25248946, budgets 2048/3072, saved steps 10/60 | Checks 25248947; evals 25248948; review 25248949 |
 
@@ -70,6 +79,23 @@ previously failing Tandem batch. Storage/retention, prior-checkpoint preservatio
 cross-filesystem copy failure, history integrity and continuation checks pass.
 At 00:25 PDT both Engaging reproduction logs confirmed loading model, optimizer,
 RNG and scheduler from step 120. Pilot task 0 confirmed the same from step 10.
+
+Storage planning: one full resume checkpoint is approximately 61 GiB and an HF
+weight snapshot approximately 15 GiB. From step 120 to 200, retaining four new
+validation snapshots per reproduction arm adds at most about 120 GiB; allowing
+an additional full checkpoint per arm and both pilot final HF copies gives a
+conservative pool growth allowance of roughly 275 GiB, excluding unrelated
+projects and unusually large logs/evaluation outputs. Pilot checkpoint rotation
+needs roughly 125 GiB of additional scratch headroom. These fit the post-move
+scan's roughly 570/300 GiB pool/scratch margins, but the first new save is still
+unverified. The site quota report observed at 00:32 PDT was stale (00:11 PDT).
+
+The 4,096-token setting controls microbatch packing and log-probability scoring,
+not the response length limit. The pinned FSDP engine computes the full
+minibatch's valid-token denominator before splitting it into microbatches, sums
+their gradients, then takes the optimizer step. Thus the intended token-mean
+objective and effective batch are unchanged; throughput and floating-point
+rounding can change, so the trajectory is not guaranteed bit-for-bit identical.
 
 ## Allocation-policy audit: 2026-10-06 Pacific
 
