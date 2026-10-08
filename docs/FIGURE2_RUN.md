@@ -1,5 +1,62 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Failure recovery: 2026-10-08 Pacific
+
+The previous Engaging Solo job reached its step-130 save and failed with
+`EDQUOT`; `data.pt` and the commit marker were not written, so it must resume
+from 120. Engaging scratch reached its 1,024-GB user quota despite 252 TB free
+on the shared filesystem. Initial profiling found 482 GiB in Tandem/pilot
+artifacts, 341 GiB in caches (293 GiB HF, 48 GiB uv), and 185 GiB in the homework
+project. Pool had a separate 1,024-GB quota with only 99.7 GB used. The ordinary
+`quota -s` output covered home; the authoritative report is `~/orcd/.quota`.
+
+Engaging Tandem's stdout ended mid-configuration while scratch was full. Its
+exit status is 1, but the missing traceback prevents attributing its exact final
+exception. Compute-node local logs are inaccessible after the allocation ends.
+Recovery scheduler logs now go directly to pool.
+
+CSAIL Tandem reached step 123 and saved 120, then OOMed in backward: a 3.60-GiB
+allocation failed with 3.27 GiB free on a 79.18-GiB GPU. The dynamic training
+microbatch token budget is reduced from 10,000 to 4,096; batch 16, PPO minibatch
+8, rollout count, token limits, learning rate and loss remain unchanged. Gradients
+accumulate over smaller microbatches. Host RAM is raised from 144 to 160 GiB
+because sampled RSS reached roughly 144 GiB during checkpointing.
+
+CSAIL Solo and both Engaging pilot arms exhausted the old three-restart guard.
+Recovery permits twelve bounded preemption/walltime restarts, with host-side
+signals and complete-checkpoint checks on both container and native jobs.
+The old attempt's unsaved steps are replayed, never promoted to a checkpoint.
+
+Checkpoint storage fixes in the pinned verl patch:
+
+- Retain HF weights through hard links on one filesystem, or staged copies
+  across filesystems. Failure during staging preserves an existing snapshot.
+- Persist separate HF snapshots only at reproduction validation steps (20) or
+  the pilot's fixed final step (100). Resume state is still saved every 10 steps.
+- Seed retention with the loaded checkpoint, preventing one orphaned optimizer
+  snapshot per restart. Keep two actor checkpoints so failure writing later
+  dataloader state or the commit marker cannot delete the last committed actor.
+
+The reproduction campaign and existing pilot HF snapshots move to
+`/orcd/pool/005/cge7/tandem-rlvr-recovery-20261008`, with checksum verification
+before scratch copies are removed and symlinks preserving paths. Containers bind
+both storage roots. Homework and other projects' models are preserved. The latest
+CSAIL Tandem step 120 is transferred separately; Engaging Solo keeps step 120.
+
+| Cluster | Training | Downstream jobs |
+|---|---|---|
+| CSAIL | Tandem 2596961; Solo 2596962 | Selection 2596963; four evals 2596964–2596967; plot 2596968 |
+| Engaging reproduction | Gate 25248793; Tandem 25248795; Solo 25248796 | Selection 25248797; evals 25248799, 25248800, 25248802, 25248803; plot 25248804 |
+| Engaging pilot | Array 25248946, budgets 2048/3072, saved steps 10/60 | Checks 25248947; evals 25248948; review 25248949 |
+
+All training uses six-hour resumable allocations. No array throttle or dependency
+serializes independent training. Engaging GPU work waits on successful recovery
+verification. CSAIL jobs retain Nice 0 and the policy's vision-shared fallback;
+Torralba GPUs were occupied by non-preemptible owner/interactive jobs, and neither
+shared route offered an immediate start in submission dry runs. The completed
+Engaging base evaluation is reused on both clusters. Earlier run notes below are
+historical snapshots.
+
 ## Allocation-policy audit: 2026-10-06 Pacific
 
 Read the synchronized `GPU_ALLOCATION.md` and both cluster guides. Earlier
