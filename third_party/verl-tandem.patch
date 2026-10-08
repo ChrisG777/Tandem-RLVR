@@ -352,17 +352,27 @@ index c865b9d..6d4ea99 100644
      advantages = data["advantages"]
 
 diff --git a/verl/utils/checkpoint/fsdp_checkpoint_manager.py b/verl/utils/checkpoint/fsdp_checkpoint_manager.py
-index 38d22b5..42e0ed8 100644
+index 38d22b5..1ca0261 100644
 --- a/verl/utils/checkpoint/fsdp_checkpoint_manager.py
 +++ b/verl/utils/checkpoint/fsdp_checkpoint_manager.py
-@@ -216,6 +216,10 @@ class FSDPCheckpointManager(BaseCheckpointManager):
+@@ -216,6 +216,20 @@ class FSDPCheckpointManager(BaseCheckpointManager):
  
          # wait for everyone to load checkpoints
          torch.distributed.barrier()
 +        if self.rank == 0:
 +            # Retention must include the checkpoint loaded by this process;
 +            # otherwise every preemption leaves another full optimizer snapshot.
-+            self.previous_saved_paths = [local_path]
++            from pathlib import Path
++            loaded = Path(local_path)
++            step_dir = loaded.parent
++            if step_dir.name.startswith("global_step_"):
++                step = int(step_dir.name.removeprefix("global_step_"))
++                self.previous_saved_paths = [str(path / loaded.name) for path in sorted(
++                    step_dir.parent.glob("global_step_*"), key=lambda p: int(p.name.removeprefix("global_step_")))
++                    if int(path.name.removeprefix("global_step_")) <= step
++                    and (path / "data.pt").is_file() and (path / loaded.name).is_dir()]
++            else:
++                self.previous_saved_paths = [local_path]
  
      def save_checkpoint(self, local_path: str, hdfs_path: str = None, global_step: int = 0, max_ckpt_to_keep=None):
          """
