@@ -1,5 +1,54 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 14:29 PDT
+
+Both 200-step training arms and selection remain complete in duplicate-aware
+accounting. The existing verifier again selects Solo **160**, Tandem **180**;
+Solo best/final paths remain distinct. Both step-200 commit markers, four
+resume-state ZIP structures per arm and final HF weights pass structural
+inspection (not a full tensor reload). Solo curves already include final
+validation and need no refresh.
+
+At **14:27 PDT**, saved complete-problem counts out of 1,064 were:
+
+| Selection / evaluation | Job | Saved problems | State |
+|---|---|---:|---|
+| Final Solo / solo | 25299322 | 944 | Running, restart 0 |
+| Final Solo / handoff | 25299323 | 544 | Requeued about 14:28, restart 1 |
+| Best Solo / solo | 25248799 | 592 | Running, restart 1 |
+| Best Tandem / solo | 25248800 | 496 | Pending QOSMaxGRESPerUser, restart 1 |
+| Best Solo / handoff | 25248802 | 160 | Running, restart 0 |
+| Best Tandem / handoff | 25248803 | 32 | Running, restart 0 |
+
+Final handoff **25299323** could not plausibly finish before its 15:16:35 PDT
+walltime. After validating saved batches and its restart bound, requeued the
+**same job ID** at about **14:28 PDT**, preserving 544 complete problems. At 14:28
+it was pending the scheduler's normal BeginTime delay, restart 1 of allowed 12.
+No duplicate or replacement job was submitted. All six saved progress files
+have unique identities, expected 32 solo / 8 handoff samples and zero unfinished
+chains. These counts are partial progress, not benchmark scores. Log scans
+show no new application failure. Plot **25248804** retains all four successful
+evaluation dependencies; no repair was needed.
+
+At the **14:29 PDT** closing check, best Tandem solo **25248800** had restarted
+on node3203 under its existing ID. Final handoff remained pending BeginTime;
+accounting records its prior allocation as REQUEUED, not failed.
+
+**Next-check priority:** final Solo **25299322** still ends at **15:16:35 PDT**.
+Check it by about **15:00 PDT** and requeue its existing ID if incomplete rather
+than risking timeout. The launcher resumes committed batches but has no
+pre-walltime trap. Verify final handoff resumes from saved progress; native
+requeue/start events may change its allocation deadline. Best GRPO handoff
+currently ends at 18:12 PDT; best Tandem handoff at 19:43 PDT.
+
+Quota timestamp **14:22 PDT**: scratch **785.6/1024 GB**, pool **666.6/1024 GB**,
+home **103.4/200 GB**; headroom remains adequate subject to report lag. Direct
+SSH fails authentication after scoped escalation; the existing authenticated
+relay works. No Duo push or other-project job action occurred. Pilot compute
+and checkpoint structures remain complete/valid; blinded review is **28/128**,
+next **pair-0028**, with the model-identity answer key unread. Keep the existing
+timer enabled for evaluations, Figure 2 export and remaining semantic review.
+
 ## Scheduled check: 2026-10-08 13:56 PDT
 
 Both 200-step training arms and selection remain complete. The existing verifier

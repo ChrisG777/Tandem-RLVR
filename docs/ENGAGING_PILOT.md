@@ -6,6 +6,25 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 14:29 PDT
+
+Pilot compute remains complete in duplicate-aware accounting; both step-100
+markers, four resume-state ZIP structures per arm and final HF weights pass
+structural inspection. No compute was rerun. Reviewed **pairs 0024–0027** from
+the **both-correct selected subset**, bringing the
+[blinded ledger](../results/pilot-review/blinded-ratings-20261008.json) to
+**28/128 pairs** against the unchanged source SHA256. Continue at **pair-0028**;
+the separate model-identity answer key remains unread.
+
+All eight traces use full matrices and conventional explained operations.
+They reach correct answers, with visible corrections to rotation formulas,
+transpose dimensions, or wording. Pair 0026-B incorrectly says a repeated
+mirror returns to before a value mapping, while its matrix correctly retains
+the mapped value. None supplies an opaque task-useful convention. This remains
+partial qualitative review, not a population prevalence claim or independent
+reader-comprehension test. An automatic review rejected a command that printed
+task targets; the follow-up read only prompts and anonymous A/B trace text.
+
 ## Scheduled check: 2026-10-08 13:56 PDT
 
 Pilot compute remains complete in duplicate-aware accounting. Both step-100
