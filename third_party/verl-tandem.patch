@@ -120,7 +120,7 @@ index 11547d8..d2f9573 100644
 -
 +tandem_jr_tkn_weight: 0.0
 diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_base.py
-index b40c485..7252034 100644
+index b40c485..5aface1 100644
 --- a/verl/trainer/ppo/v1/trainer_base.py
 +++ b/verl/trainer/ppo/v1/trainer_base.py
 @@ -98,6 +98,44 @@ logger = logging.getLogger(__name__)
@@ -168,7 +168,18 @@ index b40c485..7252034 100644
  class PPOTrainer(ABC):
      """Base class for PPO trainer.
  
-@@ -709,6 +747,14 @@ class PPOTrainer(ABC):
+@@ -694,6 +732,10 @@ class PPOTrainer(ABC):
+         max_actor_ckpt_to_keep = (
+             self.config.trainer.get("max_actor_ckpt_to_keep", None) if not remove_previous_ckpt_in_save else 1
+         )
++        # The actor is saved before data.pt and the trainer's commit marker.
++        # Keep the previous committed actor if either later write fails.
++        if max_actor_ckpt_to_keep == 1:
++            max_actor_ckpt_to_keep = 2
+         max_critic_ckpt_to_keep = (
+             self.config.trainer.get("max_critic_ckpt_to_keep", None) if not remove_previous_ckpt_in_save else 1
+         )
+@@ -709,6 +751,14 @@ class PPOTrainer(ABC):
              actor_local_path, actor_remote_path, self.global_steps, max_ckpt_to_keep=max_actor_ckpt_to_keep
          )
  
@@ -339,3 +350,19 @@ index c865b9d..6d4ea99 100644
      # compute policy loss
      old_log_prob = data["old_log_probs"]
      advantages = data["advantages"]
+
+diff --git a/verl/utils/checkpoint/fsdp_checkpoint_manager.py b/verl/utils/checkpoint/fsdp_checkpoint_manager.py
+index 38d22b5..42e0ed8 100644
+--- a/verl/utils/checkpoint/fsdp_checkpoint_manager.py
++++ b/verl/utils/checkpoint/fsdp_checkpoint_manager.py
+@@ -216,6 +216,10 @@ class FSDPCheckpointManager(BaseCheckpointManager):
+ 
+         # wait for everyone to load checkpoints
+         torch.distributed.barrier()
++        if self.rank == 0:
++            # Retention must include the checkpoint loaded by this process;
++            # otherwise every preemption leaves another full optimizer snapshot.
++            self.previous_saved_paths = [local_path]
+ 
+     def save_checkpoint(self, local_path: str, hdfs_path: str = None, global_step: int = 0, max_ckpt_to_keep=None):
+         """
