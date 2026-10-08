@@ -6,6 +6,16 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 16:00 PDT — access blocked
+
+Neither the approved direct Engaging connection nor the existing relay could
+authenticate/reach the cluster. Pilot compute completion and checkpoint integrity
+remain the previous check's verified observations, not fresh observations.
+The local blinded ledger remains **29/128**, next **pair-0029**; remaining traces
+were unavailable and the model-identity answer key remains unread. No ratings
+were inferred, no pilot compute was rerun, and no Duo push was sent. See the
+[current access and evaluation priority](FIGURE2_RUN.md) before resuming.
+
 ## Scheduled check: 2026-10-08 15:12 PDT
 
 Pilot compute remains complete in duplicate-aware accounting. Both step-100

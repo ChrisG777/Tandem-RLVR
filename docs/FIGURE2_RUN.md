@@ -1,5 +1,33 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 16:00 PDT — authentication still unavailable
+
+Direct `ssh orcd-login` first hit sandbox DNS restrictions; the same command
+with scoped automatic approval reached Engaging but returned
+`Permission denied (keyboard-interactive)`. The approved existing CSAIL relay
+attempt closed with `Connection closed by UNKNOWN port 65535`. No authenticated
+cluster command succeeded. This is an access blocker, not evidence of job failure.
+Authentication renewal was already requested in the previous check; no new Duo
+push was sent, and no jobs, dependencies, or cluster artifacts were changed.
+
+**Priority after renewal:** reconcile live `squeue`/`scontrol` with `sacct -D`
+for final Solo **25299322**, whose recorded deadline **15:16:35 PDT** has passed.
+Its last verified progress remains **1,040/1,064 at about 15:02 PDT**; completion
+versus timeout is unknown. If timed out, validate its saved batches and resume
+only after confirming no active continuation. Also check final handoff
+**25299323** and all four best-validation evaluations before any recovery.
+Do not infer their current state from the preceding table or launch duplicates.
+
+Local Solo PNG/SVG, snapshot and summary are present and already include all
+200 training steps and step-200 validation (67.2547548% pass@4); no refresh was
+needed. The last verified best Solo checkpoint is step 160, distinct from final
+step 200. Current logs, checkpoints, dependencies and quota could not be
+rechecked. The last quota report is **14:53 PDT**, over an hour old; re-read it
+before storage-intensive recovery. Pilot review remains **29/128**, next
+**pair-0029**, because the remaining source traces are on the inaccessible
+cluster. Keep the existing timer enabled. Notes still need cluster deployment
+through Git when authenticated access returns.
+
 ## Scheduled check: 2026-10-08 15:12 PDT — access interrupted
 
 At approximately **15:02 PDT**, live queue/control, duplicate-aware accounting,
