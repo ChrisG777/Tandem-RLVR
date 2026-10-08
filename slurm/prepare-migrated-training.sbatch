@@ -5,12 +5,13 @@ if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
     for ((i=0; i<360; i++)); do
-        [ ! -f "$RUN_ROOT/TRANSFER_COMPLETE" ] || break
+        [ ! -f "$RUN_ROOT/${TRANSFER_MARKER:-TRANSFER_COMPLETE}" ] || break
         sleep 30
     done
-    test -f "$RUN_ROOT/TRANSFER_COMPLETE"
-    for item in grpo:120 tandem:80; do
-        ARM=${item%:*}; STEP=${item#*:}
+    test -f "$RUN_ROOT/${TRANSFER_MARKER:-TRANSFER_COMPLETE}"
+    for ARM in grpo tandem; do
+        STEP=$(cat "$RUN_ROOT/$ARM-full/latest_checkpointed_iteration.txt")
+        [[ "$STEP" =~ ^[1-9][0-9]*$ ]]
         HF="$RUN_ROOT/$ARM-full/hf/global_step_$STEP"
         if [ -L "$HF" ]; then
             rm "$HF"
@@ -22,8 +23,8 @@ if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
         --bind "${CONTAINER_BIND:?}" "$APPTAINER_IMAGE" bash "$REPO/slurm/prepare-migrated-training.sbatch"
 fi
 export PATH="${UV_BIN_DIR:?}:$PATH" HF_HUB_OFFLINE=1
-for item in grpo:120 tandem:80; do
-    ARM=${item%:*}; STEP=${item#*:}
+for ARM in grpo tandem; do
+    STEP=$(cat "$RUN_ROOT/$ARM-full/latest_checkpointed_iteration.txt")
     uv run --python "$TANDEM_ENV/bin/python" --no-project --offline python \
         train/figure2_checkpoint.py --root "$RUN_ROOT/$ARM-full" --arm "$ARM" --steps "$STEP" --mode full
 done
@@ -39,8 +40,9 @@ manifest = json.loads((data / "manifest.json").read_text())
 for name, digest in manifest["sha256"].items():
     if hashlib.sha256((data / name).read_bytes()).hexdigest() != digest:
         raise ValueError(f"Migrated data hash mismatch: {name}")
-for arm, step in (("grpo", 120), ("tandem", 80)):
+for arm in ("grpo", "tandem"):
     run = root / f"{arm}-full"
+    step = int((run / "latest_checkpointed_iteration.txt").read_text())
     if json.loads((run / "data-manifest.json").read_text()) != manifest:
         raise ValueError("Migrated training data manifest differs")
     checkpoint = run / f"global_step_{step}"
