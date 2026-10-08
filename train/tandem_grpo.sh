@@ -115,6 +115,7 @@ uv run --python "${TANDEM_ENV_BIN:?}/python" --no-project --offline python -m ve
     trainer.default_local_dir="${CKPT_DIR}" \
     trainer.max_actor_ckpt_to_keep=${MAX_CKPT_KEEP} \
     +trainer.persist_hf_model=True \
+    +trainer.persist_hf_interval=${PERSIST_HF_INTERVAL:-1} \
     'actor_rollout_ref.actor.checkpoint.save_contents=[model,optimizer,extra,hf_model]' \
     trainer.test_freq=${TEST_FREQ} \
     trainer.total_epochs=${TOTAL_EPOCHS} \

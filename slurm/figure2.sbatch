@@ -21,7 +21,7 @@ if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; th
         bash "$REPO/slurm/figure2.sbatch"
 fi
 if [ "${TANDEM_CONTAINER_ACTIVE:-0}" = 1 ]; then export CC=/usr/bin/gcc CXX=/usr/bin/g++; fi
-[ "${SLURM_RESTART_COUNT:-0}" -le 3 ] || { echo 'Preemption retry limit reached'; exit 1; }
+[ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || { echo 'Preemption retry limit reached'; exit 1; }
 export PATH="${UV_BIN_DIR:-${HOME:-/tmp}/.local/bin}:/data/scratch/${SLURM_JOB_USER:-${USER:-}}/.local/bin:${PATH:-/usr/bin:/bin}"
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export HF_HUB_OFFLINE=1

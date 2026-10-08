@@ -15,7 +15,7 @@ if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 export PILOT_ENTRYPOINT=train-figure2.sbatch
 source "$REPO/slurm/shorthand-runtime.sh"
-[ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-3}" ] || { echo 'Preemption retry limit reached'; exit 1; }
+[ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || { echo 'Preemption retry limit reached'; exit 1; }
 export PATH="${UV_BIN_DIR:-/data/scratch/${SLURM_JOB_USER:-chrisge}/.local/bin}:$PATH"
 export TANDEM_ENV_BIN="${TANDEM_ENV:?}/bin"
 export TANDEM_ENV_FILE="$REPO/slurm/training-env.sh"
@@ -36,9 +36,11 @@ run_python() { uv run --python "$TANDEM_ENV_BIN/python" --no-project --offline p
 export BASE_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["path"])' "$RUN_ROOT/base.json")
 export POLICY_MODEL="$BASE_MODEL" JUNIOR_MODEL="$BASE_MODEL"
 export TOTAL_STEPS=200 TEST_FREQ=20 SAVE_FREQ=${SAVE_FREQ:-20}
+export PPO_MAX_TOKEN=${PPO_MAX_TOKEN:-4096}
+export PERSIST_HF_INTERVAL=20
 EXTRA=()
 case "$MODE" in
-    smoke) export TOTAL_STEPS=3 TEST_FREQ=3 SAVE_FREQ=3; EXTRA+=(data.val_max_samples=8);;
+    smoke) export TOTAL_STEPS=3 TEST_FREQ=3 SAVE_FREQ=3 PERSIST_HF_INTERVAL=3; EXTRA+=(data.val_max_samples=8);;
     full) ;;
     *) echo "MODE must be smoke or full" >&2; exit 2;;
 esac

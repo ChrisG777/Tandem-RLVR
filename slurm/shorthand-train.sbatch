@@ -12,7 +12,7 @@ if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 export PILOT_ENTRYPOINT=shorthand-train.sbatch
 source "$REPO/slurm/shorthand-runtime.sh"
-[ "${SLURM_RESTART_COUNT:-0}" -le 3 ] || exit 1
+[ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || { echo 'Preemption retry limit reached'; exit 1; }
 export PATH="${UV_BIN_DIR:-/data/scratch/chrisge/.local/bin}:${PATH:-/usr/bin:/bin}"
 export TANDEM_ENV_BIN="${TANDEM_ENV:?}/bin" TANDEM_ENV_FILE="$REPO/slurm/training-env.sh"
 export HF_HOME=${HF_HOME:-/data/vision/torralba/u/chrisge/.cache/huggingface}
@@ -40,6 +40,7 @@ export CKPT_ROOT="$RUN_ROOT/train" CKPT_DIR="$RUN_ROOT/train/$EXP_NAME"
 export TRAIN_FILES="$DATA_ROOT/$TASK/train.parquet"
 export MAX_PROMPT=1536 TRAIN_BATCH=16 MINI_BATCH=8 ROLLOUT_N=8 ROLLOUT_TEMP=0.6 LR=1e-6
 export TOTAL_STEPS=${TOTAL_STEPS:-100} SAVE_FREQ=${SAVE_FREQ:-10} TEST_FREQ=${TEST_FREQ:-25} VAL_N=4 VAL_TEMP=0.6 VAL_TOP_P=1 VAL_TOP_K=-1
+export PERSIST_HF_INTERVAL=$TOTAL_STEPS
 export MAX_CKPT_KEEP=1 PPO_MAX_TOKEN=4096
 mkdir -p "$CKPT_DIR"
 export VERL_FILE_LOGGER_PATH="$CKPT_DIR/metrics-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}.jsonl"

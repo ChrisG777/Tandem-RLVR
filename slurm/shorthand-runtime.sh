@@ -7,7 +7,7 @@ if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; th
     GPU_FLAG=
     if [ -n "${SLURM_JOB_GPUS:-}" ]; then GPU_FLAG=--nv; fi
     resume_before_walltime() {
-        [ "${SLURM_RESTART_COUNT:-0}" -lt "${MAX_RESTARTS:-3}" ] || return 1
+        [ "${SLURM_RESTART_COUNT:-0}" -lt "${MAX_RESTARTS:-12}" ] || return 1
         if [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ]; then
             ROOT="$RUN_ROOT/${ARM:?}-${MODE:?}"
         else
