@@ -68,6 +68,8 @@ finite loss/gradient metrics and the smaller microbatch; Tandem remained queued.
 Startup success does not yet verify a new checkpoint write or completion of the
 previously failing Tandem batch. Storage/retention, prior-checkpoint preservation,
 cross-filesystem copy failure, history integrity and continuation checks pass.
+At 00:25 PDT both Engaging reproduction logs confirmed loading model, optimizer,
+RNG and scheduler from step 120. Pilot task 0 confirmed the same from step 10.
 
 ## Allocation-policy audit: 2026-10-06 Pacific
 
