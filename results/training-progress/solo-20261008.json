@@ -1,14 +1,14 @@
 {
-  "captured_at": "2026-10-08T16:13:43.032401+00:00",
+  "captured_at": "2026-10-08T16:57:06.069457+00:00",
   "arms": {
     "grpo": {
-      "last_logged_step": 199,
-      "logged_steps": 199,
+      "last_logged_step": 200,
+      "logged_steps": 200,
       "missing_steps": [],
       "first10_reward": 0.5390625,
-      "last10_reward": 0.54609375,
-      "last10_mean_length": 1521.5734375,
-      "last10_at_limit": 0.2234375,
+      "last10_reward": 0.51953125,
+      "last10_mean_length": 1563.184375,
+      "last10_at_limit": 0.24609375,
       "gradient_range": [
         0.0,
         3.3347570449113846
@@ -50,6 +50,10 @@
         [
           180,
           66.84804804804804
+        ],
+        [
+          200,
+          67.25475475475476
         ]
       ],
       "senior_token_fraction": null
