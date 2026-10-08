@@ -148,7 +148,8 @@ def record_resume_gap(root: Path, step: int, log: Path) -> dict:
     raw = log.read_bytes()
     clean = re.sub(r"\x1b\[[0-9;]*m", "", raw.decode(errors="replace"))
     expected = _resume_messages(root, step)
-    lines = [next((line for line in clean.splitlines() if message in line), "") for message in expected]
+    lines = [next((line for line in clean.splitlines() if _matches_resume_message(line, message)), "")
+             for message in expected]
     evidence = {"step": step, "root": str(root.resolve()), "before": boundary[0], "after": boundary[1],
                 "source_log": str(log.resolve()), "source_sha256": hashlib.sha256(raw).hexdigest(),
                 "load_messages": lines,
@@ -172,7 +173,8 @@ def _verify_resume_evidence(root: Path, step: int, evidence: dict) -> None:
     if (evidence.get("before"), evidence.get("after")) not in boundaries:
         raise ValueError("Resume evidence does not match metric attempt boundaries")
     lines = evidence.get("load_messages", [])
-    if len(lines) != 4 or any(message not in line for message, line in zip(_resume_messages(root, step), lines)):
+    if len(lines) != 4 or any(not _matches_resume_message(line, message)
+                              for message, line in zip(_resume_messages(root, step), lines)):
         raise ValueError("Incomplete checkpoint-load evidence")
     verify_weights(root / "hf" / f"global_step_{step}")
 
@@ -182,6 +184,16 @@ def _resume_messages(root: Path, step: int) -> list[str]:
     return [f"[Rank 0] Loaded {component} from {actor}/{filename}_world_size_1_rank_0.pt"
             for component, filename in (("model", "model"), ("optimizer", "optim"),
                                         ("rng", "extra_state"), ("lr_scheduler", "extra_state"))]
+
+
+def _matches_resume_message(line: str, expected: str) -> bool:
+    """Accept a logged absolute path only when it resolves to the same state file."""
+    prefix, path = expected.split(" from ", 1)
+    match = re.search(re.escape(prefix + " from ") + r"(\S+)", line)
+    if match is None:
+        return False
+    logged = Path(match.group(1))
+    return logged.is_absolute() and logged.resolve() == Path(path).resolve()
 
 
 def _read_attempts(root: Path) -> list[tuple[Path, list[dict]]]:

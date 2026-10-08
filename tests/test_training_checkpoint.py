@@ -115,6 +115,25 @@ class TrainingCheckpoint(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Incomplete checkpoint-load"):
                 record_resume_gap(root, 2, log)
 
+    def test_resume_log_accepts_storage_symlink_but_rejects_other_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "pool"
+            root.mkdir()
+            log = self.gap_fixture(root)
+            alias = Path(directory) / "scratch"
+            alias.symlink_to(root, target_is_directory=True)
+            log.write_text(log.read_text().replace(str(root.resolve()), str(alias)))
+            record_resume_gap(root, 2, log)
+            self.assertEqual(verify_training(root, "tandem", 3)["step"], 3)
+            alias.unlink()
+            other = Path(directory) / "other"
+            other.mkdir()
+            alias.symlink_to(other, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "Incomplete checkpoint-load"):
+                verify_training(root, "tandem", 3)
+            with self.assertRaisesRegex(ValueError, "Incomplete checkpoint-load"):
+                record_resume_gap(root, 2, log)
+
     def test_resume_evidence_requires_intact_weights_and_correct_run(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
