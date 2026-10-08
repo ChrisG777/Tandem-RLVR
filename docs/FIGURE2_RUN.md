@@ -1,5 +1,46 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 09:59 PDT
+
+Solo **25248796 completed successfully at 09:29 PDT**, including final
+validation. The existing verifier passes all 200 logged steps with no missing
+or nonfinite observed metrics. Final step-200 validation pass@4 is
+**67.2548%**; best validation selects **step 160, 67.3520%**. Its resolved
+checkpoint path differs from `models-final-grpo.json` (step 200), so the
+best-validation and final evaluation chains are distinct and should remain.
+Recheck the generated selection manifest before acting on downstream outputs.
+
+The [Solo curves](../results/training-progress/solo-20261008.png), SVG, summary
+and timestamped snapshot now include all 200 steps and final validation
+(snapshot 09:57 PDT; results commit `9c81ca6`). Plotting inside the CUDA image
+required mounting the host `/usr/share/zoneinfo` read-only at the same path;
+no training/runtime dependency or scientific setting changed.
+
+| Work | Live evidence at 09:56–09:59 PDT |
+|---|---|
+| Tandem 25248795 | Running on node5106, restart 2; metrics through 186/200, committed resume step 180. Step-180 validation pass@4 65.6210%; recent losses/gradients finite, senior-token fraction 0.5005–0.5060. |
+| Final Solo eval 25299322 | Running on node3006 (L40S) since 09:16:35; 64 complete problems saved, 32 samples each. |
+| Final handoff eval 25299323 | Running on node3203 (L40S) since 09:16:35; 32 complete problems saved, 8 samples each. |
+| Selection 25248797 | Waiting only for Tandem; Solo dependency satisfied. |
+| Best-validation evals / plot | Original IDs and successful dependencies intact; no duplicates or replacements submitted. |
+| Pilot | Both training/check/evaluation chains and review preparation remain completed in accounting; blinded semantic review remains outstanding. |
+
+Both reproduction commit markers, four required resume-state files per arm,
+ZIP structures and latest retained HF safetensors pass structural checks.
+Saved final-evaluation batches have unique problem identities and the expected
+sample counts. This is not a full tensor reload or final benchmark completion.
+Historical `sacct -D` and live `squeue`/`scontrol` agree; no new application
+failure was found. Quota report timestamp **09:48 PDT**: scratch 785.6/1024 GB,
+pool 650.2/1024 GB, home 103.4/200 GB, leaving adequate checkpoint headroom.
+
+Direct `ssh orcd-login` now lacks its local ControlMaster and fails
+keyboard-interactive authentication even after scoped sandbox approval. The
+documented **CSAIL-to-Engaging ControlMaster works**; use that fallback for
+subsequent checks while it remains authenticated. CSAIL emits an AFS `.bashrc`
+permission warning, but the scratch/pool-based Engaging commands succeed.
+No Duo push, authentication bypass, security change or CSAIL job action occurred.
+The existing timer remains enabled.
+
 ## Solo final-checkpoint evaluation: 2026-10-08 09:16 PDT
 
 The user requested full Solo curves and evaluation of its final model. The

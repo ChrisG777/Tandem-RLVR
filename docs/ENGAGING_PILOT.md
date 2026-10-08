@@ -8,6 +8,13 @@ The earlier submissions below are historical records, not launch instructions.
 
 ## Scheduled check: 2026-10-08 09:11 PDT
 
+Rechecked at **09:59 PDT** through the authenticated CSAIL-to-Engaging fallback:
+live queue and duplicate-aware historical accounting still show both training
+arms, checks, evaluations and review preparation completed. No pilot jobs were
+resubmitted. The 128 blinded pairs remain at `review/blinded_pairs.jsonl`;
+semantic review and its written findings are still required before unblinding
+`review/answer_key.json`. The answer key was not read during this check.
+
 SSH access is restored through scoped automatic approval. Both arms reached
 100/100 steps and passed their fixed-final-checkpoint checks. Live queue and
 historical accounting confirm the following completed chain:
