@@ -57,6 +57,18 @@ shared route offered an immediate start in submission dry runs. The completed
 Engaging base evaluation is reused on both clusters. Earlier run notes below are
 historical snapshots.
 
+At 00:20 PDT the storage move and CPU import verification completed successfully.
+The moved files were verified by rsync's whole-file transfer checksums and a
+no-change metadata pass before source removal. A subsequent disk scan measured
+776,765,394,944 bytes (723.4 GiB) in scratch and 485,672,526,848 bytes (452.3 GiB)
+in pool; the site quota report lags by about 30 minutes. Engaging Tandem, Solo,
+and pilot task 0 started on A100 80 GB GPUs; pilot task 1 remained pending on the
+four-GPU preemptible limit. CSAIL Solo also resumed and completed step 121 with
+finite loss/gradient metrics and the smaller microbatch; Tandem remained queued.
+Startup success does not yet verify a new checkpoint write or completion of the
+previously failing Tandem batch. Storage/retention, prior-checkpoint preservation,
+cross-filesystem copy failure, history integrity and continuation checks pass.
+
 ## Allocation-policy audit: 2026-10-06 Pacific
 
 Read the synchronized `GPU_ALLOCATION.md` and both cluster guides. Earlier
