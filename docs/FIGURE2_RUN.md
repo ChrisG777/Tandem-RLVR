@@ -1,5 +1,37 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Selected-Tandem handoff migrated: 2026-10-08 19:44 PDT
+
+At the user's request, pending Engaging **25349867** was cancelled before its
+CSAIL replacement **2607093** was submitted. The replacement started immediately
+on `agrawal-l40s-1`. It uses one GPU, four CPUs, 48 GiB RAM, Nice 0, four-hour
+allocations, native requeue and the existing bounded walltime continuation
+(`MAX_RESTARTS=12`). The route admits all compatible vision-shared H100, H200,
+A100, L40S, A6000 and RTX6000 Ada partitions. Torralba capacity was occupied by
+non-preemptible owner jobs; neither shared route's dry run promised immediate
+admission. No duplicate continuation exists.
+
+Campaign: `/data/vision/torralba/u/chrisge/tandem-rlvr/selected-eval-20261008`.
+The step-180 checkpoint (16.10 GB) and **544/1,064** saved handoff problems were
+transferred directly from Engaging. All six checkpoint files passed SHA256
+comparison; safetensors contained 398 tensors and the tokenizers matched.
+The original progress signature was validated against CSAIL's benchmark data
+and unchanged protocol before remapping only the absolute model paths.
+`migration.json` records both identities/signatures and checkpoint hashes;
+`handoff.source.progress.json` and `models.source.json` preserve the originals.
+The live progress and final output are `eval/tandem/handoff.json.progress.json`
+and `eval/tandem/handoff.json`; log: `logs/handoff-2607093.out`.
+
+Selected-checkpoint plot **25349868 is held** on Engaging, with its dependency
+changed to only Solo handoff **25349860** before the old Tandem job was cancelled.
+After 2607093 completes, validate its final result, copy it to
+`/orcd/pool/005/cge7/tandem-rlvr-recovery-20261008/reproduction/eval/tandem/handoff.json`,
+and release 25349868. Cross-cluster transfer/release remains manual, as for the
+final-checkpoint plot 25350237 below. Do not release either plot before its
+required CSAIL results have been verified and copied back. The local monitoring
+timer remains disabled. The two Solo evaluations remain on Engaging; final-Tandem
+2606903/2606904 remain on CSAIL.
+
 ## Completed training curves: 2026-10-08 19:16 PDT
 
 [Reward, validation, length and truncation curves](../results/training-progress/completed-20261008.png)
