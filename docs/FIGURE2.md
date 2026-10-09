@@ -106,7 +106,9 @@ Required site inputs: `REPO`, patched `TANDEM_ENV`, `UV_BIN_DIR`, `SENIOR`,
 GPU, four CPUs and 48 GiB host RAM. Estimated GPU budget is 15 GiB BF16 weights,
 two explicit 5-GiB KV caches, and runtime/activation headroom; compatible GPUs
 start at 40 GiB. Native colocation uses `frozen_gpu_devices=[0]`; vLLM schedules
-up to eight sequences within its measured cache capacity. First live
+up to four sequences within its measured 18,192-token cache capacity. The first
+complete problem is checked/saved before larger batches; failed author traces
+are preserved in `.invalid.json`. First live
 execution must verify colocation and per-token authorship before scores are used.
 
 ### Grading correction (2026-10-08 Pacific)

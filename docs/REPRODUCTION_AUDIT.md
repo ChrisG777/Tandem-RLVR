@@ -68,6 +68,37 @@ nonfinite metrics. This rules out several gross implementation failures, not
 subtle optimizer/kernel/RNG differences. We have no evidence that GPU model alone
 caused the result.
 
+**Budget provenance:** the 3,000-token response cap in both training launchers
+and `eval/config.py`, as well as the 4,096-token context limit and 8-token reserve
+in `eval/common.py`, are present in upstream commit `334d02cf…`. We did not choose
+these limits. The context-budget function is unchanged. Truncation is a possible
+interaction between the trained policy and the shared budget, not an identified
+budget mismatch with GitHub. Paper Table 3 also specifies 3,000 response tokens.
+Tokenizing all prompts with the selected tokenizer confirms no budget reduction
+for any AIME, AMC or Minerva problem. Only two Olympiad prompts have reduced
+response allowances (the smallest is 2,792 tokens).
+
+## Native-word execution check
+
+The first full batch in 2608018 failed the per-token boundary check and was not
+accepted as an evaluation result. Its 18,192-token cache could not accommodate
+eight simultaneous full-length sequences. A source-level diagnostic of the
+unchanged native sampler shows that `_word_select` drops state for requests absent
+from the current batch, and `_word_replay` can choose a different author when a
+request returns, even after a non-boundary token. This establishes a possible
+mechanism, not proof that eviction caused that particular failed trace (the first
+version did not save rejected samples).
+
+Replacement 2608058 uses four concurrent sequences, which fit the measured cache,
+and checks/saves the first complete problem before larger batches. It preserves
+any rejected trace for diagnosis. Token budgets and the native sampler are
+unchanged. Its first complete problem passed: eight attempts, 12,028 tokens,
+49.37% senior authorship, with all switches validated. The GRPO counterpart was
+then replaced by 25374401 using the same four-sequence execution settings.
+The grading worktrees/environments remain separate. This finding concerns the
+new word evaluation; it does not establish that this mechanism occurred during
+training or explain the already-generated paragraph results.
+
 ## Corrected outputs and current jobs
 
 [Corrected curves](../results/figure2-regraded/corrected-passk.png) use all solo
@@ -90,15 +121,17 @@ those factors. Every sample records token IDs and authorship for validation.
 
 | Work | Cluster / job | State at launch |
 |---|---|---|
-| Selected Tandem word inference | CSAIL 2608018 | Running on one H200; original failed setup attempt 2608015 replaced |
-| Selected GRPO word inference | Engaging 25372937 | Pending GPU QoS capacity |
+| Selected Tandem word inference | CSAIL 2608058 | Running on one L40S; first problem validated; replaces failed 2608018 |
+| Selected GRPO word inference | Engaging 25374401 | Pending; replaces cancelled 25372937 with corrected execution settings |
 | Remaining Tandem paragraph inference | CSAIL 2607093 | Running; generation checkpoints retained |
 | Correct final paragraph grades | CSAIL 2608029 | Depends on 2607093 and grading setup |
-| Correct Tandem word grades | CSAIL 2608030 | Depends on 2608018 and grading setup |
-| Correct GRPO word grades | Engaging 25373627 | Depends on 25372937; grading setup 25373565 passed |
+| Correct Tandem word grades | CSAIL 2608030 | Depends on 2608058; grading setup passed |
+| Correct GRPO word grades | Engaging 25374417 | Depends on 25374401; grading setup 25373565 passed |
 
 CSAIL grading setup 2608033 replaces failed 2608028, whose shared ANTLR cache
-was damaged; the replacement bypasses that cache. Grading runs in separate CPU
+was damaged; the replacement bypassed that cache and passed. Engaging grading
+successor 25373627 ended when its cancelled inference dependency was removed;
+25374417 replaces it. Grading runs in separate CPU
 environments and git worktrees so active generation jobs retain their original
 code/environment. The corrected grader is applied after completion through
 Slurm dependencies, without a polling timer. No additional training run has been
