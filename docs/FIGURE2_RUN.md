@@ -20,6 +20,9 @@ The policy's vision-shared fallback admits H100/H200/A100/L40S/A6000/RTX6000 Ada
 each job requests one GPU, four CPUs, 48 GiB, four-hour resumable allocations,
 Nice 0, and up to twelve automatic restarts. Both were pending priority after
 submission; the empty personal queue is not a promise of immediate GPU access.
+At 19:15 PDT both had started: capability on `isola-h200-1`, handoff on
+`beery-l40s-4`. Logs confirm the requested final model and matching vocabularies;
+inference initialization is underway.
 
 The selected-checkpoint plot 25349868 keeps its Engaging dependencies. The final
 comparison plot **25350237 is held**, with dependency changed to only final-Solo
