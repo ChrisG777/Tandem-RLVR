@@ -1,5 +1,25 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scope correction: 2026-10-08 — evaluate the chosen models only
+
+The user clarified that “final model” meant the model chosen after training,
+not the last step-200 checkpoint. The intended Figure 2 comparison uses the
+validation-selected Solo step 160 and Tandem step 180. The separate step-200
+comparison is out of scope; do not resume or replace its evaluation/plot jobs.
+
+Cancelled CSAIL step-200 jobs **2606903** (capability, result already saved)
+and **2606904** (handoff, partial progress preserved). No artifacts were deleted.
+Both selected-Solo evaluations and selected-Tandem capability are complete;
+selected-Tandem handoff **2607093** continues unchanged on CSAIL and is the only
+remaining required GPU evaluation. Step-200 Solo outputs remain ancillary
+artifacts and must not substitute for the selected step-160 model's results.
+
+Engaging plots **25349868** and **25350237** were already cancelled before this
+correction, superseding the earlier held-job instructions. Only the selected
+comparison needs plotting after its Tandem handoff result is verified and
+transferred; there is no held plotting job to release. The monitoring timer
+remains disabled.
+
 ## Selected-Tandem handoff migrated: 2026-10-08 19:44 PDT
 
 At the user's request, pending Engaging **25349867** was cancelled before its

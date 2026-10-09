@@ -3,7 +3,12 @@
 export PATH="/usr/bin:/bin:${PATH:-}"
 resume_before_walltime() {
     [ "${SLURM_RESTART_COUNT:-0}" -lt "${MAX_RESTARTS:-12}" ] || return 1
-    if [ "$PILOT_ENTRYPOINT" = figure2.sbatch ]; then
+    if [ "$PILOT_ENTRYPOINT" = word-handoff.sbatch ]; then
+        test -s "${OUTPUT:?}.progress.json" || return 1
+        echo "Walltime continuation: requeue $SLURM_JOB_ID from saved word-handoff batches"
+        scontrol requeue "$SLURM_JOB_ID"
+        return
+    elif [ "$PILOT_ENTRYPOINT" = figure2.sbatch ]; then
         case "${MODE:-full}" in
             base) PROGRESS="${RESULTS_ROOT:?}/base/solo.json.progress.json";;
             *-solo) PROGRESS="${RESULTS_ROOT:?}/${MODE%-solo}/solo.json.progress.json";;
@@ -53,7 +58,7 @@ resume_before_walltime() {
         scontrol requeue "$SLURM_JOB_ID"
     fi
 }
-if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ]; }; then
+if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = word-handoff.sbatch ]; }; then
     trap resume_before_walltime USR1
 fi
 if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then

@@ -33,7 +33,7 @@ def main() -> None:
             curves[phase][arm] = summarize(result, args.bootstrap, args.seed)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     common.save_json(args.out.with_suffix(".json"), {
-        "protocol": "released checkpoints; problem bootstrap within benchmark; bands = 1 SE",
+        "protocol": "independently trained validation-selected checkpoints; problem bootstrap within benchmark; bands = 1 SE",
         "bootstrap_replicates": args.bootstrap, "bootstrap_seed": args.seed,
         "curves": curves,
     })
@@ -77,8 +77,12 @@ def summarize(result: dict, bootstrap: int = 2000, seed: int = 20261004) -> dict
     return output
 
 
-def plot(curves: dict, out: Path) -> None:
-    """Write a two-row, five-column figure as PNG/SVG; no reference values are imputed."""
+def plot(curves: dict, out: Path, *, note: str | None = None) -> None:
+    """Write PNG/SVG curves: handoff k=1..8 and solo k=1..32, powers of two.
+
+    Solo curves appear only in the bottom row. Label partial inputs explicitly
+    with note. All means/SEs are percentages; no scores are imputed.
+    """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -96,22 +100,19 @@ def plot(curves: dict, out: Path) -> None:
                 ax.plot(x, mean, color=COLORS[arm], marker="o", lw=2, ms=4)
                 ax.fill_between(x, np.maximum(0, mean-se), np.minimum(100, mean+se),
                                 color=COLORS[arm], alpha=0.12, linewidth=0)
-                if phase == "handoff":
-                    solo = curves["solo"][arm][name]
-                    ax.plot(x, solo["mean"][:len(x)], color=COLORS[arm], ls="--", lw=1.4)
             ax.set_xscale("log", base=2)
-            ticks = [1, 2, 4, 8] if row == 0 else [1, 4, 32]
+            ticks = [1, 2, 4, 8] if row == 0 else [1, 2, 4, 8, 16, 32]
             ax.set_xticks(ticks, labels=[str(k) for k in ticks])
             ax.grid(axis="y", alpha=0.25)
             ax.spines[["top", "right"]].set_visible(False)
             if col == 0:
                 ax.set_ylabel(f"{phase.capitalize()} pass@k (%)")
-            if row == 1:
-                ax.set_xlabel("k")
+            ax.set_xlabel("k")
     handles = [Line2D([], [], color=c, marker="o", label="GRPO" if arm == "grpo" else arm.capitalize())
                for arm, c in COLORS.items()]
-    handles.append(Line2D([], [], color="#555555", ls="--", label="same senior, solo"))
-    fig.legend(handles=handles, loc="outside upper center", ncol=4, frameon=False)
+    fig.legend(handles=handles, loc="outside upper center", ncol=3, frameon=False)
+    if note:
+        fig.supxlabel(note, fontsize=9)
     fig.savefig(out.with_suffix(".png"), dpi=200)
     fig.savefig(out.with_suffix(".svg"))
     plt.close(fig)

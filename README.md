@@ -24,6 +24,7 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 | [Walltime continuation](slurm/continue-training.py) | Existing job IDs/checkpoint roots → bounded same-job requeue before expiry; resumes through the training launcher |
 | [Solo](eval/solo.py), [handoff](eval/handoff.py), [legibility](eval/legibility.py) | Model(s), benchmark configuration → accuracy or junior cross-entropy |
 | [Evaluation job](slurm/figure2.sbatch) | Pinned model manifest and phase → base, individual solo/handoff phases, or full evaluation |
+| [Word handoff](eval/word_handoff.py) | Selected senior + frozen junior → resumable training-schedule scores and per-token authorship ([job](slurm/word-handoff.sbatch)) |
 | [Figure 2](eval/figure2.py) | Completed solo/handoff evaluations → figure and bootstrap statistics |
 
 [Training protocol/setup](docs/FRESH_TRAINING.md) · [Evaluation protocol](docs/FIGURE2.md)

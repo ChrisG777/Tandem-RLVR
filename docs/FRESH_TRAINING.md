@@ -21,6 +21,9 @@ under each arm's own rollout protocol (earliest step breaks ties), rather than
 forcing the authors' selected steps 200 and 120. Test benchmarks never select
 checkpoints. This is a single-seed reproduction, not a seed-averaged result.
 
+The user clarified on 2026-10-08 that “final model” means this validation-selected
+model. A separate evaluation of the last step-200 checkpoint is not requested.
+
 Use the existing DeepScaleR preparation with 40,309 nonempty-answer examples,
 1,000 held out with split seed 0, and 39,309 for training. Resolve the dataset's
 Hub commit before loading; record it and the two parquet SHA-256 hashes.
