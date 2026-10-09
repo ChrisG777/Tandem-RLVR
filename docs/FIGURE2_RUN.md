@@ -1,5 +1,27 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 18:23 PDT — authentication still unavailable
+
+Direct SSH failed sandbox DNS resolution; the scoped approved retry reached
+Engaging but returned `Permission denied (keyboard-interactive)`. The approved
+existing CSAIL relay closed with `Connection closed by UNKNOWN port 65535`.
+No authenticated cluster command ran. Live queue/accounting, logs, checkpoint
+integrity, dependencies and quota remain unverified; no jobs were changed.
+Authentication renewal remains pending, and no new Duo push was sent.
+
+After access returns, first reconcile final Solo **25299322** (last verified
+**1,040/1,064**, recorded deadline **15:16:35 PDT**) and final handoff
+**25299323**, together with all best-validation evaluations and plot dependencies.
+Best Solo step **160** and final step **200** remain distinct in the last
+verified manifests. Check expired allocation deadlines against live state and
+duplicate-aware accounting before resuming any affected work. The last quota
+timestamp (**14:53 PDT**) is now about 210 minutes old.
+
+Local Solo PNG/SVG, snapshot and summary are present; the summary confirms all
+200 training steps and step-200 validation (**67.2547548% pass@4**), so no plot
+refresh is needed. Pilot review remains **29/128**, next **pair-0029**, awaiting
+source access. Keep the timer enabled; cluster deployment awaits authentication.
+
 ## Scheduled check: 2026-10-08 17:43 PDT — authentication still unavailable
 
 Scoped approved direct Engaging SSH reached the server but failed with
