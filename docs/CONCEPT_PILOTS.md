@@ -158,3 +158,25 @@ provenance; defaults for reproduction and previous pilots stay at 4,096. New
 training uses maximum prompt length 1,024. The long arm's memory use is an
 estimate until it starts; larger microbatches may require revising the GPU
 request if the first updates expose a memory limit.
+
+### Revised submission, 20:00 Pacific
+
+Frozen code `c145e48` is in
+`/data/scratch/chrisge/Tandem-RLVR-concept-pilot-20261008-v2`.
+Artifacts use
+`/data/vision/torralba/u/chrisge/tandem-rlvr/concept-pilot-20261008-budget-v2/{TASK}`.
+Data hashes are unchanged. All GPU jobs use the compatible vision-shared route
+at submission because the compatible Torralba nodes were occupied and neither
+shared-route dry run established immediate admission. Nice remains 1000.
+
+| Task | Calibration | Solo array (4,096 / 8,192) | CPU verification | Base evaluation | Trained evaluation | Review |
+|---|---|---|---|---|---|---|
+| RuleTaker | 2607187 | 2607188_0 / 2607188_1 | 2607189_0–1 | 2607190 | 2607191_0–1 | 2607192 |
+| Object Re-ARC | 2607193 | 2607194_0 / 2607194_1 | 2607195_0–1 | 2607196 | 2607197_0–1 | 2607198 |
+
+The original RuleTaker calibration confirmed RTX 3090 compatibility: measured
+7.61 GiB model memory and 9.4 GiB available KV cache (68,448 tokens). A larger
+per-request context reduces maximum concurrent sequences within that same cache.
+Fifteen focused tests pass after the context change, including interruption/resume
+at an 8,192-token response budget and rejection of mismatched context provenance.
+The four revised training arms remain conditional on calibration success.
