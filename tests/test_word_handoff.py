@@ -53,9 +53,10 @@ class WordHandoff(unittest.TestCase):
                 out=root/'word.json'
                 with self.assertRaisesRegex(RuntimeError,'preemption'):
                     word_handoff.evaluate('senior','junior',out,n=1)
-                self.assertEqual(len(json.loads(Path(str(out)+'.progress.json').read_text())['gens']),16)
+                self.assertEqual(len(json.loads(Path(str(out)+'.progress.json').read_text())['gens']),1)
                 result=word_handoff.evaluate('senior','junior',out,n=1)
-                self.assertEqual(calls[-1],['16','17','18','19'])
+                self.assertEqual(calls[2],[str(i) for i in range(1,17)])
+                self.assertEqual(calls[-1],['17','18','19'])
                 self.assertEqual(result['senior_token_fraction'],.5)
                 self.assertEqual(result['metrics']['macro']['pass@1'],1)
                 with self.assertRaisesRegex(ValueError,'inputs differ'):

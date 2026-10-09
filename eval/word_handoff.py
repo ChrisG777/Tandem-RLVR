@@ -48,6 +48,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                              'max_gap_tokens': 32, 'boundary_sha256': hashlib.sha256(boundary_bytes).hexdigest()},
                 'seed_rule': '1000 * problem_index + sample_index',
                 'max_model_len': common.MAX_MODEL_LEN,
+                'max_num_seqs': 4,
                 'budget_rule': 'min(3000, 4096 - prompt_tokens - 8)'}
     problems = common.load_problems(limit=limit)
     progress_path, progress = common.load_progress(str(out), identity, problems)
@@ -70,8 +71,11 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     engine = build_engine(senior, junior, boundary_path)
     gens = progress['gens']
     try:
-        for start in range(len(gens), len(problems), common.EVAL_BATCH_SIZE):
-            batch = problems[start:start + common.EVAL_BATCH_SIZE]
+        while len(gens) < len(problems):
+            start = len(gens)
+            # Validate the first complete problem before spending a full batch.
+            size = 1 if start == 0 else common.EVAL_BATCH_SIZE
+            batch = problems[start:start + size]
             repeated = [prompts[start+i] for i in range(len(batch)) for _ in range(n)]
             params = [SamplingParams(**{**sampling, 'max_tokens': budgets[start+i]},
                                      seed=1000*p['idx']+s)
@@ -81,8 +85,17 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                 raise ValueError('Incomplete generation batch')
             records = []
             for i, problem in enumerate(batch):
-                samples = [record_completion(o.outputs[0], boundaries)
-                           for o in outputs[i*n:(i+1)*n]]
+                try:
+                    samples = [record_completion(o.outputs[0], boundaries)
+                               for o in outputs[i*n:(i+1)*n]]
+                except ValueError as exc:
+                    common.save_json(str(out)+'.invalid.json', {
+                        'identity': identity, 'problem': problem, 'error': str(exc),
+                        'samples': [{'text': o.outputs[0].text,
+                                     'token_ids': list(o.outputs[0].token_ids),
+                                     'model_mask': getattr(o.outputs[0], 'tandem_model_mask', None)}
+                                    for o in outputs[i*n:(i+1)*n]]})
+                    raise
                 texts = [s.pop('text') for s in samples]
                 records.append({'set': problem['set'], 'idx': problem['idx'],
                                 'response_budget': budgets[start+i],
@@ -116,7 +129,9 @@ def build_engine(senior: str, junior: str, boundaries: Path):
     os.environ.pop('VLLM_TANDEM_CONFIG', None)
     os.environ.pop('VLLM_TANDEM_ALL_GPUS', None)
     return LLM(model=senior, dtype='bfloat16', enforce_eager=True,
-               max_model_len=common.MAX_MODEL_LEN, max_num_seqs=8,
+               # Measured cache = 18,192 tokens: four full 4,096-token sequences
+               # fit without eviction/replay of the stateful word sampler.
+               max_model_len=common.MAX_MODEL_LEN, max_num_seqs=4,
                max_num_batched_tokens=4096, gpu_memory_utilization=0.85,
                kv_cache_memory_bytes=5*1024**3, enable_prefix_caching=True,
                tandem_config={'enabled': True, 'frozen_model': junior,
