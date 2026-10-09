@@ -1,5 +1,29 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 17:12 PDT — authentication still unavailable
+
+Direct Engaging SSH first failed sandbox DNS resolution. The scoped approved
+monitoring command reached Engaging but returned `Permission denied
+(keyboard-interactive)`; the approved existing CSAIL relay closed with
+`Connection closed by UNKNOWN port 65535`. No authenticated cluster command
+succeeded. Authentication renewal remains outstanding; no new Duo push was
+sent. No jobs, dependencies or cluster artifacts were changed.
+
+Live queue/accounting, checkpoint integrity, logs and quotas remain unverified.
+First check final Solo **25299322** after access returns: its last verified
+progress is **1,040/1,064**, and its recorded **15:16:35 PDT** deadline has passed.
+Check final handoff **25299323** and all best-validation jobs alongside it,
+reconciling live state with duplicate-aware accounting before any recovery.
+Best Solo step **160** and final step **200** were last verified as distinct;
+do not merge their evaluations. The last quota timestamp (**14:53 PDT**) is
+about 139 minutes old and must be refreshed before storage-intensive work.
+
+Local Solo PNG/SVG, snapshot and summary remain present; the summary contains
+all 200 steps and step-200 validation (**67.2547548% pass@4**), so no plot refresh
+is needed. Pilot semantic review remains **29/128**, next **pair-0029**, because
+source traces remain inaccessible. Keep the existing timer; these notes await
+cluster deployment through Git when authentication returns.
+
 ## Scheduled check: 2026-10-08 16:32 PDT — authentication still unavailable
 
 Direct Engaging SSH failed sandbox DNS resolution; retrying the exact read-only
