@@ -1,5 +1,29 @@
 # Figure 2 reproduction audit — 2026-10-08 Pacific
 
+## Completion update — 2026-10-09 Pacific
+
+All five original Figure 2 evaluations now contain all 1,064 problems and have
+been regraded locally with the corrected shared grader. The final Tandem paragraph
+file has eight attempts/problem and zero unfinished chains. Its scheduler job
+later failed on a restart because the scratch checkout was unavailable on that
+node; this blocked the dependent grading job despite the complete saved output.
+After validating the artifact, dependency 2608029 was cleared so the cluster can
+also retain corrected grades. No additional paragraph inference is needed.
+
+[Complete corrected figure](../results/figure2-regraded/figure2-complete.png) ·
+[Curve statistics](../results/figure2-regraded/figure2-complete.json).
+
+| Macro metric | GRPO | Tandem |
+|---|---:|---:|
+| Solo pass@4 | 59.46% | 59.97% |
+| Paragraph handoff pass@4 | 58.25% | 57.55% |
+| Paragraph handoff pass@8 | 61.79% | 60.48% |
+
+The extra native-word comparison is not finished. At this check Tandem 2608058
+had 225/1,064 saved problems and GRPO 25374401 had 337/1,064; both were running,
+with corrected CPU grading queued after completion. The older 992-problem
+analyses below remain explicitly interim diagnostics.
+
 The apparent Minerva deficit was mostly a grading artifact. After correcting
 grading uniformly, the selected Tandem model is slightly stronger solo, but
 paragraph handoff does not reproduce the paper's clear Tandem advantage. The
