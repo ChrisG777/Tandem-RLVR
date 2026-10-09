@@ -138,7 +138,8 @@ def metrics_by_set(problems, counts, n, ks=KS):
     return out
 
 
-def build_engine(model, gpu_util, device=None, max_num_batched_tokens=None):
+def build_engine(model, gpu_util, device=None, max_num_batched_tokens=None,
+                 max_model_len=MAX_MODEL_LEN):
     from vllm import LLM
 
     saved = os.environ.get("CUDA_VISIBLE_DEVICES")
@@ -149,7 +150,7 @@ def build_engine(model, gpu_util, device=None, max_num_batched_tokens=None):
             model=model,
             gpu_memory_utilization=gpu_util,
             enforce_eager=True,
-            max_model_len=MAX_MODEL_LEN,
+            max_model_len=max_model_len,
             enable_prefix_caching=True,
         )
         if max_num_batched_tokens:

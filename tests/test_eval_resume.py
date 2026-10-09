@@ -94,14 +94,18 @@ class EvaluationResume(unittest.TestCase):
             pd.DataFrame(rows).to_parquet(data)
             with patch.dict(sys.modules, {"vllm": SimpleNamespace(SamplingParams=lambda **kw: kw)}), \
                  patch.object(common, "chat_prefix", side_effect=lambda tok, text: text):
-                args = ("base", data, out, 2048)
-                kwargs = dict(engine=SimpleNamespace(generate=generate), tokenizer=tok, n=1)
+                args = ("base", data, out, 8192)
+                kwargs = dict(engine=SimpleNamespace(generate=generate), tokenizer=tok, n=1,
+                              max_model_len=10240)
                 with self.assertRaisesRegex(RuntimeError, "preemption"):
                     shorthand.evaluate(*args, **kwargs)
                 result = shorthand.evaluate(*args, **kwargs)
+                with self.assertRaisesRegex(ValueError, "different evaluation"):
+                    shorthand.evaluate(*args, **{**kwargs, "max_model_len": 12288})
             self.assertEqual(calls[2], [str(i) for i in range(16, 20)])
             self.assertEqual(result["metrics"]["accuracy"], 1)
             self.assertEqual(len(result["generations"]), 20)
+            self.assertEqual(result["provenance"]["max_model_len"], 10240)
 
     def test_changed_model_or_problem_rejects_progress(self):
         with tempfile.TemporaryDirectory() as tmp:

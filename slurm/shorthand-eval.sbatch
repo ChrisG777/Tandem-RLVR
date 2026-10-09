@@ -50,7 +50,7 @@ case "${PHASE:?}" in
     DATA=("$DATA_ROOT/$TASK/test.parquet" "$DATA_ROOT/$TASK/long.parquet");;
   *) exit 2;;
 esac
-run_python eval/shorthand.py --model "$MODEL" --data "${DATA[@]}" --out-dir "$OUTPUT" --n 4 --budgets "${BUDGETS[@]}" &
+run_python eval/shorthand.py --model "$MODEL" --data "${DATA[@]}" --out-dir "$OUTPUT" --n 4 --budgets "${BUDGETS[@]}" --max-model-len "${PILOT_CONTEXT:-4096}" &
 wait $!
 if [ "$PHASE" = calibration ]; then
   run_python train/check_shorthand.py --calibration "$RUN_ROOT/calibration" --data-root "$DATA_ROOT" --tasks ${PILOT_TASKS:-manipulate_matrix string_manipulation} --budgets ${PILOT_BUDGETS:-256 1024}

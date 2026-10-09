@@ -22,23 +22,26 @@ def main() -> None:
     parser.add_argument("--n", type=int, default=4)
     parser.add_argument("--seed", type=int, default=17)
     parser.add_argument("--gpu-util", type=float, default=0.75)
+    parser.add_argument("--max-model-len", type=int, default=common.MAX_MODEL_LEN)
     args = parser.parse_args()
     # One engine handles all splits and budgets; outputs are independent files.
     os.environ.pop("VLLM_TANDEM_CONFIG", None)
     os.environ.pop("VLLM_TANDEM_ALL_GPUS", None)
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.model)
-    engine = common.build_engine(args.model, args.gpu_util, max_num_batched_tokens=4096)
+    engine = common.build_engine(args.model, args.gpu_util, max_num_batched_tokens=4096,
+                                 max_model_len=args.max_model_len)
     for path in args.data:
         for budget in args.budgets:
             out = args.out_dir / f"{path.parent.name}-{path.stem}-b{budget}.json"
             result = evaluate(args.model, path, out, budget, args.seed,
-                              engine=engine, tokenizer=tokenizer, n=args.n)
+                              engine=engine, tokenizer=tokenizer, n=args.n, max_model_len=args.max_model_len)
             print(json.dumps({"output": str(out), **result["metrics"]}), flush=True)
 
 
 def evaluate(model: str, data_path: Path, out_path: Path, max_tokens: int,
-             seed: int = 17, *, engine=None, tokenizer=None, n: int = 4) -> dict:
+             seed: int = 17, *, engine=None, tokenizer=None, n: int = 4,
+             max_model_len: int = common.MAX_MODEL_LEN) -> dict:
     """Generate solo GPU rollouts and atomically write scores, lengths, and full traces.
 
     Uses temperature 0.6/top-p 1 for both base and trained policies. Existing
@@ -49,6 +52,9 @@ def evaluate(model: str, data_path: Path, out_path: Path, max_tokens: int,
                   "data_sha256": hashlib.sha256(data_path.read_bytes()).hexdigest(),
                   "max_tokens": max_tokens, "seed": seed, "n": n, "temperature": 0.6,
                   "top_p": 1.0, "phase": "solo"}
+    # Preserve compatibility with existing 4k-context pilot artifacts.
+    if max_model_len != common.MAX_MODEL_LEN:
+        provenance["max_model_len"] = max_model_len
     if out_path.exists():
         previous = json.loads(out_path.read_text())
         if previous["provenance"] != provenance:
@@ -60,11 +66,12 @@ def evaluate(model: str, data_path: Path, out_path: Path, max_tokens: int,
         from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(model)
     if engine is None:
-        engine = common.build_engine(model, 0.75, max_num_batched_tokens=4096)
+        engine = common.build_engine(model, 0.75, max_num_batched_tokens=4096,
+                                     max_model_len=max_model_len)
     rows = pd.read_parquet(data_path).to_dict("records")
     prompts = [common.chat_prefix(tokenizer, row["prompt"][0]["content"]) for row in rows]
     lengths = [len(tokenizer.encode(prompt)) for prompt in prompts]
-    if not rows or max(lengths) + max_tokens > common.MAX_MODEL_LEN:
+    if not rows or max(lengths) + max_tokens > max_model_len:
         raise ValueError("Empty dataset or evaluation exceeds context length")
     problems = [{"set": data_path.parent.name, "idx": i,
                  "prompt_sha256": row["extra_info"]["prompt_sha256"]}

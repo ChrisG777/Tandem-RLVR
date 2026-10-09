@@ -36,6 +36,8 @@ def build_review(run_root: Path, seed: int = 61, *, expected_comparisons: int = 
             for field in ("data_sha256", "max_tokens", "seed", "n", "temperature", "top_p"):
                 if base["provenance"][field] != trained["provenance"][field]:
                     raise ValueError(f"Unmatched evaluation field {field}: {path}")
+            if base["provenance"].get("max_model_len", 4096) != trained["provenance"].get("max_model_len", 4096):
+                raise ValueError(f"Unmatched evaluation context length: {path}")
             base_by_id = {g["prompt_sha256"]: g for g in base["generations"]}
             train_by_id = {g["prompt_sha256"]: g for g in trained["generations"]}
             if base_by_id.keys() != train_by_id.keys():

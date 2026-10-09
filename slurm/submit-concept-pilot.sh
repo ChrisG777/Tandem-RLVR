@@ -9,7 +9,8 @@ cd "${REPO:?}"
 [[ "$PILOT_TASKS" = ruletaker_shared || "$PILOT_TASKS" = rearc_objects ]]
 mkdir "$RUN_ROOT/submission-lock" # Prevent duplicate continuations, even after a partial submission.
 SITE=("REPO=$REPO" "RUN_ROOT=$RUN_ROOT" "DATA_ROOT=$DATA_ROOT"
-      "PILOT_TASKS=$PILOT_TASKS" "PILOT_BUDGETS=$PILOT_BUDGETS")
+      "PILOT_TASKS=$PILOT_TASKS" "PILOT_BUDGETS=$PILOT_BUDGETS"
+      "PILOT_CONTEXT=${PILOT_CONTEXT:-4096}" "PILOT_MAX_PROMPT=${PILOT_MAX_PROMPT:-1024}")
 COMMON=(--parsable --export=NIL --chdir="$REPO" --nice=1000 --kill-on-invalid-dep=yes)
 GPU=("${COMMON[@]}" --account=vision-torralba --qos=shared-if-available --gpus=1 --requeue)
 CPU=("${COMMON[@]}" --partition=tig-cpu --account=csail --qos=tig-main

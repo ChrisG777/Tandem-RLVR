@@ -53,6 +53,9 @@ def check_calibration(root: Path, data_root: Path, tasks=TASKS[:2], budgets=(256
                    for budget in budgets]
         if any(result["provenance"]["max_tokens"] != budget for result, budget in zip(results, budgets)):
             raise ValueError("Calibration token budget mismatch")
+        contexts = [r["provenance"].get("max_model_len", 4096) for r in results]
+        if contexts[0] != contexts[1]:
+            raise ValueError("Calibration context length mismatch")
         score = results[1]["metrics"]
         if (not 0 < score["accuracy"] < 0.98 or score["answer_present"] < 0.5
                 or results[0]["metrics"]["accuracy"] == 0):
@@ -77,7 +80,7 @@ def check_calibration(root: Path, data_root: Path, tasks=TASKS[:2], budgets=(256
             for prompt in rows["prompt"]:
                 ids = tokenizer.apply_chat_template(list(prompt), tokenize=True, add_generation_prompt=True)
                 max_prompt = max(max_prompt, len(ids))
-        prompt_limit = min(1536, 4096 - budgets[1])
+        prompt_limit = min(1536, contexts[1] - budgets[1])
         if max_prompt > prompt_limit:
             raise ValueError(f"Prompt exceeds training budget: {task}: {max_prompt}")
         summary[task] = {"calibration": [r["metrics"] for r in results], "max_prompt_tokens": max_prompt}

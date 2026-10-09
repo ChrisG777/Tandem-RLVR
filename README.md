@@ -43,7 +43,7 @@ Tandem arms. The newer pilots target shared deductions and recurring object oper
 | [Submit Engaging pilot](slurm/submit-engaging-pilot.sh) | Prepared environments/calibration jobs/site paths → two solo runs, CPU checks, evaluations, and review |
 | [Calibration/training checks](train/check_shorthand.py) | Calibration or training artifacts and task/budget selection → verified gate status |
 | [Calibration array](slurm/shorthand-calibrate.sbatch) | Site paths and task index 0–1 → independent larger-budget calibration traces ([setup](slurm/shorthand-calibration-setup.sh)) |
-| [Evaluate](eval/shorthand.py) | Checkpoint/test split/budget → solo traces and metrics |
+| [Evaluate](eval/shorthand.py) | Checkpoint/test split/budget/context limit → solo traces and metrics |
 | [Prepare review](eval/review_shorthand.py) | Completed evaluations/expected comparison count → paired metrics, blinded traces, and authorship key |
 
 [Concept pilot protocol](docs/CONCEPT_PILOTS.md) · [Engaging campaign](docs/ENGAGING_PILOT.md) · [Original protocol](docs/SHORTHAND_EXPERIMENT.md) · [Run history](docs/SHORTHAND_RUN.md)

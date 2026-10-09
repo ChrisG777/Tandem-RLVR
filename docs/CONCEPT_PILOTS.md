@@ -44,10 +44,12 @@ checks, not model-based selection.
 
 ## Training and gates
 
-Both budgets, **1,024 and 3,072 response tokens**, start separately from
+Revised budgets, **4,096 and 8,192 response tokens**, start separately from
 Qwen3-4B-Instruct-2507. Each Solo GRPO run uses 100 optimizer steps, seed 42,
 16 prompts/update, eight rollouts/prompt, minibatch eight, temperature 0.6,
-learning rate 1e-6, no KL or entropy bonus, microbatch token budget 4,096.
+learning rate 1e-6, no KL or entropy bonus, microbatch token budgets 5,120 / 9,216 respectively (prompt plus response).
+The effective prompt/minibatch sizes stay fixed; the larger microbatch ceiling
+allows a single long trajectory to fit. Evaluation context is 10,240 tokens.
 Checkpoint every ten steps; validation every 25; retain the fixed final step-100
 HF model. There is no length penalty, shorthand reward, supplied vocabulary,
 or supervised jargon example. Evaluation samples four completions per prompt
@@ -59,7 +61,7 @@ least one shorter-budget exact success. RuleTaker query accuracy must exceed
 55% (random baseline 50%); every Re-ARC family must have a generous-budget
 success. A failed gate stops that task's downstream chain, independently of the
 other task. This guards against another truncation-driven pilot; it does not
-prove that 3,072 tokens are unconstrained for every example. Revisions must be
+prove that 8,192 tokens are unconstrained for every example. Revisions must be
 saved as new campaigns, not overwrite prior evaluation provenance.
 
 Compare exact accuracy, RuleTaker query accuracy, token lengths and truncation,
@@ -104,7 +106,7 @@ and 4,096 batched tokens. This admits available Torralba RTX 3090s for calibrati
 V100/Turing cards are excluded from this BF16 runtime. Training keeps its measured
 80 GB minimum. Dependent evaluations admit all compatible vision-shared types.
 
-Run records and actual job IDs will be appended after submission.
+The initial and revised submission records are below.
 
 Storage planning: each completed matrix arm currently occupies 123 GiB including
 retained restart checkpoints and final weights. Four comparable arms would use
@@ -136,3 +138,23 @@ in the existing runtime, with pilot-specific evaluation coverage added here.
 Validation: 13 focused checks passed before submission, including rewards,
 calibration gates, all split hashes/oracle labels, and host-side restart behavior.
 No training result or jargon claim is available at submission time.
+
+
+### Budget revision after calibration
+
+The initial 1,024-token RuleTaker calibration had 100% truncation and no final
+answers. Re-ARC at 3,072 tokens had 96.1% truncation, 3.9% final answer blocks,
+and 0.78% exact accuracy. These are calibration observations, not test results.
+The initial training, verification, base-evaluation, trained-evaluation and review
+chains in the table above were cancelled while still pending; no RL was run at
+those budgets. Both original calibration jobs were allowed to finish. Re-ARC
+calibration 2607135 moved in place to vision-shared after the Torralba owner
+capacity filled and subsequently ran on andreas-h100-1.
+
+The revision keeps the same prompts/data/rewards, expands response limits to
+4,096 / 8,192 and retains the <10% generous-budget truncation gate. The existing
+evaluation interface now accepts an explicit context length and records it in
+provenance; defaults for reproduction and previous pilots stay at 4,096. New
+training uses maximum prompt length 1,024. The long arm's memory use is an
+estimate until it starts; larger microbatches may require revising the GPU
+request if the first updates expose a memory limit.
