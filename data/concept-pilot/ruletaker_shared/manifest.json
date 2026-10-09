@@ -1,0 +1,48 @@
+{
+  "task": "ruletaker_shared",
+  "seed": 42,
+  "revision": "49b07130b3fcd12f2d064bba7c43869543a0e7e7",
+  "ruletaker_revision": "abaacec9364992eff5ec4555b837e20fee2f2ff0",
+  "tokenizer": "Qwen/Qwen3-4B-Instruct-2507",
+  "tokenizer_revision": "cdbee75f17c01a7cc42f958dc650907174af0554",
+  "max_prompt_tokens": 1024,
+  "families": [],
+  "oracle": "ProbLog 2.2.10",
+  "splits": {
+    "calibration": {
+      "rows": 64,
+      "seed": 1000042,
+      "examined": 178,
+      "sha256": "c688af3d4b7a2976340cce792933f9e116fa92b3de1a305f685dd42a5425a488",
+      "max_prompt_tokens": 392
+    },
+    "train": {
+      "rows": 4096,
+      "seed": 2000042,
+      "examined": 9886,
+      "sha256": "58b79f3883fc1b1fdbcbb0b680dcd1b274542ec769b9ccc4d14dcb6c41d45c3e",
+      "max_prompt_tokens": 431
+    },
+    "validation": {
+      "rows": 128,
+      "seed": 3000042,
+      "examined": 330,
+      "sha256": "913b8e09b0f009f482b36078ec1d9625e3834ce7d6175e7a23b4207da81d58e7",
+      "max_prompt_tokens": 412
+    },
+    "test": {
+      "rows": 256,
+      "seed": 4000042,
+      "examined": 656,
+      "sha256": "d9192f3e8e551c2651b37b9c304954e93e25516f5995b196faa009796561534a",
+      "max_prompt_tokens": 412
+    },
+    "long": {
+      "rows": 256,
+      "seed": 5000042,
+      "examined": 405,
+      "sha256": "aaaa8efcb1f6fb31ed9bf167bdcf75d362d7a34bb542b71108ec0daf0fff9f3d",
+      "max_prompt_tokens": 508
+    }
+  }
+}

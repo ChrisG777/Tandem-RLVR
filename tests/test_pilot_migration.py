@@ -16,6 +16,31 @@ from check_shorthand import check_calibration
 
 
 class PilotMigration(unittest.TestCase):
+    def test_pilot_evaluation_resumes_only_its_array_output(self):
+        for saved, restarts, expected in ((True, 0, True), (False, 0, False), (True, 12, False)):
+            with self.subTest(saved=saved, restarts=restarts), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                output = root / "eval" / ("rearc_objects-b3072" if saved else "rearc_objects-b1024")
+                output.mkdir(parents=True)
+                (output / "test.json.progress.json").write_text('{"gens": [1]}')
+                env = {**os.environ, "REPO": str(ROOT), "RUN_ROOT": str(root),
+                       "PILOT_ENTRYPOINT": "shorthand-eval.sbatch", "PHASE": "trained",
+                       "PILOT_TASKS": "rearc_objects", "PILOT_BUDGETS": "1024 3072",
+                       "SLURM_JOB_ID": "125", "SLURM_ARRAY_JOB_ID": "124",
+                       "SLURM_ARRAY_TASK_ID": "1", "SLURM_RESTART_COUNT": str(restarts),
+                       "APPTAINER_IMAGE": "", "TANDEM_CONTAINER_ACTIVE": "0"}
+                command = '''
+                    scontrol() { echo "$*" > "$RUN_ROOT/requeue-call"; }
+                    source "$REPO/slurm/shorthand-runtime.sh"
+                    kill -USR1 $$
+                '''
+                proc = subprocess.run(["bash", "-euc", command], env=env, cwd=ROOT,
+                                      capture_output=True, text=True)
+                call = root / "requeue-call"
+                self.assertEqual(call.exists(), expected, proc.stdout + proc.stderr)
+                if expected:
+                    self.assertEqual(call.read_text().strip(), "requeue 124_1")
+
     def test_evaluation_walltime_requeues_only_its_saved_phase_within_retry_limit(self):
         for saved, restarts, expected in ((True, 0, True), (False, 0, False), (True, 12, False)):
             with self.subTest(saved=saved, restarts=restarts), tempfile.TemporaryDirectory() as tmp:

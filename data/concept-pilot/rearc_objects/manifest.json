@@ -1,0 +1,53 @@
+{
+  "task": "rearc_objects",
+  "seed": 42,
+  "revision": "49b07130b3fcd12f2d064bba7c43869543a0e7e7",
+  "ruletaker_revision": null,
+  "tokenizer": "Qwen/Qwen3-4B-Instruct-2507",
+  "tokenizer_revision": "cdbee75f17c01a7cc42f958dc650907174af0554",
+  "max_prompt_tokens": 1024,
+  "families": [
+    "00d62c1b",
+    "6d75e8bb",
+    "a1570a43",
+    "d364b489"
+  ],
+  "oracle": "paired Re-ARC verifier",
+  "splits": {
+    "calibration": {
+      "rows": 64,
+      "seed": 1000042,
+      "examined": 64,
+      "sha256": "041d8d1b8a170d12064f972aca006cfc3e02a52dace58c2b3de5f812d0a9b261",
+      "max_prompt_tokens": 724
+    },
+    "train": {
+      "rows": 4096,
+      "seed": 2000042,
+      "examined": 4222,
+      "sha256": "aeb1050eca13a818671f1a958955ca98292306b93b2b62facdef1d5fcc373253",
+      "max_prompt_tokens": 780
+    },
+    "validation": {
+      "rows": 128,
+      "seed": 3000042,
+      "examined": 136,
+      "sha256": "82f66b2cfe63edbf0a71f6efda7ebed9e93394d48e0b54a9eff406a88d995fb9",
+      "max_prompt_tokens": 724
+    },
+    "test": {
+      "rows": 256,
+      "seed": 4000042,
+      "examined": 267,
+      "sha256": "c1865bff865c5d457059d863837cdbf26b29483c76315d4c002ddebf8c58f539",
+      "max_prompt_tokens": 766
+    },
+    "long": {
+      "rows": 256,
+      "seed": 5000042,
+      "examined": 269,
+      "sha256": "6999359a288aa31c5de4c53dd1f19f6abc1c2e9aaf22ed5a94b2b4641791c309",
+      "max_prompt_tokens": 788
+    }
+  }
+}

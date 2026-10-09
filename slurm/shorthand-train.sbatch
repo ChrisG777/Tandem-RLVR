@@ -55,7 +55,8 @@ bash train/vanilla_grpo.sh \
   "ray_kwargs.ray_init.num_cpus=$SLURM_CPUS_PER_TASK" \
   actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 \
   actor_rollout_ref.rollout.top_k=-1 trainer.resume_mode=auto \
-  "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}"
+  "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" &
+wait $!
 if [ "${DEFER_TRAINING_CHECK:-0}" != 1 ]; then
     run_python train/check_shorthand.py --training "$CKPT_DIR" --steps "$TOTAL_STEPS" --task "$TASK"
 fi

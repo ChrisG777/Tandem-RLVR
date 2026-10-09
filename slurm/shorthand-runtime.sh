@@ -14,6 +14,25 @@ resume_before_walltime() {
         echo "Walltime continuation: requeue $SLURM_JOB_ID from saved evaluation batches"
         scontrol requeue "$SLURM_JOB_ID"
         return
+    elif [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ]; then
+        case "${PHASE:?}" in
+            calibration) ROOT="$RUN_ROOT/calibration";;
+            base) ROOT="$RUN_ROOT/eval/base";;
+            trained)
+                read -ra TASKS <<< "${PILOT_TASKS:-manipulate_matrix string_manipulation}"
+                read -ra BUDGETS <<< "${PILOT_BUDGETS:-256 1024}"
+                ROOT="$RUN_ROOT/eval/${TASKS[$((SLURM_ARRAY_TASK_ID / 2))]}-b${BUDGETS[$((SLURM_ARRAY_TASK_ID % 2))]}";;
+            *) return 1;;
+        esac
+        # Each output commits batches atomically; restart skips those batches/files.
+        [ -d "$ROOT" ] && [ -n "$(find "$ROOT" -maxdepth 1 -name '*.json*' -type f -size +0c -print -quit)" ] || return 1
+        echo "Walltime continuation: requeue $SLURM_JOB_ID from saved pilot evaluation batches"
+        if [ -n "${SLURM_ARRAY_JOB_ID:-}" ]; then
+            scontrol requeue "${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+        else
+            scontrol requeue "$SLURM_JOB_ID"
+        fi
+        return
     elif [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ]; then
         ROOT="$RUN_ROOT/${ARM:?}-${MODE:?}"
     else
@@ -34,7 +53,7 @@ resume_before_walltime() {
         scontrol requeue "$SLURM_JOB_ID"
     fi
 }
-if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ]; }; then
+if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ]; }; then
     trap resume_before_walltime USR1
 fi
 if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then

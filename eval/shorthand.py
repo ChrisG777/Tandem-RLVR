@@ -93,11 +93,21 @@ def evaluate(model: str, data_path: Path, out_path: Path, max_tokens: int,
     samples = [s for g in generations for s in g["samples"]]
     total = len(samples)
     metrics = {"accuracy": sum(s["acc"] for s in samples) / total,
+               "mean_reward": sum(s["score"] for s in samples) / total,
                "pass_at_n": sum(any(s["acc"] for s in g["samples"]) for g in generations) / len(rows),
                "answer_present": sum(s["answer_present"] for s in samples) / total,
                "mean_tokens": sum(s["tokens"] for s in samples) / total,
                "truncated": sum(s["finish_reason"] == "length" for s in samples) / total,
                "max_prompt_tokens": max(lengths), "problems": len(rows), "samples": total}
+    if "query_accuracy" in samples[0]:
+        metrics["query_accuracy"] = sum(s["query_accuracy"] for s in samples) / total
+    families = sorted({row["extra_info"].get("family", "all") for row in rows})
+    metrics["by_family"] = {}
+    for family in families:
+        subset = [s for row, generation in zip(rows, generations)
+                  if row["extra_info"].get("family", "all") == family for s in generation["samples"]]
+        metrics["by_family"][family] = {"accuracy": sum(s["acc"] for s in subset) / len(subset),
+                                         "samples": len(subset)}
     result = {"provenance": provenance, "metrics": metrics, "generations": generations}
     common.save_json(out_path, result)
     return result

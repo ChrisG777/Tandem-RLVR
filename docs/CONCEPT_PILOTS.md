@@ -1,0 +1,113 @@
+# Reusable-concept Solo RL pilots
+
+Two independent task pilots test whether repeated reasoning induces reusable
+conventions beyond shorter English. These are adapted synthetic tasks, not
+claims of results on the original RuleTaker or ARC benchmarks.
+
+## Data and rewards
+
+| Task | Repeated structure | Answer/reward | Held-out extension (`long`) |
+|---|---|---|---|
+| `ruletaker_shared` | Five entities; eight branching Horn rules with shared intermediate conclusions; four related entailment questions per completion | Four true/false values; reward = fraction correct; `acc` = all four correct | Seven entities, same rule motifs |
+| `rearc_objects` | Three input/output demonstrations and one query from a hidden object-transformation family | Exact output grid, binary reward | Query grid has largest side 8–9 instead of 5–7; demonstrations unchanged |
+
+RuleTaker-derived data use the upstream `Fact`, `Rule`, and `Theory` records and
+English renderers from [allenai/ruletaker](https://github.com/allenai/ruletaker)
+commit `abaacec9364992eff5ec4555b837e20fee2f2ff0`. Our adapter constructs a
+branching rule graph; ProbLog 2.2.10 labels entailment, with explicit closed-world
+instructions. Entities, property names, relations, facts and sentence/query
+order vary. Each split has 50% true query labels by construction; sampling
+rejects theories that cannot provide the prescribed labels. The graph topology
+is shared across splits: this pilot tests reuse of those motifs, not unseen
+logical forms. A completion receives reward immediately after its four answers.
+
+Re-ARC uses paired generators/verifiers from pinned
+[Reasoning Gym](https://github.com/open-thought/reasoning-gym/tree/49b07130b3fcd12f2d064bba7c43869543a0e7e7),
+which incorporates [Re-ARC](https://github.com/michaelhodel/re-arc).
+Four equally represented families: enclosed-region filling (`00d62c1b`), filling
+an object's bounding rectangle (`6d75e8bb`), moving an object inside corner
+markers (`a1570a43`), and directional coloring around objects (`d364b489`).
+Generator difficulty interval is [0, 0.3]; reject unchanged grids, verifier
+mismatches, and grids outside the size limits. Minimum side is four cells.
+Family IDs and verifier programs are metadata only, never prompt content.
+These public task families may be familiar from pretraining; the pilot does not
+establish that an observed convention is novel without inspecting base traces.
+
+Each task has calibration 64, train 4,096, validation 128, test 256, and `long`
+256 instances. Seeds are 42 plus a distinct million per split, then candidate
+index. All prompts fit 1,024 tokens with the pinned Qwen tokenizer. Deduplicate
+prompts globally and also entire RuleTaker theories / all Re-ARC demonstration
+and query inputs across splits. Every ARC output is checked against its paired
+verifier. Manifests include source versions and Parquet hashes. Only calibration
+scores may inform difficulty revisions; test/long labels are used for integrity
+checks, not model-based selection.
+
+## Training and gates
+
+Both budgets, **1,024 and 3,072 response tokens**, start separately from
+Qwen3-4B-Instruct-2507. Each Solo GRPO run uses 100 optimizer steps, seed 42,
+16 prompts/update, eight rollouts/prompt, minibatch eight, temperature 0.6,
+learning rate 1e-6, no KL or entropy bonus, microbatch token budget 4,096.
+Checkpoint every ten steps; validation every 25; retain the fixed final step-100
+HF model. There is no length penalty, shorthand reward, supplied vocabulary,
+or supervised jargon example. Evaluation samples four completions per prompt
+at each budget (seed 17), for both base and both trained checkpoints.
+
+Training runs only after calibration passes: generous-budget exact accuracy in
+(0, .98), at least 90% final answer blocks, **less than 10% truncated**, and at
+least one shorter-budget exact success. RuleTaker query accuracy must exceed
+55% (random baseline 50%); every Re-ARC family must have a generous-budget
+success. A failed gate stops that task's downstream chain, independently of the
+other task. This guards against another truncation-driven pilot; it does not
+prove that 3,072 tokens are unconstrained for every example. Revisions must be
+saved as new campaigns, not overwrite prior evaluation provenance.
+
+Compare exact accuracy, RuleTaker query accuracy, token lengths and truncation,
+then inspect blinded paired traces including the both-correct subset. Count a
+candidate convention only when a stable meaning recurs on held-out problems;
+ordinary variable names, ARC coordinates, prompt vocabulary, and shorter English
+alone are not evidence of emergent opaque jargon. Frozen-reader original versus
+English-expansion tests are a follow-up, not implemented by this pilot chain.
+
+## Interfaces and execution
+
+- `build_dataset(task, out_dir, seed, ruletaker_source)` in
+  [the builder](../data/build_concept_pilot.py) writes immutable splits using
+  upstream oracles; it rejects revision drift and existing output directories.
+- [Reward](../reward/shorthand_reward.py) retains binary `acc`; fractional
+  RuleTaker `score`/`query_accuracy` never changes exact `pass_at_n` semantics.
+- [Submit](../slurm/submit-concept-pilot.sh) takes one task, existing calibration
+  job ID, prepared paths and live-validated CSAIL partition lists; it submits
+  two training jobs → CPU checks → matched evaluations → blinded review, plus
+  base evaluations. Its submission lock prevents duplicate chains.
+- [Calibration check](../train/check_shorthand.py) verifies scores, all data
+  hashes and prompt limits before writing `calibration/verified.json`.
+
+Generate with `uv run --project env/shorthand-data python data/build_concept_pilot.py
+--task TASK --out-dir data/concept-pilot/TASK`; RuleTaker additionally needs
+`--ruletaker-source PATH` to the pinned upstream checkout. The dedicated uv
+project is used only for data preparation, not cluster training environments.
+
+GPU jobs use one GPU; inference admits >=24 GB Ampere-or-newer GPUs,
+32 GiB host RAM/four CPUs;
+training >=80 GB, 144 GiB/six CPUs, based on the completed matrix pilot.
+Native requeue resumes saved checkpoints or atomic evaluation batches, with at
+most 12 restarts and a five-minute pre-walltime signal. Jobs use six-hour chunks,
+except two-hour calibration. CPU integrity/review jobs request no GPUs.
+CSAIL pilot jobs have Nice 1000 so reproduction work retains priority. No
+cross-cluster duplicates or monitoring timer are created.
+
+Inference's 24 GB eligibility is a memory estimate: roughly 7.5 GiB BF16 weights,
+0.56 GiB KV per full 4,096-token sequence, plus activation/runtime space;
+vLLM sizes and schedules its KV cache within 75% of VRAM, with eager execution
+and 4,096 batched tokens. This admits available Torralba RTX 3090s for calibration.
+V100/Turing cards are excluded from this BF16 runtime. Training keeps its measured
+80 GB minimum. Dependent evaluations admit all compatible vision-shared types.
+
+Run records and actual job IDs will be appended after submission.
+
+Storage planning: each completed matrix arm currently occupies 123 GiB including
+retained restart checkpoints and final weights. Four comparable arms would use
+about 492 GiB, versus 860 GiB free on the CSAIL Torralba filesystem at preflight.
+This is an estimate, not a quota reservation; all four use that filesystem rather
+than Engaging's more constrained scratch/pool allocations.

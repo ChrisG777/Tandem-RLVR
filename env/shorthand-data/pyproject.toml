@@ -7,6 +7,9 @@ dependencies = [
   "numpy==2.2.6",
   "pandas==2.3.3",
   "pyarrow==24.0.0",
+  "problog==2.2.10",
+  "transformers==4.57.6",
+  "jinja2==3.1.6",
 ]
 
 [tool.uv.sources]
