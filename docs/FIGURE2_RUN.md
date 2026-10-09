@@ -1,5 +1,23 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Completed training curves: 2026-10-08 19:16 PDT
+
+[Reward, validation, length and truncation curves](../results/training-progress/completed-20261008.png)
+cover both completed 200-step runs. [Optimization/authorship diagnostics](../results/training-progress/completed-diagnostics-20261008.png),
+[summary](../results/training-progress/completed-20261008.json), and the timestamped
+[source snapshot](../results/training-progress/completed-20261008.snapshot.json)
+are retained alongside SVG versions. Attempts are merged using the existing
+resume-aware reader; abandoned updates are excluded. Tandem metrics at steps
+20 and 160 were not logged and remain gaps, including in the validation curve.
+
+Final validation pass@4 is Solo 67.25%, Tandem 64.47%; the best logged values
+are 67.35% at step 160 and 65.62% at step 180. These validation rollouts use
+Solo alone versus the Tandem team, so they are not matched solo-capability
+scores. Last-ten-step mean response lengths are 1,563 versus 1,797 tokens,
+with token-limit rates 24.6% versus 32.2%. No nonfinite observed metrics were
+found. Tandem's senior-token mask averages 50.15% over the final ten updates;
+this checks authorship participation, not interpretability.
+
 ## Split evaluation across clusters: 2026-10-08 19:14 PDT
 
 At the user's request, final-Tandem capability and handoff evaluations moved to

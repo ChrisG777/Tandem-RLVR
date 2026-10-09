@@ -70,7 +70,11 @@ def plot_training_progress(snapshot: Path, out: Path) -> dict:
         validation = [(step, row[VALIDATION] * 100) for step, row in sorted(records.items()) if VALIDATION in row]
         if validation:
             vx, vy = zip(*validation)
-            axes[0, 1].plot(vx, vy, marker="o", ms=5, lw=1.6, color=color, label=LABELS[arm])
+            # This campaign validates every 20 steps; leave missing checkpoints blank.
+            validation_steps = sorted(set(range(20, last + 1, 20)) | set(vx))
+            observed = dict(validation)
+            axes[0, 1].plot(validation_steps, [observed.get(step, np.nan) for step in validation_steps],
+                            marker="o", ms=5, lw=1.6, color=color, label=LABELS[arm])
             axes[0, 1].annotate(f"{vy[-1]:.1f}%", (vx[-1], vy[-1]), xytext=(7, 5 if arm == "grpo" else -14),
                                 textcoords="offset points", color=color)
         steps = sorted(records)
