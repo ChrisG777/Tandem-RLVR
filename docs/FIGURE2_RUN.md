@@ -1,5 +1,39 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Live audit: 2026-10-08 19:02 PDT — training complete, handoff recovery queued
+
+Both reproduction arms completed 200 updates: Solo 25248796 at 09:29 PDT,
+Tandem 25248795 at 12:10 PDT. Selection 25248797 completed and selected Solo
+step 160 and Tandem step 180. All three trained-policy solo evaluations passed.
+These are macro averages across the four benchmark groups (1,064 problems,
+32 samples per problem); they are capability results, not handoff results.
+
+| Model | Step | pass@1 | pass@4 | pass@32 |
+|---|---:|---:|---:|---:|
+| Frozen base | — | 41.90% | 49.19% | 57.32% |
+| Selected Solo | 160 | 46.31% | 55.24% | 63.29% |
+| Selected Tandem | 180 | 46.12% | 54.85% | 63.24% |
+| Final Solo | 200 | 46.49% | 55.23% | 63.52% |
+
+Best-Solo handoff 25248802 timed out at 18:12 PDT with 624/1,064 problems
+saved. Its dependent plot 25248804 was automatically cancelled. The launcher
+supported preemption resumption but lacked walltime continuation. Fix 9e36b66
+adds a host USR1 handler five minutes before expiry, checks phase-specific saved
+progress, and requeues with a 12-restart bound. Three focused runtime tests pass.
+
+Replacement Solo handoff **25349860** resumes those saved batches. Best-Tandem
+handoff 25248803 had 544/1,064 saved and only 42 minutes left; it was retired
+before replacement **25349867** was submitted with the fixed launcher. Both
+were pending priority at this check, using one GPU each over both compatible
+Engaging routes. CPU plot **25349868** depends on their successful completion.
+Final-Solo handoff **25299323** continues running, with 912/1,064 saved at the
+18:57 check and over two hours remaining at 19:01. No duplicate CSAIL work exists.
+
+The 18:26 quota report shows scratch 785.6/1,024 GB and pool 667.0/1,024 GB;
+this failure was walltime, not quota. Pilot compute is complete; semantic review
+is still 29/128 pairs. The local monitoring timer is **disabled at the user's
+request**; older entries below describing it as enabled are historical.
+
 ## Scheduled check: 2026-10-08 18:23 PDT — authentication still unavailable
 
 Direct SSH failed sandbox DNS resolution; the scoped approved retry reached
