@@ -1,5 +1,34 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Split evaluation across clusters: 2026-10-08 19:14 PDT
+
+At the user's request, final-Tandem capability and handoff evaluations moved to
+CSAIL as **2606903** and **2606904**. The Engaging originals 25350234/25350235
+were cancelled while pending, before replacement submission. Running Solo
+evaluations 25299323/25349860 and selected-Tandem continuation 25349867 remain
+on Engaging, preserving its saved batches. No experiment is duplicated.
+
+Transferred the immutable step-200 HF checkpoint directly from Engaging with
+rsync (16.10 GB; transfer checksums), then verified destination safetensors and
+the cached pinned base. CSAIL uses its existing pinned evaluation environment.
+Campaign: `/data/vision/torralba/u/chrisge/tandem-rlvr/final-eval-20261008`;
+manifest `models.json`, outputs `eval/tandem/{solo,handoff}.json`, logs `logs/`.
+
+CSAIL's personal queue was empty, but compatible Torralba GPUs were occupied by
+non-preemptible owner jobs. Neither shared route had a confirmed immediate start.
+The policy's vision-shared fallback admits H100/H200/A100/L40S/A6000/RTX6000 Ada;
+each job requests one GPU, four CPUs, 48 GiB, four-hour resumable allocations,
+Nice 0, and up to twelve automatic restarts. Both were pending priority after
+submission; the empty personal queue is not a promise of immediate GPU access.
+
+The selected-checkpoint plot 25349868 keeps its Engaging dependencies. The final
+comparison plot **25350237 is held**, with dependency changed to only final-Solo
+handoff 25299323. After both CSAIL outputs finish, verify them, copy them to
+Engaging `reproduction/eval-final/tandem/`, and release 25350237. Cross-cluster
+result transfer/release is not automated; do not release before both final JSONs
+are present. This replaces the obsolete dependencies on cancelled jobs. The
+local monitoring timer remains disabled.
+
 ## Remaining work queued: 2026-10-08 19:05 PDT
 
 Selected-Solo handoff **25349860** has started; selected-Tandem handoff
