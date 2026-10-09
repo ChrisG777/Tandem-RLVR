@@ -1,5 +1,13 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Grading correction and native-word comparison: 2026-10-08 late Pacific
+
+See the [reproduction audit](REPRODUCTION_AUDIT.md) for the confirmed missing
+grading dependencies, corrected all-benchmark results, remaining explanations,
+and native-word inference/CPU-regrading job IDs. That update supersedes earlier
+claims that matching grader source established matching grading behavior, and
+extends the requested work beyond the selected paragraph evaluation.
+
 ## Scope correction: 2026-10-08 — evaluate the chosen models only
 
 The user clarified that “final model” meant the model chosen after training,

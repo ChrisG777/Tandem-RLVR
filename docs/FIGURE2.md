@@ -1,5 +1,7 @@
 # Figure 2 reproduction
 
+[Current reproduction audit and corrected results](REPRODUCTION_AUDIT.md).
+
 This evaluates independently trained GRPO and Tandem policies, plus their
 official Qwen base. Follow [FRESH_TRAINING.md](FRESH_TRAINING.md) first. The base
 revision is pinned in [`eval/figure2-models.json`](../eval/figure2-models.json);
