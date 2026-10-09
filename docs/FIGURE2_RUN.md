@@ -1,5 +1,24 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Scheduled check: 2026-10-08 17:43 PDT — authentication still unavailable
+
+Scoped approved direct Engaging SSH reached the server but failed with
+`Permission denied (keyboard-interactive)` after the sandbox DNS failure.
+The approved existing CSAIL relay closed with `Connection closed by UNKNOWN
+port 65535`. No authenticated command ran; live queue/accounting, logs,
+checkpoint integrity, dependencies and quota remain unverified. Authentication
+renewal is already pending; no new Duo push was sent and no jobs were changed.
+
+Final Solo **25299322** remains the first check after access returns: last
+verified **1,040/1,064**, recorded deadline **15:16:35 PDT**. Also inspect final
+handoff **25299323** and the best-validation chain before any recovery.
+Best Solo step **160** and final step **200** remain distinct in the last
+verified manifests. The last quota report (**14:53 PDT**) is now about 170
+minutes old. Local Solo artifacts still contain all 200 steps and final
+validation (**67.2547548% pass@4**); no plot refresh is needed. Pilot review
+remains **29/128**, next **pair-0029**, awaiting source access. Keep the timer
+enabled; cluster deployment of monitoring notes awaits authentication.
+
 ## Scheduled check: 2026-10-08 17:12 PDT — authentication still unavailable
 
 Direct Engaging SSH first failed sandbox DNS resolution. The scoped approved

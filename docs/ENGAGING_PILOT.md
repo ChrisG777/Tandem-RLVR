@@ -6,6 +6,15 @@ chain. Both the reproduction and matrix pilot now run only on Engaging; see
 [recovery status](FIGURE2_RUN.md#failure-recovery-2026-10-08-pacific).
 The earlier submissions below are historical records, not launch instructions.
 
+## Scheduled check: 2026-10-08 17:43 PDT — access still blocked
+
+Approved direct Engaging SSH failed authentication and the existing CSAIL relay
+closed before an authenticated command could run. No fresh compute, checkpoint
+or source-trace evidence was available. The local blinded ledger remains
+**29/128**, next **pair-0029**, with the answer key unread. No pilot jobs were
+changed or rerun; authentication renewal remains pending and no new Duo push
+was sent. See [Figure 2 status](FIGURE2_RUN.md) for recovery priorities.
+
 ## Scheduled check: 2026-10-08 17:12 PDT — access still blocked
 
 Approved direct Engaging SSH failed authentication and the existing relay closed
