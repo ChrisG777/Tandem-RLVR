@@ -48,6 +48,9 @@ class ConceptPilot(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), spec["sha256"])
                 rows = pd.read_parquet(path).to_dict("records")
                 self.assertEqual(len(rows), spec["rows"])
+                if task == "ruletaker_shared":
+                    labels = [label for row in rows for label in row["reward_model"]["ground_truth"].split()]
+                    self.assertEqual(labels.count("true"), len(labels) // 2)
                 for row in rows:
                     meta = row["extra_info"]
                     oracle = json.loads(meta["oracle_json"])

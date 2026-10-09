@@ -111,3 +111,28 @@ retained restart checkpoints and final weights. Four comparable arms would use
 about 492 GiB, versus 860 GiB free on the CSAIL Torralba filesystem at preflight.
 This is an estimate, not a quota reservation; all four use that filesystem rather
 than Engaging's more constrained scratch/pool allocations.
+
+## Submitted 2026-10-08, 19:49 Pacific
+
+Code/data are frozen at `96fd6d4` in the detached CSAIL worktree
+`/data/scratch/chrisge/Tandem-RLVR-concept-pilot-20261008` (no additional branch).
+Artifacts live under
+`/data/vision/torralba/u/chrisge/tandem-rlvr/concept-pilot-20261008/{TASK}`.
+
+| Task | Calibration | Solo array (1,024 / 3,072) | CPU verification | Base evaluation | Trained evaluation | Review |
+|---|---|---|---|---|---|---|
+| RuleTaker | 2607129 | 2607130_0 / 2607130_1 | 2607131_0–1 | 2607132 | 2607133_0–1 | 2607134 |
+| Object Re-ARC | 2607135 | 2607136_0 / 2607136_1 | 2607137_0–1 | 2607138 | 2607142_0–1 | 2607143 |
+
+Calibration uses the compatible Torralba owner route (RTX 3090/H100/H200);
+training uses all compatible vision-shared H100/H200/A100-80 nodes. Dependent
+inference uses all compatible vision-shared 24+ GB Ampere/Ada/Hopper types.
+Submission checks confirmed owner H100/H200 GPUs were occupied by
+non-preemptible owner jobs, while Torralba RTX 3090 capacity was available.
+Every downstream job is gated by successful upstream completion; array elements
+use corresponding-element dependencies. Training/evaluation restart support is
+in the existing runtime, with pilot-specific evaluation coverage added here.
+
+Validation: 13 focused checks passed before submission, including rewards,
+calibration gates, all split hashes/oracle labels, and host-side restart behavior.
+No training result or jargon claim is available at submission time.
