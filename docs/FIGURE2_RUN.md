@@ -1,5 +1,24 @@
 # Figure 2 attempt: status 2026-10-05 (America/Los_Angeles)
 
+## Remaining work queued: 2026-10-08 19:05 PDT
+
+Selected-Solo handoff **25349860** has started; selected-Tandem handoff
+**25349867** is pending GPU capacity (`QOSMaxGRESPerUser`). Final-Solo handoff
+**25299323** remains running. Selected-checkpoint plot **25349868** is queued
+behind its handoff evaluations.
+
+The missing final-Tandem evaluations are now submitted: capability **25350234**
+and handoff **25350235**, independently queued on Engaging. Both use verified
+step-200 weights, the existing decoding/benchmark protocol, one GPU, four CPUs,
+48 GiB RAM, both compatible partitions, and bounded automatic continuation.
+Manifest `reproduction/models-final.json` pins both final models; outputs are
+under `reproduction/eval-final/`, reusing base and final-Solo results via links.
+CPU comparison plot **25350237** depends on both new evaluations and the running
+final-Solo handoff. This is separate from the best-validation comparison.
+All outstanding GPU evaluations and both plots are submitted. Pilot semantic
+review remains an unfinished analysis task (29/128), not a missing GPU job.
+The monitoring timer remains disabled.
+
 ## Live audit: 2026-10-08 19:02 PDT — training complete, handoff recovery queued
 
 Both reproduction arms completed 200 updates: Solo 25248796 at 09:29 PDT,
