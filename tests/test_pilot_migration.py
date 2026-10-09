@@ -16,6 +16,35 @@ from check_shorthand import check_calibration
 
 
 class PilotMigration(unittest.TestCase):
+    def test_evaluation_walltime_requeues_only_its_saved_phase_within_retry_limit(self):
+        for saved, restarts, expected in ((True, 0, True), (False, 0, False), (True, 12, False)):
+            with self.subTest(saved=saved, restarts=restarts), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / "grpo").mkdir()
+                if saved:
+                    (root / "grpo/handoff.json.progress.json").write_text('{"gens": [1]}')
+                else:
+                    (root / "grpo/solo.json.progress.json").write_text('{"gens": [1]}')
+                apptainer = root / "apptainer"
+                apptainer.write_text('#!/bin/bash\nkill -USR1 "$PPID"\nsleep 0.1\n')
+                apptainer.chmod(0o755)
+                env = {**os.environ, "REPO": str(ROOT), "RESULTS_ROOT": str(root),
+                       "TANDEM_CONTAINER_ACTIVE": "0", "APPTAINER_IMAGE": "test.sif",
+                       "APPTAINER_BIN_DIR": str(root), "CONTAINER_BIND": str(root),
+                       "PILOT_ENTRYPOINT": "figure2.sbatch", "MODE": "grpo-handoff",
+                       "SLURM_JOB_ID": "456", "SLURM_RESTART_COUNT": str(restarts), "MAX_RESTARTS": "12"}
+                command = '''
+                    scontrol() { echo "$*" > "$RESULTS_ROOT/requeue-call"; }
+                    export -f scontrol
+                    source "$REPO/slurm/shorthand-runtime.sh"
+                '''
+                proc = subprocess.run(["bash", "-euc", command], env=env, cwd=ROOT,
+                                      capture_output=True, text=True)
+                call = root / "requeue-call"
+                self.assertEqual(call.exists(), expected, proc.stdout + proc.stderr)
+                if expected:
+                    self.assertEqual(call.read_text().strip(), "requeue 456")
+
     def test_revised_budgets_keep_signal_and_completion_gates(self):
         import pandas as pd
         with tempfile.TemporaryDirectory() as tmp:

@@ -9,18 +9,13 @@
 #SBATCH --time=06:00:00
 #SBATCH --output=logs/figure2-%j.out
 #SBATCH --requeue
+#SBATCH --signal=B:USR1@300
 set -euo pipefail
 # Explicit KEY=VALUE arguments also support sbatch --export=NIL on CSAIL.
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?set REPO to the git checkout}"
-if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
-    export CODE_COMMIT=$(git rev-parse HEAD)
-    export PATH="${APPTAINER_BIN_DIR:-/orcd/software/core/001/pkg/apptainer/1.4.2/bin}:${PATH:-/usr/bin:/bin}"
-    export TANDEM_CONTAINER_ACTIVE=1
-    exec apptainer exec --nv --bind "${CONTAINER_BIND:?}" "$APPTAINER_IMAGE" \
-        bash "$REPO/slurm/figure2.sbatch"
-fi
-if [ "${TANDEM_CONTAINER_ACTIVE:-0}" = 1 ]; then export CC=/usr/bin/gcc CXX=/usr/bin/g++; fi
+export PILOT_ENTRYPOINT=figure2.sbatch
+source "$REPO/slurm/shorthand-runtime.sh"
 [ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || { echo 'Preemption retry limit reached'; exit 1; }
 export PATH="${UV_BIN_DIR:-${HOME:-/tmp}/.local/bin}:/data/scratch/${SLURM_JOB_USER:-${USER:-}}/.local/bin:${PATH:-/usr/bin:/bin}"
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
@@ -35,7 +30,7 @@ export FLASHINFER_WORKSPACE_BASE="$XDG_CACHE_HOME/flashinfer-workspace"
 mkdir -p "$XDG_CACHE_HOME"
 unset VLLM_TANDEM_CONFIG VLLM_TANDEM_ALL_GPUS
 TANDEM_ENV=${TANDEM_ENV:-$REPO/.venv}
-run_python() { uv run --python "$TANDEM_ENV/bin/python" --no-project --offline python "$@"; }
+run_python() { uv run --python "$TANDEM_ENV/bin/python" --no-project --offline python "$@" & wait "$!"; }
 ROOT=${RESULTS_ROOT:-results/figure2}
 mkdir -p "$ROOT"
 if [ -n "${CODE_COMMIT:-}" ]; then
