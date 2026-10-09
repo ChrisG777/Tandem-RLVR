@@ -47,7 +47,8 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                 'schedule': {'selection_strategy': 'word', 'prob_primary': 0.5,
                              'max_gap_tokens': 32, 'boundary_sha256': hashlib.sha256(boundary_bytes).hexdigest()},
                 'seed_rule': '1000 * problem_index + sample_index',
-                'max_model_len': common.MAX_MODEL_LEN}
+                'max_model_len': common.MAX_MODEL_LEN,
+                'budget_rule': 'min(3000, 4096 - prompt_tokens - 8)'}
     problems = common.load_problems(limit=limit)
     progress_path, progress = common.load_progress(str(out), identity, problems)
     if out.exists():
@@ -63,16 +64,18 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         raise ValueError('Word boundaries differ from the selected tokenizer')
     prompts = [common.chat_prefix(tokenizer, p['content']) for p in problems]
     lengths = [len(tokenizer.encode(p)) for p in prompts]
-    if max(lengths) + sampling['max_tokens'] > common.MAX_MODEL_LEN:
-        raise ValueError('A prompt cannot fit the full 3,000-token response budget')
+    budgets = [common.response_budget(length) for length in lengths]
+    if min(budgets) < 1:
+        raise ValueError('A prompt exceeds the model context')
     engine = build_engine(senior, junior, boundary_path)
     gens = progress['gens']
     try:
         for start in range(len(gens), len(problems), common.EVAL_BATCH_SIZE):
             batch = problems[start:start + common.EVAL_BATCH_SIZE]
             repeated = [prompts[start+i] for i in range(len(batch)) for _ in range(n)]
-            params = [SamplingParams(**sampling, seed=1000*p['idx']+s)
-                      for p in batch for s in range(n)]
+            params = [SamplingParams(**{**sampling, 'max_tokens': budgets[start+i]},
+                                     seed=1000*p['idx']+s)
+                      for i,p in enumerate(batch) for s in range(n)]
             outputs = engine.generate(repeated, params, use_tqdm=True)
             if len(outputs) != len(batch)*n:
                 raise ValueError('Incomplete generation batch')
@@ -82,6 +85,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                            for o in outputs[i*n:(i+1)*n]]
                 texts = [s.pop('text') for s in samples]
                 records.append({'set': problem['set'], 'idx': problem['idx'],
+                                'response_budget': budgets[start+i],
                                 'texts': texts, 'correct': [common.grade(t, problem['gt']) for t in texts],
                                 'samples': samples})
             gens.extend(records)
