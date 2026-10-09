@@ -3,10 +3,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from hendrycks_math_grader import boxed_reward_fn
+from hendrycks_math_grader import boxed_reward_fn, _try_import_math_verify
 
 
 def compute_score(data_source, solution_str, ground_truth, extra_info=None):
+    # Dependency errors are infrastructure failures, not incorrect model answers.
+    _try_import_math_verify()
     try:
         info, score = boxed_reward_fn(solution_str, str(ground_truth), fast=False)
         present = 1.0 if info.get("formatted", False) else 0.0

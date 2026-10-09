@@ -20,6 +20,7 @@ Based on HF math_verify, verl, open reasoner zero, etc.
 
 import re
 import signal
+from functools import lru_cache
 from itertools import islice, zip_longest
 from math import isclose
 from typing import Optional
@@ -36,11 +37,17 @@ from sympy.parsing.latex import parse_latex
 from sympy.parsing.sympy_parser import parse_expr
 
 
+@lru_cache(maxsize=1)
 def _try_import_math_verify():
+    """Require the authors' verification backend; never silently weaken rewards."""
     try:
         from math_verify import ExprExtractionConfig, LatexExtractionConfig, parse, verify  # type: ignore
-    except Exception:
-        return None
+        from latex2sympy2_extended import latex2sympy
+    except Exception as exc:
+        raise RuntimeError(
+            "Math grading requires math-verify==0.9.0 and latex2sympy2_extended==1.11.0; "
+            "install env/grading-requirements.txt before training or evaluation"
+        ) from exc
     return ExprExtractionConfig, LatexExtractionConfig, parse, verify
 
 
@@ -630,12 +637,6 @@ def is_latex_equal(given_answer: str, ground_truth: str) -> bool:
 
                 # Next call math verify.
                 math_verify_api = _try_import_math_verify()
-                if math_verify_api is None:
-                    try:
-                        return _is_latex_equal(given_answer, ground_truth)
-                    except Exception:
-                        return False
-
                 ExprExtractionConfig, LatexExtractionConfig, parse, verify = math_verify_api
 
                 given_answer = given_answer.replace("\n", "")
@@ -652,7 +653,7 @@ def is_latex_equal(given_answer: str, ground_truth: str) -> bool:
                             ExprExtractionConfig(),
                         ),
                         fallback_mode="no_fallback",
-                        extraction_mode=["first_match"],
+                        extraction_mode="first_match",
                         parsing_timeout=1,
                     ),
                     parse(
@@ -662,7 +663,7 @@ def is_latex_equal(given_answer: str, ground_truth: str) -> bool:
                             ExprExtractionConfig(),
                         ),
                         fallback_mode="no_fallback",
-                        extraction_mode=["first_match"],
+                        extraction_mode="first_match",
                         parsing_timeout=1,
                     ),
                     timeout_seconds=1,
@@ -1013,6 +1014,8 @@ def extract_answer(passage: str) -> str:
 def grade(model_answer: str, gt_answer: str, fast: bool = True):
     if "\\boxed" in gt_answer:
         gt_answer = extract_answer(gt_answer)
+    model_answer = normalize_scientific_literal(model_answer)
+    gt_answer = normalize_scientific_literal(gt_answer)
     correct = grade_answer_mathd(model_answer, gt_answer) or grade_answer_sympy(
         model_answer, gt_answer
     )
@@ -1026,7 +1029,23 @@ def grade(model_answer: str, gt_answer: str, fast: bool = True):
     return correct
 
 
+def normalize_scientific_literal(answer: str) -> str:
+    """Translate an entire decimal e-notation literal into unambiguous LaTeX.
+
+    Do not rewrite variables, equations, units, or expressions containing e.
+    Apply identically to predictions and references, without changing tolerance.
+    """
+    if answer is None:
+        return answer
+    match = re.fullmatch(r"\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))[eE]([+-]?\d+)\s*", answer)
+    if match:
+        return rf"{match[1]}\times 10^{{{int(match[2])}}}"
+    return answer
+
+
 def boxed_reward_fn(model_response, gt_answer, fast=False):
+    if not fast:
+        _try_import_math_verify()
     model_answer = extract_answer(model_response)
     if model_answer is None:
         return {"formatted": False}, 0.0  # Cannot even parse anything.

@@ -23,8 +23,9 @@ pass@8. These reference numbers are comparison targets, never inputs to the plot
 - Solo: 32 samples/problem, unbiased pass@1,2,4,8,16,32.
 - Handoff: 8 chains/problem, pass@1,2,4,8, frozen base junior, senior starts,
   switch on double newlines, shared 3,000-token response budget.
-- Existing decoding and grading are unchanged: temperature 0.7, top-p 0.8,
-  top-k 20, boxed-answer symbolic grader. Existing deterministic seeds are kept.
+- Decoding is temperature 0.7, top-p 0.8, top-k 20, with the existing seeds.
+  Grading now requires the authors' pinned optional backend and normalizes whole
+  numeric scientific-notation literals; see the grading correction below.
 - Bands are one bootstrap standard error, resampling problems within each
   benchmark 2,000 times (seed 20261004), with AIME years pooled first.
   Macro SE comes from equal-weight bootstrap benchmark means.
@@ -55,7 +56,10 @@ Compared with upstream `CSSLab/Tandem-RLVR` commit
 Figure 2 / sections 4.2–4.3 / Table 3. The chain initialization, turn advancement,
 double-newline stopping/switching, round loop, prompts, response budget, grader,
 and pass@k estimator functions are unchanged from upstream (AST comparison).
-The handoff/config/grader files on both execution clusters match the audited files.
+The handoff/config/grader files on both execution clusters matched the audited files.
+**Correction:** matching source did not establish matching grader behavior. Both
+training environments and evaluation environments lacked the optional verification
+backend, activating an upstream fallback. The audit below supersedes that claim.
 The selected models are Solo step 160 and Tandem step 180 with the pinned frozen
 Qwen base junior; recorded decoding is temperature 0.7, top-p 0.8, top-k 20.
 
@@ -99,9 +103,45 @@ Required site inputs: `REPO`, patched `TANDEM_ENV`, `UV_BIN_DIR`, `SENIOR`,
 `JUNIOR`, `OUTPUT`, plus site cache/container paths as needed. It requests one
 GPU, four CPUs and 48 GiB host RAM. Estimated GPU budget is 15 GiB BF16 weights,
 two explicit 5-GiB KV caches, and runtime/activation headroom; compatible GPUs
-start at 40 GiB. Native colocation uses `frozen_gpu_devices=[0]`; eight active
-sequences fit the reserved cache without needing a second GPU. First live
+start at 40 GiB. Native colocation uses `frozen_gpu_devices=[0]`; vLLM schedules
+up to eight sequences within its measured cache capacity. First live
 execution must verify colocation and per-token authorship before scores are used.
+
+### Grading correction (2026-10-08 Pacific)
+
+The reward implementation was supplied by the authors, not invented for this
+reproduction. Their frozen environment pins `math-verify==0.9.0` and
+`latex2sympy2_extended==1.11.0`; our smaller setup omitted both. Confirmed absent
+in both training environments and CSAIL's evaluation environment. The source
+silently fell back to a weaker verifier. This affected training rewards and
+checkpoint-selection validation, not just the displayed benchmark scores.
+Post-hoc regrading cannot repair training or establish the truly best checkpoint.
+
+Installing the intended dependencies with **unchanged author source** restores
+Minerva solo pass@4 to GRPO 48.213%, Tandem 48.402% (previously 39.675%, 36.871%).
+Solo pass@32 becomes 53.676%, 54.412%. Paragraph handoff pass@8 becomes 52.206%,
+51.103%. Thus Minerva's large solo deficit was mainly a grading artifact;
+the handoff deficit is smaller but remains. These numbers are an environment-only
+diagnostic, before the scientific-literal correction below.
+
+The shared grader now fails loudly if the verification backend cannot load.
+It also translates a **whole** numeric literal such as `2.55e-10` into
+`2.55\\times10^{-10}` on both sides: math-verify otherwise treats LaTeX `e` as
+Euler's constant. Embedded expressions, equations, variables and units are not
+rewritten. This is an explicit additional correction to author behavior, applied
+identically to every benchmark/model. The parser's `extraction_mode` argument is
+also corrected from a list to its documented string form. Regression checks cover
+symbolic assignments, numeric equivalence, incorrect exponents, zero and missing
+backend failures. No model-specific or benchmark-specific acceptance rules exist.
+
+`eval/regrade.py --input JSON --out NEW_JSON --cache CACHE --workers 4` uses a
+CPU-only environment from `env/grading-requirements.txt`. `regrade(source, out,
+cache_path, *, workers=4, phase=None, n=None)` preserves texts and old grades,
+recomputes all scores, records source/dataset/grader hashes and dependency versions,
+and resumes a versioned cache of distinct answer/reference pairs. Progress-only
+snapshots need `--phase` and `--n`; outputs remain explicitly partial. Never
+overwrite source generation files. Live inference retains its original environment;
+corrected scoring is a separate CPU pass over saved outputs.
 
 `MODE=base` on `slurm/figure2.sbatch` evaluates only the pinned frozen base with
 the full 32 samples/problem and all benchmarks. It accepts a base-only model

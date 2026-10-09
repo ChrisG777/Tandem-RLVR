@@ -26,6 +26,7 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 | [Evaluation job](slurm/figure2.sbatch) | Pinned model manifest and phase → base, individual solo/handoff phases, or full evaluation |
 | [Word handoff](eval/word_handoff.py) | Selected senior + frozen junior → resumable training-schedule scores and per-token authorship ([job](slurm/word-handoff.sbatch)) |
 | [Figure 2](eval/figure2.py) | Completed solo/handoff evaluations → figure and bootstrap statistics |
+| [Regrade](eval/regrade.py) | Saved benchmark generations + pinned CPU grader → corrected scores, original grades and provenance |
 
 [Training protocol/setup](docs/FRESH_TRAINING.md) · [Evaluation protocol](docs/FIGURE2.md)
 · [Monitoring](docs/TRAINING_PROGRESS.md) · [Run history](docs/FIGURE2_RUN.md)
