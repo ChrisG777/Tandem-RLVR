@@ -61,6 +61,7 @@ case "$PHASE" in
         export TRAIN_BATCH=16 MINI_BATCH=8 ROLLOUT_N=8 LR=1e-6 CLIP_RATIO=0.2 TRAIN_GPUS=1
         export ROLLOUT_TEMP=0.6 VAL_N=4 VAL_TEMP=0.7 VAL_TOP_P=0.8 VAL_TOP_K=20 VAL_DO_SAMPLE=True
         export PROB_PRIMARY=0.5 SELECTION=word MAX_GAP_TOKENS=32 JR_TKN_WEIGHT=0
+        export FROZEN_GPU=0
         export PPO_MAX_TOKEN=8192 ROLLOUT_GPU_UTIL=0.65 TQ_STORAGE_UNITS=1 DATA_WORKERS=2 AGENT_WORKERS=4
         export WANDB_MODE=offline HYDRA_FULL_ERROR=1
         export RAY_TMPDIR="/tmp/apps-ray-${SLURM_JOB_ID}" XDG_CACHE_HOME="/tmp/apps-cache-${SLURM_JOB_ID}"
@@ -82,6 +83,8 @@ case "$PHASE" in
             'trainer.logger=[console,file]' "ray_kwargs.ray_init.num_cpus=$SLURM_CPUS_PER_TASK" \
             actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 actor_rollout_ref.rollout.top_k=-1 \
             actor_rollout_ref.rollout.max_model_len=8192 trainer.resume_mode=auto \
+            actor_rollout_ref.rollout.max_num_seqs=2 \
+            +actor_rollout_ref.rollout.engine_kwargs.vllm.kv_cache_memory_bytes=5368709120 \
             "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}" "${EXTRA[@]}" &
         wait $!
         run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" --mode "$MODE" --validation-metric val-core/apps/acc/best@4/mean

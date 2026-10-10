@@ -94,8 +94,12 @@ uv run --project experiments/coding/env python -m experiments.coding.submit \
 
 Supply explicit account/QoS/partitions, CPUs, host RAM and walltime after applying
 the shared allocation policy. Evaluation args include one GPU; training GPU counts
-are added per arm. Existing trainer placement uses one senior card and a separate
-junior card for Tandem. Do not copy historical resource defaults without checking fit.
+are added per arm. Coding configures both arms for one GPU, with Tandem's frozen
+junior colocated. Each model uses a bounded 5-GiB KV cache and two active sequences
+at the 8192-token context, preventing cache eviction from replaying native sampler
+state. The unchanged batch/group sizes queue through those active sequences.
+The training smoke must validate fit and authorship before this placement is used
+for a full run. Do not copy historical resource defaults without checking fit.
 
 `jobs.json` is created exclusively to prevent duplicate campaigns. Partial submissions
 remain recorded and require reconciliation with Slurm before further submissions.

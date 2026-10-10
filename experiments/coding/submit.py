@@ -12,7 +12,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cpu-args", required=True)
     parser.add_argument("--eval-args", required=True)
-    parser.add_argument("--train-args", required=True, help="GPU count added per arm; include explicit CPUs/RAM/time/route")
+    parser.add_argument("--train-args", required=True, help="One GPU added per arm; include explicit CPUs/RAM/time/route")
     parser.add_argument("--calibration-only", action="store_true")
     args = parser.parse_args()
     root = Path(os.environ["RUN_ROOT"])
@@ -46,8 +46,8 @@ def main() -> None:
         print(json.dumps(jobs, indent=2))
         return
     full = []
-    for arm, gpus in (("grpo", 1), ("tandem", 2)):
-        resources = args.train_args + f" --gpus={gpus}"
+    for arm in ("grpo", "tandem"):
+        resources = args.train_args + " --gpus=1"
         smoke = submit(arm+"-smoke", "train", resources, [gate], ARM=arm, MODE="smoke")
         full.append(submit(arm+"-full", "train", resources, [smoke], ARM=arm, MODE="full"))
     selected = submit("select", "select", args.cpu_args, full)

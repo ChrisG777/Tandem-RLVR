@@ -135,6 +135,7 @@ class CodingTests(unittest.TestCase):
                 self.assertIn('--dependency=afterok:' + jobs['gate'], smoke)
                 self.assertIn('--dependency=afterok:' + jobs[arm+'-smoke'], full)
                 self.assertIn('--kill-on-invalid-dep=yes', full)
+                self.assertIn('--gpus=1', full)
             before = len(calls)
             with self.assertRaises(FileExistsError):
                 submit.main()
