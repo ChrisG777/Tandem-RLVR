@@ -1,5 +1,22 @@
 # Figure 2 reproduction audit — 2026-10-08 Pacific
 
+## Move off torralba-h100-1 — 2026-10-10
+
+At the user's request, replacement Tandem word job **2615584** explicitly
+excludes `torralba-h100-1`. Old 2608058 reports NODE_FAIL, Reason=Prolog,
+13 restarts and a lingering COMPLETING allocation; it is no longer generating.
+A cancellation was attempted; Slurm reports it already finished. Saved progress
+contains 993/1,064 problems. The replacement uses the same runtime, checkpoints,
+output path and automatic resume, with one GPU, 4 CPUs, 48G RAM, Nice 0 and the
+verified **24-hour** shared-route maximum. No evaluation parameters changed.
+
+The other compatible Torralba node (H200) has all eight GPUs occupied by an
+owner-main job. Shared-route dry runs forecast vision-shared first and CSAIL-wide
+later; the replacement includes all six compatible vision-shared partitions.
+CPU grading job **2608030** was held while its dependency was changed to
+`afterok:2615584`, then released. The old node's Slurm cleanup may remain visible
+even though the continuation is excluded from it.
+
 ## Maximum walltime request — 2026-10-10
 
 Use the selected route's maximum permitted walltime for future reproduction
