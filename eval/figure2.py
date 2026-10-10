@@ -10,6 +10,7 @@ import config
 BENCHMARKS = ("amc23_25", "aime24_26", "minerva", "olympiad")
 TITLES = ("AMC", "AIME", "Minerva", "Olympiad", "Macro avg")
 COLORS = {"base": "#8d8d8d", "grpo": "#ee771c", "tandem": "#7b4cb8"}
+LABELS = {"base": "Base", "grpo": "GRPO", "tandem": "Tandem"}
 EXPECTED_SIZES = {"amc23_25": 121, "aime24_26": 90, "minerva": 272, "olympiad": 581}
 
 
@@ -29,6 +30,7 @@ def configure_panel(panel: dict) -> None:
 def main() -> None:
     """Read --results/{base,grpo,tandem}/phase.json; write PNG, SVG and score JSON."""
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--paired-baselines", action="store_true", help="Include distinct senior/junior solo baselines and untrained pair handoff")
     parser.add_argument("--panel-manifest", type=Path, help="JSON with benchmark sizes, titles and expected task IDs")
     parser.add_argument("--results", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path, help="output filename stem")
@@ -39,9 +41,12 @@ def main() -> None:
         parser.error("--bootstrap must be at least 2")
     if args.panel_manifest:
         configure_panel(common.load_json(args.panel_manifest))
+    if args.paired_baselines:
+        COLORS["junior"] = "#2798a5"
+        LABELS.update(base="Initial senior", junior="Frozen junior")
     curves = {}
     protocol_identity = None
-    for phase, arms in (("solo", COLORS), ("handoff", ("grpo", "tandem"))):
+    for phase, arms in (("solo", COLORS), ("handoff", ("base", "grpo", "tandem") if args.paired_baselines else ("grpo", "tandem"))):
         curves[phase] = {}
         for arm in arms:
             result = common.load_json(args.results / arm / f"{phase}.json")
@@ -134,9 +139,9 @@ def plot(curves: dict, out: Path, *, note: str | None = None) -> None:
             if col == 0:
                 ax.set_ylabel(f"{phase.capitalize()} pass@k (%)")
             ax.set_xlabel("k")
-    handles = [Line2D([], [], color=c, marker="o", label="GRPO" if arm == "grpo" else arm.capitalize())
+    handles = [Line2D([], [], color=c, marker="o", label=LABELS[arm])
                for arm, c in COLORS.items()]
-    fig.legend(handles=handles, loc="outside upper center", ncol=3, frameon=False)
+    fig.legend(handles=handles, loc="outside upper center", ncol=len(COLORS), frameon=False)
     if note:
         fig.supxlabel(note, fontsize=9)
     fig.savefig(out.with_suffix(".png"), dpi=200)

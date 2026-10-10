@@ -34,7 +34,7 @@ def main() -> None:
     ids = build(args.model)
     expected = args.expected_count if args.expected_count is not None else (EXPECTED_COUNT if args.model == DEFAULT_MODEL else None)
     if not ids or (expected is not None and len(ids) != expected):
-        raise SystemExit(f"expected {expected or chr(62)+chr(48)} boundary ids from {args.model}, got {len(ids)}")
+        raise SystemExit(f"Unexpected boundary count for {args.model}: expected={expected}, actual={len(ids)}")
 
     payload = json.dumps(ids)
 

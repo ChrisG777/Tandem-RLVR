@@ -46,14 +46,17 @@ else
 fi
 nvidia-smi > "$ROOT/gpus-${SLURM_JOB_ID}.txt"
 MODE=${MODE:-full}
-case "$MODE" in base|full|grpo-solo|tandem-solo|grpo-handoff|tandem-handoff) ;; *) echo 'Unknown evaluation mode' >&2; exit 2;; esac
+case "$MODE" in base|full|base-solo|junior-solo|grpo-solo|tandem-solo|base-handoff|grpo-handoff|tandem-handoff) ;; *) echo 'Unknown evaluation mode' >&2; exit 2;; esac
 MODEL_PATHS="$ROOT/model-paths-${SLURM_JOB_ID}.txt"
-run_python -c 'import json,sys; d=json.load(open(sys.argv[1])); mode=sys.argv[2]; required={"base","grpo","tandem"} if mode=="full" else {"base",mode.split("-")[0]}; print("\n".join(d[a]["path"] if a in required else "" for a in ("base","grpo","tandem")))' \
-    "${MODELS_JSON:?set MODELS_JSON to the pinned checkpoint paths}" "$MODE" > "$MODEL_PATHS"
+run_python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("\n".join(d.get(a,{}).get("path", "") for a in ("base","grpo","tandem","junior")))' \
+    "${MODELS_JSON:?set MODELS_JSON to the pinned checkpoint paths}" > "$MODEL_PATHS"
 mapfile -t MODELS < "$MODEL_PATHS"
 BASE=${MODELS[0]}
 GRPO=${MODELS[1]:-}
 TANDEM=${MODELS[2]:-}
+JUNIOR=${MODELS[3]:-$BASE}
+PAIR=0
+if [ -n "${MODELS[3]:-}" ]; then PAIR=1; fi
 LIMIT=${LIMIT:-0}
 SOLO_N=${SOLO_N:-32}
 HANDOFF_N=${HANDOFF_N:-8}
@@ -61,13 +64,15 @@ HANDOFF_N=${HANDOFF_N:-8}
 # Individual phases write atomically; a retry reuses only finished phases.
 ARMS=(base grpo tandem)
 HANDOFF_ARMS=(grpo tandem)
+if [ "$PAIR" = 1 ]; then ARMS=(base junior grpo tandem); HANDOFF_ARMS=(base grpo tandem); fi
 case "$MODE" in
     base) ARMS=(base); HANDOFF_ARMS=();;
     *-solo) ARMS=("${MODE%-solo}"); HANDOFF_ARMS=();;
     *-handoff) ARMS=(); HANDOFF_ARMS=("${MODE%-handoff}");;
 esac
 for ARM in "${ARMS[@]}"; do
-    case "$ARM" in base) MODEL=$BASE;; grpo) MODEL=$GRPO;; tandem) MODEL=$TANDEM;; esac
+    case "$ARM" in base) MODEL=$BASE;; junior) MODEL=$JUNIOR;; grpo) MODEL=$GRPO;; tandem) MODEL=$TANDEM;; esac
+    : "${MODEL:?Missing model path for $ARM}"
     OUT="$ROOT/$ARM/solo.json"
     if [ ! -f "$OUT" ]; then
         echo "START $ARM solo $(date -u +%FT%TZ)"
@@ -75,15 +80,18 @@ for ARM in "${ARMS[@]}"; do
     fi
 done
 for ARM in "${HANDOFF_ARMS[@]}"; do
-    case "$ARM" in grpo) MODEL=$GRPO;; tandem) MODEL=$TANDEM;; esac
+    case "$ARM" in base) MODEL=$BASE;; grpo) MODEL=$GRPO;; tandem) MODEL=$TANDEM;; esac
+    : "${MODEL:?Missing model path for $ARM}"
     OUT="$ROOT/$ARM/handoff.json"
     if [ ! -f "$OUT" ]; then
         echo "START $ARM handoff $(date -u +%FT%TZ)"
-        run_python eval/handoff.py --senior "$MODEL" --junior "$BASE" \
+        run_python eval/handoff.py --senior "$MODEL" --junior "$JUNIOR" \
             --out "$OUT" --n "$HANDOFF_N" --limit "$LIMIT"
     fi
 done
 if [ "$MODE" = full ] && [ "$LIMIT" = 0 ] && [ "$SOLO_N" -ge 32 ] && [ "$HANDOFF_N" -ge 8 ]; then
-    run_python eval/figure2.py --results "$ROOT" --out "$ROOT/figure2"
+    PLOT_ARGS=()
+    if [ "$PAIR" = 1 ]; then PLOT_ARGS+=(--paired-baselines); fi
+    run_python eval/figure2.py "${PLOT_ARGS[@]}" --results "$ROOT" --out "$ROOT/figure2"
 fi
 echo "DONE $(date -u +%FT%TZ)"
