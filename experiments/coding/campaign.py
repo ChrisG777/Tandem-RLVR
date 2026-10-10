@@ -82,6 +82,10 @@ def calibration(solo: dict, word: dict) -> dict:
     """Require exact 200-problem/eight-sample paired inputs before applying gate."""
     if solo["phase"] != "solo" or word["phase"] != "word-handoff":
         raise ValueError("Wrong calibration phases")
+    if solo.get("model") != word.get("senior") or word.get("senior") != word.get("junior"):
+        raise ValueError("Calibration must use the same base for all model roles")
+    if not 0.3 < word.get("senior_token_fraction", 0) < 0.7:
+        raise ValueError("Calibration lacks valid word-sampler participation")
     expected_sampling = {"temperature": 0.6, "top_p": 1.0, "top_k": -1, "max_tokens": 3000}
     identities = []
     summary = {}

@@ -60,7 +60,7 @@ class CodingTests(unittest.TestCase):
                  "samples": [{"n_tokens": 10, "finish_reason": "stop"}]*8} for i in range(200)]
         solo = {"phase": "solo", "n": 8, "sampling": {"temperature": .6, "top_p": 1., "top_k": -1, "max_tokens": 3000},
                 "gens": rows, "dataset_sha256": "same", "grader": {}}
-        word = {**copy.deepcopy(solo), "phase": "word-handoff"}
+        word = {**copy.deepcopy(solo), "phase": "word-handoff", "senior_token_fraction": .5}
         self.assertTrue(calibration(solo, word)["passed"])
         for row in word['gens']:
             row['correct'] = [1]*8
@@ -89,6 +89,19 @@ class CodingTests(unittest.TestCase):
                 self.assertEqual(selected['step'], 1)
                 with self.assertRaises(ValueError):
                     checkpoint.verify_training(root, 'grpo', 3)
+
+    def test_panel_requires_exact_task_ids(self):
+        import figure2
+        saved = figure2.BENCHMARKS, figure2.TITLES, figure2.EXPECTED_SIZES, figure2.EXPECTED_IDS
+        try:
+            figure2.configure_panel({"benchmarks": {"apps_introductory": {"title": "Intro", "task_ids": ["test/1"]}}})
+            result = {"phase": "solo", "n": 32, "gens": [{"set": "apps_introductory", "idx": 0, "task_id": "test/1", "correct": [1]*32}]}
+            self.assertEqual(figure2.summarize(result, bootstrap=10)['macro']['mean'][0], 100.)
+            result['gens'][0]['task_id'] = 'test/2'
+            with self.assertRaisesRegex(ValueError, "task IDs"):
+                figure2.summarize(result, bootstrap=10)
+        finally:
+            figure2.BENCHMARKS, figure2.TITLES, figure2.EXPECTED_SIZES, figure2.EXPECTED_IDS = saved
 
 
 if __name__ == "__main__":

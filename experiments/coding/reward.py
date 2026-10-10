@@ -116,6 +116,9 @@ def run_sandbox(request: dict, *, timeout: int) -> dict:
             except subprocess.TimeoutExpired:
                 os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
+                stdout.seek(0)
+                if stdout.readline().strip() != b'{"ready": true}':
+                    raise RuntimeError("Grader startup timed out")
                 return result("timeout")
             stdout.seek(0)
             stderr.seek(0)
@@ -123,7 +126,10 @@ def run_sandbox(request: dict, *, timeout: int) -> dict:
             if proc.returncode:
                 raise RuntimeError(f"Sandbox/checker exit {proc.returncode}: {error}")
             try:
-                response = json.loads(raw)
+                lines = raw.splitlines()
+                if json.loads(lines[0]) != {"ready": True}:
+                    raise ValueError("Missing sandbox readiness marker")
+                response = json.loads(lines[-1])
             except (ValueError, UnicodeDecodeError) as exc:
                 raise RuntimeError(f"Malformed sandbox response: {error}") from exc
             if "infrastructure_error" in response:

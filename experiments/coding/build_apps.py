@@ -12,6 +12,15 @@ TIERS = ("introductory", "interview")
 INSTRUCTION = "Solve the following programming problem step by step. Put your final complete Python solution inside a single ```python code block."
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--revision", required=True)
+    parser.add_argument("--seed", type=int, default=0)
+    args = parser.parse_args()
+    print(json.dumps(build_apps(args.out_dir, revision=args.revision, seed=args.seed), indent=2))
+
+
 def build_apps(out_dir: Path, *, revision: str, seed: int = 0) -> dict:
     """Write train/validation and tiered eval Parquets plus hashes; never overwrite.
 
@@ -110,10 +119,6 @@ def prepare_splits(dataset, tokenizer, *, seed: int = 0, validation_per_tier: in
     return result, excluded
 
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out-dir", type=Path, required=True)
-    parser.add_argument("--revision", required=True)
-    parser.add_argument("--seed", type=int, default=0)
-    args = parser.parse_args()
-    print(json.dumps(build_apps(args.out_dir, revision=args.revision, seed=args.seed), indent=2))
+    main()

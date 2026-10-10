@@ -1,4 +1,7 @@
 import argparse
+import hashlib
+import json
+from pathlib import Path
 
 import numpy as np
 
@@ -66,8 +69,16 @@ def main():
     )
     params = config.scoring_params()
 
-    per_sample = []
-    for start in range(0, len(todo), args.chunk):
+    progress_path = Path(str(args.out) + ".progress.json")
+    signature = hashlib.sha256(json.dumps({"solo": solo, "junior": args.junior,
+        "samples": args.samples, "context": common.MAX_MODEL_LEN}, sort_keys=True).encode()).hexdigest()
+    progress = {"signature": signature, "completed": 0, "per_sample": []}
+    if progress_path.exists():
+        progress = common.load_json(progress_path)
+        if progress["signature"] != signature:
+            raise ValueError("Cross-entropy inputs differ from saved progress")
+    per_sample = progress["per_sample"]
+    for start in range(progress["completed"], len(todo), args.chunk):
         batch = todo[start : start + args.chunk]
         outs = llm.generate([t[2] for t in batch], params)
         for (p, sample_idx, _, prefix_len), o in zip(batch, outs):
@@ -86,10 +97,14 @@ def main():
                         "n_tokens": len(nll),
                     }
                 )
-        print(f"[progress] {min(start + args.chunk, len(todo))}/{len(todo)} CoTs scored", flush=True)
+        progress["completed"] = min(start + args.chunk, len(todo))
+        common.save_json(progress_path, progress)
+        print(f"[progress] {progress['completed']}/{len(todo)} responses scored", flush=True)
 
     result = {
         "phase": "legibility",
+        "scored_text": "full_response",
+        "source_sha256": signature,
         "senior": solo["model"],
         "junior": args.junior,
         "solo_src": args.solo,
