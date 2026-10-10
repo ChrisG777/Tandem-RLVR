@@ -10,6 +10,9 @@ export PATH="${UV_BIN_DIR:?}:$PATH"
 export APPS_GRADER_RUNTIME="${RUN_ROOT:?}/grader"
 export APPS_BWRAP="$APPS_GRADER_RUNTIME/bwrap-libs/ld-linux-x86-64.so.2 --library-path $APPS_GRADER_RUNTIME/bwrap-libs $APPS_GRADER_RUNTIME/bwrap"
 export PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}"
+export XDG_CACHE_HOME="/tmp/apps-cache-${SLURM_JOB_ID:-$$}"
+export XDG_CONFIG_HOME="$XDG_CACHE_HOME/config" VLLM_CONFIG_ROOT="$XDG_CACHE_HOME/config/vllm"
+mkdir -p "$VLLM_CONFIG_ROOT"
 PHASE=${1:-${CODING_PHASE:?}}
 if [ "$PHASE" = setup ]; then
     export UV_PROJECT_ENVIRONMENT="$RUN_ROOT/tools"

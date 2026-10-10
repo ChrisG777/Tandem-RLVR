@@ -1,4 +1,4 @@
-"""Build a relocatable, pinned CPU checker runtime; never alter training packages."""
+"""Build a self-contained, pinned CPU checker runtime; never alter training packages."""
 import argparse
 import hashlib
 import json
@@ -50,7 +50,7 @@ def _load_module(source):
     if not (root / "python").exists():
         shutil.copytree(base, root / "python", symlinks=True)
     if not (root / "env").exists():
-        subprocess.run(["uv", "venv", "--copies", "--python", str(root / "python/bin/python3.11"), str(root / "env")], check=True)
+        subprocess.run(["uv", "venv", "--python", str(root / "python/bin/python3.11"), str(root / "env")], check=True)
     subprocess.run(["uv", "pip", "install", "--python", str(root / "env/bin/python"), "numpy==2.2.6"], check=True)
     record = {"verl_revision": revision, "upstream_sha256": hashlib.sha256(original).hexdigest(),
               "checker_sha256": hashlib.sha256(code.encode()).hexdigest(),
