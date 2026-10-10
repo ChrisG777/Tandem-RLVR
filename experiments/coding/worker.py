@@ -4,6 +4,7 @@ import io
 import json
 from pathlib import Path
 import sys
+import signal
 
 
 def main() -> None:
@@ -29,6 +30,7 @@ def main() -> None:
         return
     import testing_util
     testing_util.StringIO = BoundedIO
+    signal.signal(signal.SIGALRM, test_timeout)
     import resource
     resource.setrlimit(resource.RLIMIT_NPROC, (1, 1))
     code = request["code"]
@@ -63,6 +65,11 @@ class BoundedIO(io.StringIO):
         if self.tell() + len(text) > 1024**2:
             raise RuntimeError("Output limit exceeded")
         return super().write(text)
+
+
+def test_timeout(signum, frame):
+    """Match the outer verl wrapper's alarm setup when calling run_test directly."""
+    raise TimeoutError("APPS test timeout")
 
 
 if __name__ == "__main__":
