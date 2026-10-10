@@ -35,7 +35,9 @@ export VLLM_WORKER_MULTIPROC_METHOD=spawn HF_HUB_OFFLINE=1
 mkdir -p "$XDG_CACHE_HOME" "$RAY_TMPDIR"
 run_python() { uv run --python "$TANDEM_ENV_BIN/python" --no-project --offline python "$@"; }
 export BASE_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["path"])' "$RUN_ROOT/base.json")
-export POLICY_MODEL="$BASE_MODEL" JUNIOR_MODEL="$BASE_MODEL"
+export POLICY_MODEL="$BASE_MODEL"
+export JUNIOR_MODEL=$(run_python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("junior",d["base"])["path"])' "$RUN_ROOT/base.json")
+if [ -f "$RUN_ROOT/word-boundaries.json" ]; then export BOUNDARY_IDS_PATH="$RUN_ROOT/word-boundaries.json"; fi
 export TOTAL_STEPS=200 TEST_FREQ=20 SAVE_FREQ=${SAVE_FREQ:-20}
 export PPO_MAX_TOKEN=${PPO_MAX_TOKEN:-4096}
 export PERSIST_HF_INTERVAL=20

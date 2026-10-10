@@ -15,8 +15,8 @@ def main() -> None:
     parser.add_argument("--out", required=True, type=Path)
     args = parser.parse_args()
     manifest = json.loads((args.root / "base.json").read_text())
-    if set(manifest) != {"base"}:
-        raise ValueError("Initialization manifest must contain only the official base")
+    if set(manifest) not in ({"base"}, {"base", "junior"}):
+        raise ValueError("Initialization manifest must contain the senior base and optional frozen junior")
     for arm in ("grpo", "tandem"):
         root = args.root / f"{arm}-full"
         migration = root / "migration.json"
@@ -26,7 +26,7 @@ def main() -> None:
                 raise ValueError(f"Missing verified source smoke test for {arm}")
         else:
             verify_training(args.root / f"{arm}-smoke", arm, 3)
-        if json.loads((root / "initialization.json").read_text()) != {"base": manifest["base"]}:
+        if json.loads((root / "initialization.json").read_text()) != {key: manifest[key] for key in ("base", "junior") if key in manifest}:
             raise ValueError(f"Unexpected initialization for {arm}")
         manifest[arm] = verify_training(root, arm, 200)
     args.out.parent.mkdir(parents=True, exist_ok=True)

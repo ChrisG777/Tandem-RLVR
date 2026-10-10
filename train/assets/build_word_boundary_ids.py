@@ -27,12 +27,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--expected-count", type=int, help="Optional pinned tokenizer boundary count")
     parser.add_argument("--write", action="store_true", help="overwrite --out instead of checking it")
     args = parser.parse_args()
 
     ids = build(args.model)
-    if len(ids) != EXPECTED_COUNT:
-        raise SystemExit(f"expected {EXPECTED_COUNT} boundary ids from {args.model}, got {len(ids)}")
+    expected = args.expected_count if args.expected_count is not None else (EXPECTED_COUNT if args.model == DEFAULT_MODEL else None)
+    if not ids or (expected is not None and len(ids) != expected):
+        raise SystemExit(f"expected {expected or chr(62)+chr(48)} boundary ids from {args.model}, got {len(ids)}")
 
     payload = json.dumps(ids)
 

@@ -19,6 +19,7 @@ def main() -> None:
     parser.add_argument('--senior', required=True)
     parser.add_argument('--junior', required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--boundaries', type=Path, help='Tokenizer-specific word-boundary IDs')
     parser.add_argument('--n', type=int, default=8)
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--decoding', choices=('training', 'evaluation'), default='training')
@@ -27,11 +28,12 @@ def main() -> None:
     args = parser.parse_args()
     common.configure(args)
     evaluate(args.senior, args.junior, args.out, n=args.n, limit=args.limit,
-             decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks))
+             decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks), boundary_path=args.boundaries)
 
 
 def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
-             limit: int = 0, decoding: str = 'training', benchmarks=common.DEFAULT_SETS) -> dict:
+             limit: int = 0, decoding: str = 'training', benchmarks=common.DEFAULT_SETS,
+             boundary_path: Path | None = None) -> dict:
     """Run GPU inference and atomically save complete batches plus a final JSON.
 
     Reuses only matching saved inputs. Word-boundary Bernoulli(0.5) redraws and
@@ -44,7 +46,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     from vllm import SamplingParams
     if n < 1 or limit < 0 or decoding not in ('training', 'evaluation'):
         raise ValueError('Invalid sample count, limit, or decoding preset')
-    boundary_path = common.ROOT / 'train/assets/qwen3_word_boundary_ids.json'
+    boundary_path = boundary_path or common.ROOT / 'train/assets/qwen3_word_boundary_ids.json'
     boundary_bytes = boundary_path.read_bytes()
     boundaries = set(json.loads(boundary_bytes))
     sampling = ({'temperature': 0.6, 'top_p': 1.0, 'top_k': -1, 'max_tokens': 3000}
