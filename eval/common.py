@@ -229,3 +229,10 @@ def overlength(tokenizer, prompt):
         return False
     length = len(tokenizer.encode(prompt))
     return length > (MAX_PROMPT if MAX_PROMPT is not None else MAX_MODEL_LEN - CONTEXT_RESERVE - 1)
+
+
+def coverage(gens):
+    """Count length exclusions explicitly while retaining them in score denominators."""
+    excluded = sum(bool(g.get("overlength")) or any(d.get("overlength") for d in g.get("diagnostics", [])) for g in gens)
+    return {"total_problems": len(gens), "attempted_problems": len(gens)-excluded,
+            "overlength_problems": excluded}

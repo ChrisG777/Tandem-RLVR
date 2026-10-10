@@ -40,10 +40,16 @@ def main() -> None:
     if args.panel_manifest:
         configure_panel(common.load_json(args.panel_manifest))
     curves = {}
+    protocol_identity = None
     for phase, arms in (("solo", COLORS), ("handoff", ("grpo", "tandem"))):
         curves[phase] = {}
         for arm in arms:
             result = common.load_json(args.results / arm / f"{phase}.json")
+            if args.panel_manifest:
+                identity = {key: result[key] for key in ("dataset_sha256", "grader", "context", "max_prompt")}
+                if protocol_identity is not None and identity != protocol_identity:
+                    raise ValueError("Coding comparison uses different datasets, graders or budgets")
+                protocol_identity = identity
             if result["phase"] != phase or result["sampling"] != config.record():
                 raise ValueError(f"{arm}/{phase}: phase or decoding differs from the protocol")
             curves[phase][arm] = summarize(result, args.bootstrap, args.seed)
@@ -76,7 +82,7 @@ def summarize(result: dict, bootstrap: int = 2000, seed: int = 20261004) -> dict
         per_set.setdefault(row["set"], []).append(sum(row["correct"]))
     grouped = common.group_by_benchmark(per_set)
     if {name: len(cs) for name, cs in grouped.items()} != EXPECTED_SIZES:
-        raise ValueError("Expected the complete four-benchmark panel (1064 problems)")
+        raise ValueError(f"Expected complete benchmark panel: {EXPECTED_SIZES}")
     if EXPECTED_IDS is not None and actual_ids != EXPECTED_IDS:
         raise ValueError("Evaluation task IDs differ from the panel manifest")
     rng = np.random.default_rng(seed)

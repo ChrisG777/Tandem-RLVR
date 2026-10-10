@@ -183,6 +183,7 @@ def main():
         "n": args.n,
         "sampling": config.record(),
         "batch_size": common.EVAL_BATCH_SIZE,
+        "coverage": common.coverage(gens),
         "max_rounds": MAX_ROUNDS,
         "unfinished_chains": unfinished,
         "same_vocab": same_vocab,

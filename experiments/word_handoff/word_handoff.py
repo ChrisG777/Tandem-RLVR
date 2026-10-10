@@ -126,6 +126,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         if not token_count or not 0.3 < senior_count/token_count < 0.7:
             raise ValueError('Authorship participation check failed')
         result = {**identity, 'identity': identity, 'benchmarks': list(benchmarks),
+                  'coverage': common.coverage(gens),
                   'limit': limit, 'batch_size': common.EVAL_BATCH_SIZE,
                   'senior_token_fraction': senior_count/token_count,
                   'truncated_fraction': sum(s['finish_reason']=='length' for s in samples)/len(samples),

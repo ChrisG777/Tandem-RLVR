@@ -57,6 +57,7 @@ def main():
         "n": args.n,
         "sampling": config.record(),
         "batch_size": common.EVAL_BATCH_SIZE,
+        "coverage": common.coverage(gens),
         "metrics": common.metrics_by_set(problems, counts, args.n),
         "gens": gens,
     }
