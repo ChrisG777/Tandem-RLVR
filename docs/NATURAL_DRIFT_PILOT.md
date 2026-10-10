@@ -11,6 +11,10 @@ TODO on October 10. The paper gives a search grid, not each winning configuratio
 
 - Pinned **base** Llama-3.2-1B, Gemma-3-1B-PT, and Qwen2.5-1.5B. Revisions live
   in `data/build_drift.py`; no instruction-tuned initialization or synthetic code.
+- Additional accessible treatment candidate: Qwen2.5-0.5B base, with the identical
+  task/protocol. A weaker base may need more novel learning. This extrapolates the
+  paper's hypothesis; the paper did not report this model or establish its drift.
+  Inspect baseline first-answer accuracy before interpreting novelty.
 - GSM8K main: two fixed training examples used only as demonstrations;
   7,343 train / 128 validation / 1,319 official test. Seed 42; immutable hashes.
   Ordinary step-by-step prompt, ending in `####` numeric answer. No request for
@@ -29,7 +33,7 @@ TODO on October 10. The paper gives a search grid, not each winning configuratio
 
 ## Interfaces and evidence
 
-1. `uv run ... data/build_drift.py --out DATA [--model llama|gemma|qwen]` prepares
+1. `uv run ... data/build_drift.py --out DATA [--model llama|gemma|qwen|qwen-small]` prepares
    hashed splits, optionally downloads pinned weights, and checks prompt lengths.
    Model access failures stop setup; never substitute a different model silently.
 2. `slurm/drift-train.sbatch` takes explicit site paths, `MODEL_KEY`, `LR`, `SEED`.
@@ -72,3 +76,11 @@ October 10 access check: Llama and Gemma return gated-model HTTP 403 on both
 clusters; the local machine lacks access too. User was asked to enable access.
 Qwen is accessible and serves as the comparison and end-to-end runtime check.
 No duplicate cluster races, monitoring timer, or Re-ARC experiments.
+
+Live route check: Engaging's GPU dry-run forecast was October 12; CSAIL Torralba
+owner route forecast immediate start on a 3090. The two accessible Qwen arms
+therefore go to CSAIL, each on one compatible owner GPU (3090/H100/H200), with
+48GiB host RAM for 1.5B and 32GiB for 0.5B, six CPUs. Engaging data preparation
+is retained for later independent arms, not duplicate training. Recheck routes
+when gated-model access becomes available. CSAIL has about 489GiB free on the
+Torralba filesystem. Two accessible arms budget under 100GiB combined.

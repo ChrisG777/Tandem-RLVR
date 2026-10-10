@@ -11,6 +11,7 @@ MODELS = {
     "llama": ("meta-llama/Llama-3.2-1B", "4e20de362430cd3b72f300e6b0f18e50e7166e08"),
     "gemma": ("google/gemma-3-1b-pt", "fcf18a2a879aab110ca39f8bffbccd5d49d8eb29"),
     "qwen": ("Qwen/Qwen2.5-1.5B", "8faed761d45a263340a0528343f099c05c9a4323"),
+    "qwen-small": ("Qwen/Qwen2.5-0.5B", "060db6499f32faf8b98477b0a26969ef7d8b9987"),
 }
 # Base-model continuation, with one BOS and no instruction/chat-role tokens.
 RAW_TEMPLATE = "{{ bos_token or '' }}{% for message in messages %}{{ message['content'] }}{% endfor %}"
