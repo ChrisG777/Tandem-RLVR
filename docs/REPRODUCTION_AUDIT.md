@@ -1,5 +1,37 @@
 # Figure 2 reproduction audit — 2026-10-08 Pacific
 
+## Reconnected scheduling audit — 2026-10-09 late Pacific
+
+Engaging access is restored. GRPO word job 25374401 has 769/1,064 saved problems
+and runs on non-preemptible `mit_normal_gpu`; Tandem 2608058 has 737/1,064 and
+runs on CSAIL `vision-shared-l40s`. Final CPU graders still await completion.
+Regrading GRPO's snapshot gives matched-737 macro word pass@8 of 58.44% versus
+Tandem 58.72%, and pass@4 of 55.40% versus 55.39%. See
+[matched word statistics](../results/figure2-regraded/word-matched-summary-20261009.json).
+
+`sacct -D` distinguishes actual preemption from our four-hour continuation:
+
+| Run | Actual PREEMPTED attempts | Planned REQUEUED attempts | Current restart count |
+|---|---:|---:|---:|
+| CSAIL Tandem 2608058 | 1 | 5 (about 3h55m each) | 6 |
+| Engaging GRPO 25374401 | 2 | 4 (about 3h55m each) | 6 |
+
+The planned requeues come from the five-minute pre-walltime signal handler.
+They retain saved problems but repeat any uncommitted batch. Attempts to extend
+the running allocations were rejected by both schedulers; their limits remain
+four hours. Restarts must not all be described as preemptions.
+
+Torralba was checked first at submission: H100 schedulable host RAM was then
+insufficient, and all H200 GPUs were held by non-preemptible owner jobs. The live
+recheck finds all eight H100 GPUs held by `vision-torralba-interactive` jobs and
+all eight H200 GPUs by `vision-torralba-main`. Neither QoS is in main's preemption
+list. Two shared jobs shown as dry-run preemption candidates request zero GPUs;
+reclaiming them cannot free a GPU. The owner-route dry run gives a future start,
+not immediate admission. The smaller Torralba hardware is incompatible with this
+one-GPU BF16/model/cache requirement. The current shared allocation therefore
+continues. Native requeue retains its shared route; it does not automatically
+promote a job to owner QoS.
+
 ## Native-word status — 2026-10-09 late Pacific
 
 Tandem 2608058 is still running, with six native restarts and 737/1,064 problems
