@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Site route supplied at submission; both decoders share one GPU.
+# Default: CSAIL shared maximum. Override --time with the selected route's
+# maximum: Torralba 7-00:00:00; Engaging combined 06:00:00, preemptible 2-00:00:00.
+# Recheck live partition/QoS limits before submission.
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=48G
-#SBATCH --time=04:00:00
+#SBATCH --time=1-00:00:00
 #SBATCH --requeue
 #SBATCH --signal=B:USR1@300
 #SBATCH --nice=0

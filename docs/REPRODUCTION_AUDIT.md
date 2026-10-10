@@ -1,5 +1,21 @@
 # Figure 2 reproduction audit — 2026-10-08 Pacific
 
+## Maximum walltime request — 2026-10-10
+
+Use the selected route's maximum permitted walltime for future reproduction
+submissions, rechecking live partition/QoS limits. The word-evaluation script
+now defaults to CSAIL shared's 24h instead of 4h. Override at submission for
+Torralba main (7 days), Engaging combined normal/preemptible (6h), or Engaging
+preemptible-only (48h). Keep automatic requeue and saved-progress resumption.
+This changes future submissions; editing an sbatch file does not alter jobs
+already submitted.
+
+Engaging confirms both GRPO word inference 25374401 and CPU grading 25374417
+COMPLETED (October 10, 11:45 and 11:46 cluster time). The corrected word output
+exists at the recorded regrading path. Do not relaunch completed work to change
+walltime. CSAIL's SSH connection is currently unavailable; Tandem 2608058's
+current state and allocation have not been verified or changed in this update.
+
 ## Reconnected scheduling audit — 2026-10-09 late Pacific
 
 Engaging access is restored. GRPO word job 25374401 has 769/1,064 saved problems
