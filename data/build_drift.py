@@ -79,11 +79,18 @@ def main() -> None:
         from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(path)
         tokenizer.chat_template = RAW_TEMPLATE
-        lengths = [len(tokenizer.apply_chat_template(row, tokenize=True, add_generation_prompt=True))
-                   for row in pd.read_parquet(args.out / "train.parquet")["prompt"]]
-        assert max(lengths) <= 1024, f"Prompt would be filtered: {max(lengths)}"
+        max_lengths = {}
+        for split in ("train", "validation", "test"):
+            prompts = [tokenizer.apply_chat_template(list(row), tokenize=False, add_generation_prompt=True)
+                       for row in pd.read_parquet(args.out / f"{split}.parquet")["prompt"]]
+            # Transformers versions differ in apply_chat_template's tokenized
+            # return type. Explicit encoding avoids counting BatchEncoding keys.
+            lengths = [len(tokenizer.encode(prompt, add_special_tokens=False)) for prompt in prompts]
+            assert min(lengths) > 100, "Few-shot prompt unexpectedly empty or malformed"
+            assert max(lengths) <= 1024, f"{split} prompt would be filtered: {max(lengths)}"
+            max_lengths[split] = max(lengths)
         info = {"repo_id": repo_id, "revision": revision, "path": path,
-                "max_train_prompt_tokens": max(lengths)}
+                "max_prompt_tokens": max_lengths}
         target = args.out / f"{args.model}.json"
         tmp = target.with_suffix(".partial")
         tmp.write_text(json.dumps(info, indent=2) + "\n")
