@@ -35,7 +35,12 @@ export VERL_FILE_LOGGER_PATH="$CKPT_DIR/metrics-${SLURM_JOB_ID}-${SLURM_RESTART_
 cp "$DATA_ROOT/manifest.json" "$CKPT_DIR/data-manifest.json"
 cp "$DATA_ROOT/$MODEL_KEY.json" "$CKPT_DIR/initialization.json"
 printf '%s\n' "$CODE_COMMIT" > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"
-nvidia-smi > "$CKPT_DIR/gpus-${SLURM_JOB_ID}.txt"
+EXTRA_ARGS=()
+if [ "${CONFIG_ONLY:-0}" = 1 ]; then
+    EXTRA_ARGS=(--cfg job)
+else
+    nvidia-smi > "$CKPT_DIR/gpus-${SLURM_JOB_ID}.txt"
+fi
 bash train/vanilla_grpo.sh \
   "data.val_files=[$DATA_ROOT/validation.parquet]" "data.seed=${SEED:-42}" \
   "actor_rollout_ref.model.custom_chat_template=$TEMPLATE" \
@@ -51,5 +56,5 @@ bash train/vanilla_grpo.sh \
   trainer.resume_mode=auto trainer.val_before_train=True \
   "trainer.validation_data_dir=$CKPT_DIR/validation" \
   "trainer.rollout_data_dir=$CKPT_DIR/rollouts" \
-  "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" &
+  "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" "${EXTRA_ARGS[@]}" &
 wait $!
