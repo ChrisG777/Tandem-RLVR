@@ -48,6 +48,7 @@ Tandem arms. The newer pilots target shared deductions and recurring object oper
 | [Calibration array](slurm/shorthand-calibrate.sbatch) | Site paths and task index 0–1 → independent larger-budget calibration traces ([setup](slurm/shorthand-calibration-setup.sh)) |
 | [Evaluate](eval/shorthand.py) | Checkpoint/test split/budget/context limit → solo traces and metrics |
 | [Prepare review](eval/review_shorthand.py) | Completed evaluations/expected comparison count → paired metrics, blinded traces, and authorship key |
+| [Natural drift pilot](data/build_drift.py) | Pinned GSM8K/base weights → [correctness-only Solo training](slurm/drift-train.sbatch) → [selected checkpoint and traces](eval/drift.py) ([protocol](docs/NATURAL_DRIFT_PILOT.md)) |
 
 [Length-pressure pilots](docs/LENGTH_PENALTY_PILOTS.md) · [Concept pilot protocol](docs/CONCEPT_PILOTS.md) · [Engaging campaign](docs/ENGAGING_PILOT.md) · [Original protocol](docs/SHORTHAND_EXPERIMENT.md) · [Run history](docs/SHORTHAND_RUN.md)
 

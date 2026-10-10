@@ -38,6 +38,8 @@ resume_before_walltime() {
             scontrol requeue "$SLURM_JOB_ID"
         fi
         return
+    elif [ "$PILOT_ENTRYPOINT" = drift-train.sbatch ]; then
+        ROOT="${CKPT_DIR:?}"
     elif [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ]; then
         ROOT="$RUN_ROOT/${ARM:?}-${MODE:?}"
     else
@@ -58,7 +60,7 @@ resume_before_walltime() {
         scontrol requeue "$SLURM_JOB_ID"
     fi
 }
-if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = word-handoff.sbatch ]; }; then
+if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = drift-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = word-handoff.sbatch ]; }; then
     trap resume_before_walltime USR1
 fi
 if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
