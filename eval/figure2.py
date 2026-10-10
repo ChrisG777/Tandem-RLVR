@@ -13,9 +13,23 @@ COLORS = {"base": "#8d8d8d", "grpo": "#ee771c", "tandem": "#7b4cb8"}
 EXPECTED_SIZES = {"amc23_25": 121, "aime24_26": 90, "minerva": 272, "olympiad": 581}
 
 
+EXPECTED_IDS = None
+
+def configure_panel(panel: dict) -> None:
+    """Set explicit ordered benchmark sizes/titles and complete expected task IDs."""
+    global BENCHMARKS, TITLES, EXPECTED_SIZES, EXPECTED_IDS
+    BENCHMARKS = tuple(panel["benchmarks"])
+    TITLES = tuple(panel["benchmarks"][n]["title"] for n in BENCHMARKS) + ("Macro avg",)
+    EXPECTED_SIZES = {n: len(panel["benchmarks"][n]["task_ids"]) for n in BENCHMARKS}
+    EXPECTED_IDS = {(n, task) for n in BENCHMARKS for task in panel["benchmarks"][n]["task_ids"]}
+    if not BENCHMARKS or len(EXPECTED_IDS) != sum(EXPECTED_SIZES.values()):
+        raise ValueError("Empty panel or duplicate task IDs")
+
+
 def main() -> None:
     """Read --results/{base,grpo,tandem}/phase.json; write PNG, SVG and score JSON."""
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--panel-manifest", type=Path, help="JSON with benchmark sizes, titles and expected task IDs")
     parser.add_argument("--results", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path, help="output filename stem")
     parser.add_argument("--bootstrap", type=int, default=2000)
@@ -23,6 +37,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.bootstrap < 2:
         parser.error("--bootstrap must be at least 2")
+    if args.panel_manifest:
+        configure_panel(common.load_json(args.panel_manifest))
     curves = {}
     for phase, arms in (("solo", COLORS), ("handoff", ("grpo", "tandem"))):
         curves[phase] = {}
@@ -47,6 +63,7 @@ def summarize(result: dict, bootstrap: int = 2000, seed: int = 20261004) -> dict
     if n < max(ks) or result.get("limit", 0) or result.get("unfinished_chains", 0):
         raise ValueError("Figure 2 requires complete runs, n>=32 solo, n>=8 handoff")
     per_set = {}
+    actual_ids = set()
     seen = set()
     for row in result["gens"]:
         key = (row["set"], row["idx"])
@@ -55,10 +72,13 @@ def summarize(result: dict, bootstrap: int = 2000, seed: int = 20261004) -> dict
         if any(value not in (0, 1) for value in row["correct"]):
             raise ValueError(f"Nonbinary grade: {key}")
         seen.add(key)
+        actual_ids.add((row["set"], row.get("task_id")))
         per_set.setdefault(row["set"], []).append(sum(row["correct"]))
     grouped = common.group_by_benchmark(per_set)
     if {name: len(cs) for name, cs in grouped.items()} != EXPECTED_SIZES:
         raise ValueError("Expected the complete four-benchmark panel (1064 problems)")
+    if EXPECTED_IDS is not None and actual_ids != EXPECTED_IDS:
+        raise ValueError("Evaluation task IDs differ from the panel manifest")
     rng = np.random.default_rng(seed)
     output, samples = {}, []
     for name in BENCHMARKS:
@@ -89,7 +109,7 @@ def plot(curves: dict, out: Path, *, note: str | None = None) -> None:
     from matplotlib.lines import Line2D
 
     plt.rcParams.update({"font.size": 10, "svg.fonttype": "none"})
-    fig, axes = plt.subplots(2, 5, figsize=(12, 5.4), layout="constrained")
+    fig, axes = plt.subplots(2, len(BENCHMARKS)+1, figsize=(2.4*(len(BENCHMARKS)+1), 5.4), layout="constrained", squeeze=False)
     for col, (name, title) in enumerate(zip((*BENCHMARKS, "macro"), TITLES)):
         axes[0, col].set_title(title, weight="bold")
         for row, phase in enumerate(("handoff", "solo")):

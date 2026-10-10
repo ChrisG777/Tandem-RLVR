@@ -13,6 +13,7 @@ VALIDATION = "val-core/deepscaler/acc/best@4/mean"
 def main() -> None:
     """Validate a completed run and atomically save its selected checkpoint record."""
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--validation-metric", default=VALIDATION)
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--arm", choices=("grpo", "tandem"))
     parser.add_argument("--steps", type=int)
@@ -27,14 +28,14 @@ def main() -> None:
         return
     if args.arm is None or args.steps is None or args.mode is None:
         parser.error("verification requires --arm, --steps and --mode")
-    selected = verify_training(args.root, args.arm, args.steps)
+    selected = verify_training(args.root, args.arm, args.steps, validation_metric=args.validation_metric)
     selected["mode"] = args.mode
     temporary = args.root / "selected.partial"
     temporary.write_text(json.dumps(selected, indent=2) + "\n")
     temporary.replace(args.root / "selected.json")
 
 
-def verify_training(root: Path, arm: str, steps: int) -> dict:
+def verify_training(root: Path, arm: str, steps: int, *, validation_metric: str = VALIDATION) -> dict:
     """Require finite losses, a live Tandem mask, validation and complete HF weights.
 
     Read per-attempt verl JSONL files, allowing checkpoint resumes. Return the best
@@ -42,7 +43,7 @@ def verify_training(root: Path, arm: str, steps: int) -> dict:
     Test-benchmark scores never participate in checkpoint selection.
     """
     records = {step: data for step, data in read_training_records(root).items() if step <= steps}
-    migration = _read_migration(root, arm, records)
+    migration = _read_migration(root, arm, records, validation_metric)
     imported_step = migration["training_steps"] if migration else 0
     gaps = sorted(set(range(1, steps + 1)) - records.keys())
     for step in gaps:
@@ -64,24 +65,24 @@ def verify_training(root: Path, arm: str, steps: int) -> dict:
                 raise ValueError(f"Tandem senior fraction is not near 0.5 at {step}: {fraction}")
     candidates = []
     for step, data in records.items():
-        if VALIDATION in data and step >= imported_step:
-            score = finite(data[VALIDATION], f"validation at {step}")
+        if validation_metric in data and step >= imported_step:
+            score = finite(data[validation_metric], f"validation at {step}")
             if not 0 <= score <= 1:
                 raise ValueError(f"Invalid validation probability {score}")
             checkpoint = root / "hf" / f"global_step_{step}"
             verify_weights(checkpoint)
             candidates.append((score, -step, checkpoint))
-    if not candidates or VALIDATION not in records[steps]:
+    if not candidates or validation_metric not in records[steps]:
         raise ValueError("Final held-out validation is missing")
     score, negative_step, checkpoint = max(candidates)
     return {"arm": arm, "path": str(checkpoint.resolve()), "step": -negative_step,
-            "validation_metric": VALIDATION, "validation_pass4": score,
+            "validation_metric": validation_metric, "validation_pass4": score,
             "training_steps": steps, "verified": True,
             "unobserved_metric_steps": gaps,
             "verification_scope": "Observed metrics and validated checkpoint/resume evidence; missing metrics are not imputed"}
 
 
-def _read_migration(root: Path, arm: str, records: dict[int, dict]) -> dict | None:
+def _read_migration(root: Path, arm: str, records: dict[int, dict], validation_metric: str) -> dict | None:
     """Check a source-verification receipt and byte-identical imported log history.
 
     Latest-checkpoint-only migration is allowed only when that checkpoint was
@@ -102,7 +103,7 @@ def _read_migration(root: Path, arm: str, records: dict[int, dict]) -> dict | No
     for name, digest in hashes.items():
         if Path(name).name != name or hashlib.sha256((root / name).read_bytes()).hexdigest() != digest:
             raise ValueError("Migrated metric history changed")
-    if records.get(step, {}).get(VALIDATION) != prior["validation_pass4"]:
+    if records.get(step, {}).get(validation_metric) != prior["validation_pass4"]:
         raise ValueError("Migrated validation differs from verified source")
     verify_weights(root / "hf" / f"global_step_{step}")
     return prior

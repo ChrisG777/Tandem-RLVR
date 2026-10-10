@@ -115,7 +115,9 @@ def main():
                     default=len(common.visible_devices()) == 1,
                     help="both engines on one card (automatic with one visible GPU)")
     ap.add_argument("--allow-vocab-mismatch", action="store_true")
+    common.add_data_arguments(ap)
     args = ap.parse_args()
+    common.configure(args)
 
     from transformers import AutoTokenizer
 
@@ -136,9 +138,10 @@ def main():
     ]
 
     progress_path, progress = common.load_progress(args.out, {
+        **common.evaluation_identity(problems),
         "phase": "handoff", "senior": args.senior, "junior": args.junior,
         "n": args.n, "sampling": config.record(), "max_rounds": MAX_ROUNDS,
-        "same_vocab": same_vocab,
+        "same_vocab": same_vocab, **common.evaluation_identity(problems),
     }, problems)
     engines = build_engines(args.senior, args.junior, util, args.single_gpu)
     gens = progress["gens"]
@@ -146,13 +149,18 @@ def main():
         end = start + common.EVAL_BATCH_SIZE
         batch = problems[start:end]
         chains = make_chains(batch, prompts[start:end], budgets[start:end], args.n)
+        for c in chains:
+            if common.overlength(tok, c["base"]):
+                c["done"] = True
+                c["overlength"] = True
         run_all_rounds(engines, chains)
         progress["unfinished_chains"] += sum(not c["done"] for c in chains)
         for i, p in enumerate(batch):
             sample = chains[i * args.n:(i + 1) * args.n]
-            gens.append({"set": p["set"], "idx": p["idx"],
+            details = [({"acc": 0.0, "overlength": 1.0} if c.get("overlength") else common.grade_details(c["text"], p["gt"], p.get("data_source", "math"))) for c in sample]
+            gens.append({"set": p["set"], "idx": p["idx"], "task_id": p.get("task_id"), "diagnostics": details,
                          "texts": [c["text"] for c in sample],
-                         "correct": [common.grade(c["text"], p["gt"]) for c in sample]})
+                         "correct": [d["acc"] for d in details]})
         common.save_json(progress_path, progress)
 
     unfinished = progress["unfinished_chains"]
@@ -166,6 +174,7 @@ def main():
     counts = [int(sum(g["correct"])) for g in gens]
 
     result = {
+        **common.evaluation_identity(problems),
         "phase": "handoff",
         "senior": args.senior,
         "junior": args.junior,

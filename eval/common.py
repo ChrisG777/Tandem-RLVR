@@ -13,7 +13,6 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data" / "eval"
 
 sys.path.insert(0, str(ROOT / "reward"))
-from math_boxed_reward import compute_score
 
 AIME_SETS = ("aime24", "aime25", "aime26")
 DEFAULT_SETS = (*AIME_SETS, "amc23_25", "minerva", "olympiad")
@@ -23,6 +22,7 @@ KS = (1, 2, 4, 8, 16, 32)
 EVAL_BATCH_SIZE = 16
 
 MAX_MODEL_LEN = 4096
+MAX_PROMPT = None
 CONTEXT_RESERVE = 8
 
 
@@ -72,6 +72,8 @@ def load_problems(sets=DEFAULT_SETS, limit=0):
                     "idx": len(rows),
                     "content": r["prompt"][0]["content"],
                     "gt": str(r["reward_model"]["ground_truth"]),
+                    **({"data_source": "apps", "task_id": r["extra_info"]["task_id"]}
+                       if r.get("data_source") == "apps" else {}),
                 }
             )
     return rows[:limit] if limit else rows
@@ -94,8 +96,19 @@ def response_budget(prompt_len):
     return min(config.MAX_TOKENS, MAX_MODEL_LEN - prompt_len - CONTEXT_RESERVE)
 
 
-def grade(text, gt):
+def grade(text, gt, data_source="math"):
+    if data_source == "apps":
+        return float(grade_details(text, gt, data_source)["acc"])
+    from math_boxed_reward import compute_score
     return float(compute_score("math", text, gt)["acc"])
+
+
+def grade_details(text, gt, data_source="math"):
+    if data_source == "apps":
+        sys.path.insert(0, str(ROOT))
+        from experiments.coding.reward import compute_score as coding_score
+        return coding_score(data_source, text, gt)
+    return {"acc": grade(text, gt)}
 
 
 def pass_at_k(n, c, k):
@@ -139,7 +152,7 @@ def metrics_by_set(problems, counts, n, ks=KS):
 
 
 def build_engine(model, gpu_util, device=None, max_num_batched_tokens=None,
-                 max_model_len=MAX_MODEL_LEN):
+                 max_model_len=None):
     from vllm import LLM
 
     saved = os.environ.get("CUDA_VISIBLE_DEVICES")
@@ -150,7 +163,7 @@ def build_engine(model, gpu_util, device=None, max_num_batched_tokens=None,
             model=model,
             gpu_memory_utilization=gpu_util,
             enforce_eager=True,
-            max_model_len=max_model_len,
+            max_model_len=max_model_len or MAX_MODEL_LEN,
             enable_prefix_caching=True,
         )
         if max_num_batched_tokens:
@@ -184,3 +197,35 @@ def save_json(path, obj):
 def load_json(path):
     with open(path) as f:
         return json.load(f)
+
+
+def add_data_arguments(parser):
+    """Optional dataset/context overrides; math defaults stay unchanged."""
+    parser.add_argument("--data-root", type=Path)
+    parser.add_argument("--context", type=int, default=4096)
+    parser.add_argument("--max-prompt", type=int)
+
+
+def configure(args):
+    global DATA, MAX_MODEL_LEN, MAX_PROMPT
+    DATA = args.data_root or ROOT / "data/eval"
+    MAX_MODEL_LEN, MAX_PROMPT = args.context, args.max_prompt
+    if MAX_MODEL_LEN < config.MAX_TOKENS + CONTEXT_RESERVE:
+        raise ValueError("Context smaller than response budget")
+
+
+def evaluation_identity(problems):
+    metadata = {"data_root": str(DATA.resolve()), "context": MAX_MODEL_LEN, "max_prompt": MAX_PROMPT}
+    if any(p.get("data_source") == "apps" for p in problems):
+        sys.path.insert(0, str(ROOT))
+        from experiments.coding.reward import grader_identity
+        metadata["grader"] = grader_identity()
+        metadata["dataset_sha256"] = hashlib.sha256((DATA.parent / "manifest.json").read_bytes()).hexdigest()
+    return metadata
+
+
+def overlength(tokenizer, prompt):
+    if MAX_PROMPT is None:
+        return False
+    length = len(tokenizer.encode(prompt))
+    return length > (MAX_PROMPT if MAX_PROMPT is not None else MAX_MODEL_LEN - CONTEXT_RESERVE - 1)

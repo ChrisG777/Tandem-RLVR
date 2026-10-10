@@ -39,6 +39,8 @@ def main():
     from transformers import AutoTokenizer
 
     solo = common.load_json(args.solo)
+    common.DATA = common.Path(solo.get("data_root", common.DATA))
+    common.MAX_MODEL_LEN = solo.get("context", common.MAX_MODEL_LEN)
     problems = common.problems_from_result(solo)
     by_idx = {g["idx"]: g for g in solo["gens"]}
 

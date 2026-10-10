@@ -1,0 +1,150 @@
+"""APPS campaign checks and dispatch, sharing the reproduction's model runners."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path[:0] = [str(ROOT), str(ROOT / "eval"), str(ROOT / "train")]
+TIERS = ("apps_introductory", "apps_interview")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("preflight")
+    cal = sub.add_parser("calibration")
+    cal.add_argument("--solo", type=Path, required=True)
+    cal.add_argument("--word", type=Path, required=True)
+    cal.add_argument("--out", type=Path, required=True)
+    run = sub.add_parser("evaluate")
+    run.add_argument("--phase", choices=("solo", "handoff", "word-handoff", "legibility"), required=True)
+    run.add_argument("--model", required=True)
+    run.add_argument("--junior", required=True)
+    run.add_argument("--data", type=Path, required=True)
+    run.add_argument("--split", choices=("test", "validation"), default="test")
+    run.add_argument("--out", type=Path, required=True)
+    run.add_argument("--n", type=int, default=8)
+    run.add_argument("--decoding", choices=("training", "evaluation"), default="evaluation")
+    run.add_argument("--solo", type=Path)
+    select = sub.add_parser("select")
+    select.add_argument("--root", type=Path, required=True)
+    panel = sub.add_parser("panel")
+    panel.add_argument("--data", type=Path, required=True)
+    panel.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args()
+    if args.command == "preflight":
+        preflight()
+    elif args.command == "calibration":
+        report = calibration(json.loads(args.solo.read_text()), json.loads(args.word.read_text()))
+        from common import save_json
+        save_json(args.out, report)
+        if not report["passed"]:
+            raise SystemExit("Calibration gate failed; training is not admitted. See " + str(args.out))
+    elif args.command == "evaluate":
+        evaluate(args)
+    elif args.command == "select":
+        from figure2_checkpoint import verify_training
+        from common import save_json
+        manifest = json.loads((args.root / "base.json").read_text())
+        for arm in ("grpo", "tandem"):
+            verify_training(args.root / f"{arm}-smoke", arm, 3, validation_metric="val-core/apps/acc/best@4/mean")
+            manifest[arm] = verify_training(args.root / f"{arm}-full", arm, 200, validation_metric="val-core/apps/acc/best@4/mean")
+            if json.loads((args.root / f"{arm}-full/initialization.json").read_text()) != {"base": manifest["base"]}:
+                raise ValueError("Arm did not initialize from the pinned base")
+        save_json(args.root / "models.json", manifest)
+    else:
+        from common import save_json
+        data = json.loads((args.data / "manifest.json").read_text())
+        save_json(args.out, {"benchmarks": {tier: {"title": tier.removeprefix("apps_").capitalize(),
+            "task_ids": data["files"][f"test/{tier}/test.parquet"]["task_ids"]} for tier in TIERS}})
+
+
+def preflight() -> None:
+    """Verify sandbox isolation and known outcomes before executing model outputs."""
+    from experiments.coding.reward import run_sandbox, compute_score, normalize_tests
+    if run_sandbox({"preflight": True}, timeout=15) != {"isolated": True}:
+        raise RuntimeError("Sandbox isolation check failed")
+    fixtures = [({"inputs": ["2\n"], "outputs": ["4\n"]}, "print(int(input())*2)", 1),
+                ({"inputs": [[2]], "outputs": [4], "fn_name": "double"}, "def double(x):\n    return x*2", 1),
+                ({"inputs": [[2]], "outputs": [4], "fn_name": "double"}, "def double(x):\n    return 0", 0)]
+    for tests, code, expected in fixtures:
+        actual = compute_score("apps", f"```python\n{code}\n```", json.dumps(normalize_tests(tests)))
+        if actual["acc"] != expected:
+            raise RuntimeError(f"Checker preflight failed: {actual}")
+    print("APPS sandbox and stdin/call-based checker preflight passed", flush=True)
+
+
+def calibration(solo: dict, word: dict) -> dict:
+    """Require exact 200-problem/eight-sample paired inputs before applying gate."""
+    if solo["phase"] != "solo" or word["phase"] != "word-handoff":
+        raise ValueError("Wrong calibration phases")
+    expected_sampling = {"temperature": 0.6, "top_p": 1.0, "top_k": -1, "max_tokens": 3000}
+    identities = []
+    summary = {}
+    for label, result in (("solo", solo), ("word", word)):
+        if result["n"] != 8 or result["sampling"] != expected_sampling or len(result["gens"]) != 200:
+            raise ValueError("Calibration requires 200 problems, eight training-decoding samples")
+        keys = [(g["set"], g["task_id"]) for g in result["gens"]]
+        if len(set(keys)) != 200 or any(len(g["correct"]) != 8 for g in result["gens"]):
+            raise ValueError("Duplicate tasks or incomplete samples")
+        identities.append(set(keys))
+        by_tier = {}
+        for tier in TIERS:
+            rows = [g for g in result["gens"] if g["set"] == tier]
+            if len(rows) != 100:
+                raise ValueError("Expected 100 validation problems per tier")
+            by_tier[tier] = describe(rows)
+        pooled = describe(result["gens"])
+        passed = 0.05 <= pooled["accuracy"] <= 0.90 and pooled["mixed_groups"] >= 0.10 and pooled["truncation"] <= 0.05
+        summary[label] = {"by_tier": by_tier, "pooled": pooled, "passed": passed}
+    if identities[0] != identities[1] or solo["dataset_sha256"] != word["dataset_sha256"] or solo["grader"] != word["grader"]:
+        raise ValueError("Calibration inputs/graders differ")
+    return {"passed": all(s["passed"] for s in summary.values()), "modes": summary,
+            "dataset_sha256": solo["dataset_sha256"], "grader": solo["grader"],
+            "source_sha256": {name: hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+                              for name, value in (("solo", solo), ("word", word))}}
+
+
+def describe(rows: list[dict]) -> dict:
+    samples = [s for g in rows for s in g["samples"]]
+    if len(samples) != 8 * len(rows):
+        raise ValueError("Missing calibration sample diagnostics")
+    lengths = [s.get("n_tokens", len(s.get("token_ids", []))) for s in samples]
+    authorship = [v for s in samples for v in s.get("model_mask", [])]
+    return {"accuracy": sum(sum(g["correct"]) for g in rows)/(8*len(rows)),
+            "mixed_groups": sum(0 < sum(g["correct"]) < 8 for g in rows)/len(rows),
+            "truncation": sum(s["finish_reason"] == "length" for s in samples)/len(samples),
+            "mean_tokens": sum(lengths)/len(lengths), "max_tokens": max(lengths),
+            "senior_fraction": sum(authorship)/len(authorship) if authorship else 1.0,
+            "failures": {key: sum(d.get(key, 0) for g in rows for d in g["diagnostics"])
+                         for key in ("format_error", "syntax_error", "runtime_error", "wrong_answer", "timeout")}}
+
+
+def evaluate(args) -> None:
+    """Dispatch GPU inference to the original runners with explicit APPS overrides."""
+    preflight()
+    scripts = {"solo": "eval/solo.py", "handoff": "eval/handoff.py",
+               "word-handoff": "experiments/word_handoff/word_handoff.py", "legibility": "eval/legibility.py"}
+    command = [sys.executable, str(ROOT / scripts[args.phase]), "--out", str(args.out)]
+    if args.phase == "legibility":
+        if args.solo is None:
+            raise ValueError("Legibility requires --solo")
+        command += ["--solo", str(args.solo), "--junior", args.junior]
+    else:
+        command += ["--data-root", str(args.data / args.split), "--benchmarks", ",".join(TIERS),
+                    "--context", "8192", "--max-prompt", "4096", "--n", str(args.n)]
+        if args.phase == "solo":
+            command += ["--model", args.model, "--decoding", args.decoding]
+        else:
+            command += ["--senior", args.model, "--junior", args.junior]
+            if args.phase == "word-handoff":
+                command += ["--decoding", args.decoding]
+    subprocess.run(command, check=True)
+
+
+if __name__ == "__main__":
+    main()

@@ -12,13 +12,19 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="0 = all problems")
     ap.add_argument("--gpu-util", type=float, default=0.85)
     ap.add_argument("--benchmarks", default=",".join(common.DEFAULT_SETS))
+    common.add_data_arguments(ap)
+    ap.add_argument("--decoding", choices=("evaluation", "training"), default="evaluation")
     args = ap.parse_args()
+    common.configure(args)
+    if args.decoding == "training":
+        config.TEMPERATURE, config.TOP_P, config.TOP_K = 0.6, 1.0, -1
 
     from transformers import AutoTokenizer
 
     sets = common.parse_sets(args.benchmarks)
     problems = common.load_problems(sets, args.limit)
     progress_path, progress = common.load_progress(args.out, {
+        **common.evaluation_identity(problems),
         "phase": "solo", "model": args.model, "n": args.n,
         "sampling": config.record(), "seed": 17,
     }, problems)
@@ -29,15 +35,21 @@ def main():
     for start in range(len(gens), len(problems), common.EVAL_BATCH_SIZE):
         batch = problems[start:start + common.EVAL_BATCH_SIZE]
         prompts = [common.chat_prefix(tok, p["content"]) for p in batch]
-        outs = llm.generate(prompts, config.sampling_params(n=args.n, seed=17))
-        for p, o in zip(batch, outs, strict=True):
-            texts = [c.text for c in o.outputs]
-            correct = [common.grade(t, p["gt"]) for t in texts]
-            gens.append({"set": p["set"], "idx": p["idx"], "texts": texts, "correct": correct})
+        eligible = [not common.overlength(tok, pr) for pr in prompts]
+        outs = iter(llm.generate([pr for pr, ok in zip(prompts, eligible) if ok], config.sampling_params(n=args.n, seed=17)) if any(eligible) else [])
+        for p, ok in zip(batch, eligible):
+            completions = next(outs).outputs if ok else []
+            texts = [c.text for c in completions] if ok else [""] * args.n
+            details = [common.grade_details(t, p["gt"], p.get("data_source", "math")) for t in texts] if ok else [{"acc": 0.0, "overlength": 1.0}] * args.n
+            gens.append({"set": p["set"], "idx": p["idx"], "task_id": p.get("task_id"),
+                         "texts": texts, "correct": [d["acc"] for d in details], "diagnostics": details,
+                         "samples": [{"n_tokens": len(getattr(c, "token_ids", [])), "finish_reason": getattr(c, "finish_reason", None)} for c in completions],
+                         "overlength": not ok})
         common.save_json(progress_path, progress)
     counts = [int(sum(g["correct"])) for g in gens]
 
     result = {
+        **common.evaluation_identity(problems),
         "phase": "solo",
         "model": args.model,
         "benchmarks": list(sets),
