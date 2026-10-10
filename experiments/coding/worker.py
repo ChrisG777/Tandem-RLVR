@@ -38,7 +38,9 @@ def main() -> None:
         print(json.dumps({"status": "syntax_error"}))
         return
     try:
-        with contextlib.redirect_stdout(BoundedIO()), contextlib.redirect_stderr(BoundedIO()):
+        # faulthandler inside the upstream checker needs stderr's real descriptor;
+        # the parent already bounds that file with RLIMIT_FSIZE.
+        with contextlib.redirect_stdout(BoundedIO()):
             results, metadata = testing_util.run_test(request["tests"], test=code, timeout=5)
         if len(results) == len(request["tests"]["inputs"]) and all(v == True for v in results):
             status = "pass"
