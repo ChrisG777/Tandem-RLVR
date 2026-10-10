@@ -115,6 +115,31 @@ class CodingTests(unittest.TestCase):
         finally:
             figure2.BENCHMARKS, figure2.TITLES, figure2.EXPECTED_SIZES, figure2.EXPECTED_IDS = saved
 
+    def test_submission_gates_training_and_rejects_duplicate_campaign(self):
+        from experiments.coding import submit
+        calls = []
+        def record(command, **kwargs):
+            calls.append(command)
+            return str(100 + len(calls)) + '\n'
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.dict(os.environ, {'RUN_ROOT': tmp, 'REPO': str(ROOT)}), \
+             patch.object(sys, 'argv', ['submit', '--cpu-args=--partition=cpu --mem=8G',
+                                       '--eval-args=--partition=gpu --gpus=1 --mem=48G',
+                                       '--train-args=--partition=gpu --mem=148G']), \
+             patch.object(submit.subprocess, 'check_output', side_effect=record):
+            submit.main()
+            jobs = json.loads((Path(tmp)/'jobs.json').read_text())
+            for arm in ('grpo', 'tandem'):
+                smoke = next(c for c in calls if f'--job-name=apps-{arm}-smoke' in c)
+                full = next(c for c in calls if f'--job-name=apps-{arm}-full' in c)
+                self.assertIn('--dependency=afterok:' + jobs['gate'], smoke)
+                self.assertIn('--dependency=afterok:' + jobs[arm+'-smoke'], full)
+                self.assertIn('--kill-on-invalid-dep=yes', full)
+            before = len(calls)
+            with self.assertRaises(FileExistsError):
+                submit.main()
+            self.assertEqual(len(calls), before)
+
 
 @unittest.skipUnless(sys.platform == "linux" and os.environ.get("APPS_GRADER_RUNTIME"), "Requires provisioned Linux sandbox")
 class SandboxIntegration(unittest.TestCase):
