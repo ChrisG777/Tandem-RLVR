@@ -6,6 +6,8 @@ cd "${REPO:?}"
 export PILOT_ENTRYPOINT=shorthand-check.sbatch
 source "$REPO/slurm/shorthand-runtime.sh"
 export PATH="${UV_BIN_DIR:?}:$PATH"
+export UV_CACHE_DIR=${UV_CACHE_DIR:-/data/vision/torralba/u/chrisge/.cache/uv}
+export HF_HOME=${HF_HOME:-/data/vision/torralba/u/chrisge/.cache/huggingface}
 export HF_HUB_OFFLINE=1
 ARGS=(--calibration "$RUN_ROOT/calibration" --data-root "$DATA_ROOT"
       --tasks ${PILOT_TASKS:-manipulate_matrix string_manipulation} --budgets ${PILOT_BUDGETS:-256 1024})

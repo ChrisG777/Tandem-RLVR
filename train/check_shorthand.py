@@ -78,7 +78,8 @@ def check_calibration(root: Path, data_root: Path, tasks=TASKS[:2], budgets=(256
                 raise ValueError(f"Data length mismatch: {path}")
             # Test integrity only: no answer scores or test-driven tuning.
             for prompt in rows["prompt"]:
-                ids = tokenizer.apply_chat_template(list(prompt), tokenize=True, add_generation_prompt=True)
+                ids = tokenizer.apply_chat_template(list(prompt), tokenize=True, add_generation_prompt=True,
+                                                    return_dict=False)
                 max_prompt = max(max_prompt, len(ids))
         prompt_limit = min(1536, contexts[1] - budgets[1])
         if max_prompt > prompt_limit:
