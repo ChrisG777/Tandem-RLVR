@@ -96,7 +96,7 @@ training >=80 GB, 144 GiB/six CPUs, based on the completed matrix pilot.
 Native requeue resumes saved checkpoints or atomic evaluation batches, with at
 most 12 restarts and a five-minute pre-walltime signal. Jobs use six-hour chunks,
 except two-hour calibration. CPU integrity/review jobs request no GPUs.
-CSAIL pilot jobs have Nice 1000 so reproduction work retains priority. No
+New CSAIL pilot jobs use Nice 0 following withdrawal of the temporary priority penalty. No
 cross-cluster duplicates or monitoring timer are created.
 
 Inference's 24 GB eligibility is a memory estimate: roughly 7.5 GiB BF16 weights,
@@ -180,3 +180,45 @@ per-request context reduces maximum concurrent sequences within that same cache.
 Fifteen focused tests pass after the context change, including interruption/resume
 at an 8,192-token response budget and rejection of mismatched context provenance.
 The four revised training arms remain conditional on calibration success.
+
+## Status and evaluation recovery, 2026-10-09
+
+Both RuleTaker arms reached step 100 and passed direct checkpoint/metric
+verification. Final validation (128 problems, four samples/problem):
+
+| Training response budget | All four questions correct, mean over samples | Individual-question accuracy |
+|---|---|---|
+| 4,096 | 83.79% | 93.90% |
+| 8,192 | 79.88% | 91.75% |
+
+Training mean reward rose from 74.16% to 91.54% for the 4,096-token arm and from
+81.64% to 91.76% for the 8,192-token arm (first versus last ten updates).
+Mean response length changed from 2,697 to 2,419 and from 2,825 to 3,052 tokens,
+respectively. These are training/validation summaries, not matched test-set
+improvements or evidence of opaque jargon.
+
+The CPU verification jobs 2607189_0/1 failed before Python started: their uv cache
+fell back to the AFS home, which was inaccessible after credential expiry.
+Consequently the trained evaluations and review were cancelled by dependencies.
+The launcher now sets shared cache paths explicitly. Both verification checks
+were rerun successfully against all 100 observed steps and the final HF weights.
+A separate compatibility correction makes the calibration prompt-length check
+request token IDs explicitly (`return_dict=False`); Transformers 5 returned a
+mapping whose length had incorrectly been recorded as two. Stored dataset and
+evaluation token lengths show the actual RuleTaker prompts fit the configured
+limit; this correction does not change training data or weights.
+
+Replacement trained-evaluation array **2613450_0/1** uses the original frozen
+`c145e48` evaluation code and identical budgets, context, data and models.
+Review **2613451** depends on both evaluations. Completed base evaluations are
+reused. The existing 32 GiB/four-CPU, single-GPU inference shape passed an owner
+route dry run; compatible Torralba RTX 3090/H100/H200 partitions are admitted.
+These jobs use Nice 0 in accordance with the updated shared allocation policy.
+No RL training was restarted and no Re-ARC gate was bypassed.
+
+Re-ARC did not enter RL: at 8,192 tokens calibration accuracy was 16.80%, only
+36.72% emitted a final answer, and 63.28% truncated. Family accuracies were
+4.69% (enclosed regions), 3.13% (bounding rectangle), 0% (corner-marker placement),
+and 59.38% (directional coloring). The gate blocked this mixture because it
+would retain the severe truncation confound. No jargon conclusion is available
+for either new task pending matched evaluation and semantic review.
