@@ -23,6 +23,7 @@ if [ "$PHASE" = setup ]; then
         uv run --project experiments/coding/env --locked python -m experiments.coding.build_apps --out-dir "$DATA_ROOT" --revision "${DATA_REVISION:?}"
     fi
     uv run --project experiments/coding/env --locked python -m experiments.coding.campaign panel --data "$DATA_ROOT" --out "$RUN_ROOT/panel.json"
+    uv run --project experiments/coding/env --locked python -m experiments.coding.campaign protocol --data "$DATA_ROOT" --base "$RUN_ROOT/base.json" --out "$RUN_ROOT/protocol.json"
     exit
 fi
 export JOB_ENTRYPOINT=experiments/coding/job.sbatch
@@ -46,7 +47,7 @@ case "$PHASE" in
         run_python -m experiments.coding.campaign evaluate --phase "${EVAL_PHASE:?}" --model "$BASE_MODEL" --junior "$BASE_MODEL" --data "$DATA_ROOT" --split validation --out "$RUN_ROOT/calibration/$EVAL_PHASE.json" --decoding training --n 8
         ;;
     gate)
-        run_python -m experiments.coding.campaign calibration --solo "$RUN_ROOT/calibration/solo.json" --word "$RUN_ROOT/calibration/word-handoff.json" --out "$RUN_ROOT/calibration/report.json"
+        run_python -m experiments.coding.campaign calibration --data "$DATA_ROOT" --solo "$RUN_ROOT/calibration/solo.json" --word "$RUN_ROOT/calibration/word-handoff.json" --out "$RUN_ROOT/calibration/report.json"
         ;;
     train)
         run_python -c 'import json,os; assert json.load(open(os.environ["RUN_ROOT"]+"/calibration/report.json"))["passed"]'
@@ -57,6 +58,8 @@ case "$PHASE" in
         export TRAIN_FILES="$DATA_ROOT/train.parquet" MAX_PROMPT=4096 MAX_RESPONSE=3000
         export TOTAL_STEPS=200 TOTAL_EPOCHS=2 TEST_FREQ=20 SAVE_FREQ=20 PERSIST_HF_INTERVAL=20
         export TRAIN_BATCH=16 MINI_BATCH=8 ROLLOUT_N=8 LR=1e-6 CLIP_RATIO=0.2 TRAIN_GPUS=1
+        export ROLLOUT_TEMP=0.6 VAL_N=4 VAL_TEMP=0.7 VAL_TOP_P=0.8 VAL_TOP_K=20 VAL_DO_SAMPLE=True
+        export PROB_PRIMARY=0.5 SELECTION=word MAX_GAP_TOKENS=32 JR_TKN_WEIGHT=0
         export PPO_MAX_TOKEN=8192 ROLLOUT_GPU_UTIL=0.65 TQ_STORAGE_UNITS=1 DATA_WORKERS=2 AGENT_WORKERS=4
         export WANDB_MODE=offline HYDRA_FULL_ERROR=1
         export RAY_TMPDIR="/tmp/apps-ray-${SLURM_JOB_ID}" XDG_CACHE_HOME="/tmp/apps-cache-${SLURM_JOB_ID}"

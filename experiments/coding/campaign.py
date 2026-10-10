@@ -20,6 +20,7 @@ def main() -> None:
     cal.add_argument("--solo", type=Path, required=True)
     cal.add_argument("--word", type=Path, required=True)
     cal.add_argument("--out", type=Path, required=True)
+    cal.add_argument("--data", type=Path, required=True, help="Prepared APPS directory containing manifest.json")
     run = sub.add_parser("evaluate")
     run.add_argument("--phase", choices=("solo", "handoff", "word-handoff", "legibility"), required=True)
     run.add_argument("--model", required=True)
@@ -35,11 +36,18 @@ def main() -> None:
     panel = sub.add_parser("panel")
     panel.add_argument("--data", type=Path, required=True)
     panel.add_argument("--out", type=Path, required=True)
+    protocol = sub.add_parser("protocol")
+    protocol.add_argument("--data", type=Path, required=True)
+    protocol.add_argument("--base", type=Path, required=True)
+    protocol.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "preflight":
         preflight()
     elif args.command == "calibration":
-        report = calibration(json.loads(args.solo.read_text()), json.loads(args.word.read_text()))
+        raw_manifest = (args.data / "manifest.json").read_bytes()
+        report = calibration(json.loads(args.solo.read_text()), json.loads(args.word.read_text()),
+                             manifest=json.loads(raw_manifest),
+                             manifest_sha256=hashlib.sha256(raw_manifest).hexdigest())
         from common import save_json
         save_json(args.out, report)
         if not report["passed"]:
@@ -56,6 +64,35 @@ def main() -> None:
             if json.loads((args.root / f"{arm}-full/initialization.json").read_text()) != {"base": manifest["base"]}:
                 raise ValueError("Arm did not initialize from the pinned base")
         save_json(args.root / "models.json", manifest)
+    elif args.command == "protocol":
+        from common import save_json
+        from experiments.coding.reward import grader_identity
+        from experiments.coding.build_apps import BASE_REVISION
+        import config
+        base = json.loads(args.base.read_text())["base"]
+        if Path(base["path"]).name != BASE_REVISION:
+            raise ValueError("Base manifest must identify the pinned immutable snapshot")
+        save_json(args.out, {
+            "experiment": "apps-figure2-single-seed-pilot", "base": base,
+            "dataset_sha256": hashlib.sha256((args.data / "manifest.json").read_bytes()).hexdigest(),
+            "grader": grader_identity(), "context": 8192, "max_prompt": 4096, "max_response": 3000,
+            "calibration": {"validation_tasks": 200, "samples_per_mode": 8,
+                            "accuracy_range": [0.05, 0.90], "min_mixed_groups": 0.10,
+                            "max_truncation": 0.05, "threshold_status": "pilot"},
+            "training": {"steps": 200, "seed": 42, "batch": 16, "minibatch": 8,
+                         "rollouts": 8, "learning_rate": 1e-6, "clip_ratio": 0.2,
+                         "temperature": 0.6, "top_p": 1.0, "top_k": -1,
+                         "save_validate_every": 20, "validation_samples": 4, "smoke_steps": 3},
+            "tandem": {"boundaries": "train/assets/qwen3_word_boundary_ids.json",
+                       "senior_probability": 0.5, "gap_cap": 32, "junior_token_loss_weight": 0},
+            "selection": {"metric": "val-core/apps/acc/best@4/mean", "tie_break": "earliest_step",
+                          "rollout_mode": "own_arm", "split": "validation"},
+            "evaluation": {"sampling": config.record(), "solo_samples": 32,
+                           "paragraph_samples": 8, "native_word_samples": 8,
+                           "macro_weighting": "equal_tier", "bootstrap_unit": "problem",
+                           "cross_entropy_text": "full_response"},
+            "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+        })
     else:
         from common import save_json
         data = json.loads((args.data / "manifest.json").read_text())
@@ -78,12 +115,19 @@ def preflight() -> None:
     print("APPS sandbox and stdin/call-based checker preflight passed", flush=True)
 
 
-def calibration(solo: dict, word: dict) -> dict:
+def calibration(solo: dict, word: dict, *, manifest: dict, manifest_sha256: str) -> dict:
     """Require exact 200-problem/eight-sample paired inputs before applying gate."""
     if solo["phase"] != "solo" or word["phase"] != "word-handoff":
         raise ValueError("Wrong calibration phases")
     if solo.get("model") != word.get("senior") or word.get("senior") != word.get("junior"):
         raise ValueError("Calibration must use the same base for all model roles")
+    from experiments.coding.build_apps import BASE_REVISION
+    if Path(solo.get("model") or "").name != BASE_REVISION:
+        raise ValueError("Calibration must identify the immutable pinned base snapshot")
+    expected_ids = {(tier, task) for tier in TIERS
+                    for task in manifest["files"][f"validation/{tier}/test.parquet"]["task_ids"]}
+    if len(expected_ids) != 200:
+        raise ValueError("Manifest must contain exactly 200 validation tasks")
     if not 0.3 < word.get("senior_token_fraction", 0) < 0.7:
         raise ValueError("Calibration lacks valid word-sampler participation")
     expected_sampling = {"temperature": 0.6, "top_p": 1.0, "top_k": -1, "max_tokens": 3000}
@@ -96,6 +140,12 @@ def calibration(solo: dict, word: dict) -> dict:
         if len(set(keys)) != 200 or any(len(g["correct"]) != 8 for g in result["gens"]):
             raise ValueError("Duplicate tasks or incomplete samples")
         identities.append(set(keys))
+        if set(keys) != expected_ids or result["dataset_sha256"] != manifest_sha256:
+            raise ValueError("Calibration does not match the prepared validation manifest")
+        if result.get("context") != 8192 or result.get("max_prompt") != 4096:
+            raise ValueError("Calibration context/prompt limits differ from the protocol")
+        if any(value not in (0, 1) for g in result["gens"] for value in g["correct"]):
+            raise ValueError("Calibration rewards must be binary")
         by_tier = {}
         for tier in TIERS:
             rows = [g for g in result["gens"] if g["set"] == tier]

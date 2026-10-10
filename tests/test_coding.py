@@ -60,15 +60,26 @@ class CodingTests(unittest.TestCase):
                  "correct": [1,0]*4, "diagnostics": [{}]*8,
                  "samples": [{"n_tokens": 10, "finish_reason": "stop"}]*8} for i in range(200)]
         solo = {"phase": "solo", "n": 8, "sampling": {"temperature": .6, "top_p": 1., "top_k": -1, "max_tokens": 3000},
-                "gens": rows, "dataset_sha256": "same", "grader": {}}
-        word = {**copy.deepcopy(solo), "phase": "word-handoff", "senior_token_fraction": .5}
-        self.assertTrue(calibration(solo, word)["passed"])
+                "gens": rows, "dataset_sha256": "same", "grader": {}, "context": 8192, "max_prompt": 4096}
+        from experiments.coding.build_apps import BASE_REVISION
+        solo['model'] = '/snapshots/' + BASE_REVISION
+        word = {**copy.deepcopy(solo), "phase": "word-handoff", "senior_token_fraction": .5,
+                "senior": solo['model'], "junior": solo['model']}
+        manifest = {"files": {f"validation/{tier}/test.parquet": {
+            "task_ids": [r['task_id'] for r in rows if r['set'] == tier]}
+            for tier in ('apps_introductory', 'apps_interview')}}
+        kwargs = dict(manifest=manifest, manifest_sha256='same')
+        self.assertTrue(calibration(solo, word, **kwargs)["passed"])
+        wrong = copy.deepcopy(word)
+        wrong['gens'][0]['task_id'] = 'test/0'
+        with self.assertRaisesRegex(ValueError, 'validation manifest'):
+            calibration(solo, wrong, **kwargs)
         for row in word['gens']:
             row['correct'] = [1]*8
-        self.assertFalse(calibration(solo, word)["passed"])
+        self.assertFalse(calibration(solo, word, **kwargs)["passed"])
         word['gens'].pop()
         with self.assertRaises(ValueError):
-            calibration(solo, word)
+            calibration(solo, word, **kwargs)
 
     def test_resume_rejects_grader_change(self):
         import common
