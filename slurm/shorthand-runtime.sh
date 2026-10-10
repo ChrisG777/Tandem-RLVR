@@ -19,6 +19,11 @@ resume_before_walltime() {
         echo "Walltime continuation: requeue $SLURM_JOB_ID from saved evaluation batches"
         scontrol requeue "$SLURM_JOB_ID"
         return
+    elif [ "$PILOT_ENTRYPOINT" = drift-eval.sbatch ]; then
+        [ -d "${CKPT_DIR:?}/eval" ] || return 1
+        [ -n "$(find "$CKPT_DIR/eval" -maxdepth 1 -name '*.json*' -type f -size +0c -print -quit)" ] || return 1
+        scontrol requeue "$SLURM_JOB_ID"
+        return
     elif [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ]; then
         case "${PHASE:?}" in
             calibration) ROOT="$RUN_ROOT/calibration";;
@@ -60,7 +65,7 @@ resume_before_walltime() {
         scontrol requeue "$SLURM_JOB_ID"
     fi
 }
-if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = drift-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = word-handoff.sbatch ]; }; then
+if [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ] && { [ "$PILOT_ENTRYPOINT" = shorthand-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = shorthand-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = train-figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = drift-train.sbatch ] || [ "$PILOT_ENTRYPOINT" = drift-eval.sbatch ] || [ "$PILOT_ENTRYPOINT" = figure2.sbatch ] || [ "$PILOT_ENTRYPOINT" = word-handoff.sbatch ]; }; then
     trap resume_before_walltime USR1
 fi
 if [ -n "${APPTAINER_IMAGE:-}" ] && [ "${TANDEM_CONTAINER_ACTIVE:-0}" != 1 ]; then
