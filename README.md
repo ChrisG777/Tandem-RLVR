@@ -41,6 +41,7 @@ Tandem arms. The newer pilots target shared deductions and recurring object oper
 | [Build dataset](data/build_shorthand.py) | Pinned generator/configuration/seed → disjoint Parquet splits and manifest |
 | [Build concept pilots](data/build_concept_pilot.py) | RuleTaker/Re-ARC sources and seed → oracle-checked splits and manifest |
 | [Reward](reward/shorthand_reward.py) | Task/response/target → correctness reward, exact accuracy and format diagnostics |
+| [Length cost](reward/length_penalty.py) | Correctness reward + unpadded response length → penalized RL reward and separate diagnostics; enabled by `PILOT_LENGTH_PENALTY` |
 | [Submit concept pilot](slurm/submit-concept-pilot.sh) | Task, calibration job, site paths/routes → guarded training and evaluation chain |
 | [Submit Engaging pilot](slurm/submit-engaging-pilot.sh) | Prepared environments/calibration jobs/site paths → two solo runs, CPU checks, evaluations, and review |
 | [Calibration/training checks](train/check_shorthand.py) | Calibration or training artifacts and task/budget selection → verified gate status |
@@ -48,7 +49,7 @@ Tandem arms. The newer pilots target shared deductions and recurring object oper
 | [Evaluate](eval/shorthand.py) | Checkpoint/test split/budget/context limit → solo traces and metrics |
 | [Prepare review](eval/review_shorthand.py) | Completed evaluations/expected comparison count → paired metrics, blinded traces, and authorship key |
 
-[Concept pilot protocol](docs/CONCEPT_PILOTS.md) · [Engaging campaign](docs/ENGAGING_PILOT.md) · [Original protocol](docs/SHORTHAND_EXPERIMENT.md) · [Run history](docs/SHORTHAND_RUN.md)
+[Length-pressure pilots](docs/LENGTH_PENALTY_PILOTS.md) · [Concept pilot protocol](docs/CONCEPT_PILOTS.md) · [Engaging campaign](docs/ENGAGING_PILOT.md) · [Original protocol](docs/SHORTHAND_EXPERIMENT.md) · [Run history](docs/SHORTHAND_RUN.md)
 
 Reasoning Gym supplies task generators/oracles; pinned vLLM and verl forks provide
 rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),

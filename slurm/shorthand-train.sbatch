@@ -52,6 +52,13 @@ echo "$CODE_COMMIT" > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"
 cp "$DATA_ROOT/$TASK/manifest.json" "$CKPT_DIR/data-manifest.json"
 cp "$RUN_ROOT/base.json" "$CKPT_DIR/initialization.json"
 nvidia-smi > "$CKPT_DIR/gpus-${SLURM_JOB_ID}.txt"
+REWARD_ARGS=()
+if [ -n "${PILOT_LENGTH_PENALTY:-}" ]; then
+    REWARD_ARGS=(reward.reward_manager.source=importlib
+      reward.reward_manager.name=LengthPenaltyRewardManager
+      "reward.reward_manager.module.path=$REPO/reward/length_penalty.py"
+      "+reward.length_penalty=$PILOT_LENGTH_PENALTY")
+fi
 bash train/vanilla_grpo.sh \
   "data.val_files=[$DATA_ROOT/$TASK/validation.parquet]" \
   "reward.custom_reward_function.path=$REPO/reward/shorthand_reward.py" \
@@ -59,6 +66,7 @@ bash train/vanilla_grpo.sh \
   "ray_kwargs.ray_init.num_cpus=$SLURM_CPUS_PER_TASK" \
   actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 \
   actor_rollout_ref.rollout.top_k=-1 trainer.resume_mode=auto \
+  "${REWARD_ARGS[@]}" \
   "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" &
 wait $!
 if [ "${DEFER_TRAINING_CHECK:-0}" != 1 ]; then
