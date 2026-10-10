@@ -1,5 +1,26 @@
 # Figure 2 reproduction audit — 2026-10-08 Pacific
 
+## Native-word status — 2026-10-09 late Pacific
+
+Tandem 2608058 is still running, with six native restarts and 737/1,064 problems
+saved. AIME, AMC and Minerva are complete; Olympiad is 254/581. Corrected final
+grading 2608030 remains dependency-blocked. Paragraph grading 2608029 completed.
+Engaging SSH authentication had expired and renewal subsequently encountered
+connection refusal, so GRPO word jobs 25374401/25374417 could not be verified at
+this check; their earlier status must not be presented as current.
+
+The Tandem snapshot was regraded with the same corrected verifier. Word versus
+paragraph handoff pass@8 is AMC 79.34% vs 78.51%, AIME 36.67% vs 38.89%, and
+Minerva 61.40% vs 60.66%. On the same 737 problems, equal-benchmark macro pass@8
+is 58.72% vs 58.98%. This is not a clear improvement, and does not answer whether
+Tandem beats GRPO under word handoff. Word decoding uses training parameters;
+the comparison is not a schedule-only ablation. Accepted word traces contain
+10,086,766 tokens, 50.14% senior authorship, and 33.33% length-limited samples.
+
+[Snapshot summary](../results/figure2-regraded/word-interim-summary-20261009.json)
+records matched-subset metrics. The source snapshot and corrected sample scores
+are retained separately under `results/figure2-regraded/`.
+
 ## Completion update — 2026-10-09 Pacific
 
 All five original Figure 2 evaluations now contain all 1,064 problems and have
