@@ -67,10 +67,10 @@ def prepare_splits(dataset, tokenizer, *, seed: int = 0, validation_per_tier: in
     test_statements = {" ".join(r["question"].split()) for r in dataset["test"]}
     seen = set()
     for split in ("test", "train"):
-        for r in sorted(dataset[split], key=lambda r: r["problem_id"]):
+        for r in sorted(dataset[split], key=problem_id):
             if r["difficulty"] not in TIERS:
                 continue
-            task_id = f"{split}/{r['problem_id']}"
+            task_id = f"{split}/{problem_id(r)}"
             statement = " ".join(r["question"].split())
             reason = None
             if split == "train" and statement in test_statements:
@@ -101,7 +101,7 @@ def prepare_splits(dataset, tokenizer, *, seed: int = 0, validation_per_tier: in
                 continue
             converted[split].append({"data_source": "apps", "prompt": prompt,
                 "ability": "coding", "reward_model": {"style": "rule", "ground_truth": json.dumps(tests)},
-                "extra_info": {"task_id": task_id, "index": r["problem_id"],
+                "extra_info": {"task_id": task_id, "index": problem_id(r),
                     "difficulty": r["difficulty"], "statement": r["question"], "starter_code": starter,
                     "prompt_tokens": len(tokens), "overlength": len(tokens) > 4096}})
     rng, train, validation = random.Random(seed), [], []
@@ -118,6 +118,11 @@ def prepare_splits(dataset, tokenizer, *, seed: int = 0, validation_per_tier: in
             result[f"{split}/apps_{tier}/test.parquet"] = [r for r in rows if r["extra_info"]["difficulty"] == tier]
     return result, excluded
 
+
+
+def problem_id(row: dict) -> int:
+    """The source JSONL uses id; older datasets-script exports use problem_id."""
+    return int(row["problem_id"] if "problem_id" in row else row["id"])
 
 
 if __name__ == "__main__":

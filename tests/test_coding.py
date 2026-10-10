@@ -1,6 +1,7 @@
 """APPS conversion, grading contracts, calibration gating and panel completeness."""
 import copy
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -102,6 +103,38 @@ class CodingTests(unittest.TestCase):
                 figure2.summarize(result, bootstrap=10)
         finally:
             figure2.BENCHMARKS, figure2.TITLES, figure2.EXPECTED_SIZES, figure2.EXPECTED_IDS = saved
+
+
+@unittest.skipUnless(sys.platform == "linux" and os.environ.get("APPS_GRADER_RUNTIME"), "Requires provisioned Linux sandbox")
+class SandboxIntegration(unittest.TestCase):
+    def test_real_candidate_outcomes(self):
+        fixtures = [
+            ("print(int(input())*2)", "pass"),
+            ("print(0)", "wrong_answer"),
+            ("def broken(:", "syntax_error"),
+            ("raise ValueError('candidate')", "runtime_error"),
+            ("while True: pass", "timeout"),
+        ]
+        gt = json.dumps(normalize_tests({"inputs": ["2\n"], "outputs": ["4\n"]}))
+        for code, expected in fixtures:
+            with self.subTest(expected=expected):
+                actual = compute_score("apps", f"```python\n{code}\n```", gt)
+                self.assertEqual(actual['acc'], float(expected == 'pass'))
+                if expected != 'pass':
+                    self.assertEqual(actual[expected], 1.)
+
+    def test_real_isolation_and_call_based_execution(self):
+        from experiments.coding.campaign import preflight
+        preflight()
+        gt = json.dumps(normalize_tests({"inputs": [[[1,2], 3]], "outputs": [[4,5]], "fn_name": "add"}))
+        score = compute_score("apps", "```python\ndef add(xs, v):\n    return [x+v for x in xs]\n```", gt)
+        self.assertEqual(score['acc'], 1.)
+
+    def test_grader_startup_is_not_a_zero_reward(self):
+        gt = json.dumps(normalize_tests({"inputs": ["2"], "outputs": ["4"]}))
+        with patch.dict(os.environ, {"APPS_BWRAP": "/bin/false"}):
+            with self.assertRaises(RuntimeError):
+                compute_score("apps", "```python\nprint(4)\n```", gt)
 
 
 if __name__ == "__main__":
