@@ -110,7 +110,8 @@ def run_sandbox(request: dict, *, timeout: int) -> dict:
             "--setenv", "OPENBLAS_NUM_THREADS", "1", "--setenv", "OMP_NUM_THREADS", "1",
             "--chdir", "/tmp", str(runtime / "env/bin/python"), str(runtime / "worker.py"), "/request.json"]
         with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
-            proc = subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=True, preexec_fn=limits)
+            proc = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                                    start_new_session=True, preexec_fn=limits)
             try:
                 proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:

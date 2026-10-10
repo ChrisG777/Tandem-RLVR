@@ -13,6 +13,8 @@ def main() -> None:
     print(json.dumps({"ready": True}), flush=True)
     if request.get("preflight"):
         import socket
+        assert not sys.stdin.isatty()
+        assert sys.stdin.read() == ""
         assert not Path("/dev/nvidia0").exists()
         assert not Path("/home").exists()
         try:
