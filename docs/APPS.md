@@ -8,7 +8,7 @@ This single-seed experiment extends Figure 2 to APPS introductory/interview task
 |---|---|
 | [`build_apps`](../experiments/coding/build_apps.py) | Immutable dataset revision → train, 200 validation tasks, tiered test Parquets and audit manifest |
 | [`compute_score`](../experiments/coding/reward.py) | Response plus normalized tests → binary reward and numeric failure diagnostics; infrastructure failures raise |
-| [`campaign`](../experiments/coding/campaign.py) | Sandbox preflight, evaluator dispatch, calibration gate, checkpoint selection, panel manifest |
+| [`campaign`](../experiments/coding/campaign.py) | Sandbox preflight, evaluator dispatch, manifest-checked calibration gate, checkpoint selection, protocol and panel manifests |
 | [`submit`](../experiments/coding/submit.py) | Explicit site resources → one dependency-gated Slurm campaign with durable job IDs |
 | [`setup_grader`](../experiments/coding/setup_grader.py) | Pinned verl checker and uv runtime → isolated CPU grader directory |
 
@@ -56,18 +56,33 @@ Saved outputs retain task IDs, text, execution outcomes and native token authors
 
 ## Running
 
-Use `uv sync --project experiments/coding/env --locked` for CPU tools. Unit tests:
+Use `uv sync --project experiments/coding/env --locked` for CPU tools. Test in the
+same interactive GPU allocation used to validate inference and sandbox isolation;
+do not request a new allocation for each test or repair. Use the pinned training
+environment for trainer tests and the separate pinned grading environment for
+math grading regression tests. The import path avoids unrelated installed `tests`
+packages shadowing this repository:
 
 ```bash
-uv run --project experiments/coding/env --with-requirements env/grading-requirements.txt \
-  python -m unittest tests.test_coding tests.test_eval_resume tests.test_figure2 \
-  tests.test_training_checkpoint tests.test_word_handoff tests.test_math_grading
+PYTHONPATH="$REPO/tests:$REPO" uv run --no-project --offline \
+  --python "$TANDEM_ENV/bin/python" python -m unittest \
+  test_coding test_eval_resume test_figure2 test_training_checkpoint test_word_handoff
+PYTHONPATH="$REPO/tests:$REPO" uv run --no-project --offline \
+  --python "$GRADING_ENV/bin/python" python -m unittest test_math_grading
 ```
 
 On a cluster, set `REPO`, `RUN_ROOT`, `DATA_ROOT`, `DATA_REVISION`, `UV_BIN_DIR`,
 `TANDEM_ENV`, caches, and the existing container/runtime variables. `RUN_ROOT/base.json`
 must identify the exact base revision used by Figure 2. `TANDEM_ENV` is an existing,
 verified pinned patched training environment; setup never rewrites it.
+
+Within the existing allocation, run both calibration modes with
+`campaign evaluate --phase solo` and `--phase word-handoff`, using `--split validation`,
+`--decoding training`, and `--n 8`. Both commands take `--model`, `--junior`,
+`--data`, and `--out`. Apply `campaign calibration --data DATA --solo SOLO_JSON
+--word WORD_JSON --out REPORT_JSON` after both finish. The gate requires exact
+validation IDs, matching dataset/grader identities, and the pinned base snapshot.
+Do not run training when that command fails.
 
 ```bash
 uv run --project experiments/coding/env python -m experiments.coding.submit \
@@ -85,5 +100,5 @@ remain recorded and require reconciliation with Slurm before further submissions
 Requeues restore exact compatible generation progress or the latest optimizer state.
 Never change a checkout or grader runtime used by active jobs.
 
-Outputs: `data/manifest.json`, `calibration/report.json`, per-arm `selected.json`,
+Outputs: `data/manifest.json`, `protocol.json`, `calibration/report.json`, per-arm `selected.json`,
 `models.json`, `results/<arm>/<phase>.json`, and `results/apps-figure2.{json,png,svg}`.

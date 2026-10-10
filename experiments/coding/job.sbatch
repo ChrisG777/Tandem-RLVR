@@ -44,7 +44,8 @@ BASE_MODEL=$(run_python -c 'import json,os; print(json.load(open(os.environ["RUN
 case "$PHASE" in
     calibration)
         mkdir -p "$RUN_ROOT/calibration"
-        run_python -m experiments.coding.campaign evaluate --phase "${EVAL_PHASE:?}" --model "$BASE_MODEL" --junior "$BASE_MODEL" --data "$DATA_ROOT" --split validation --out "$RUN_ROOT/calibration/$EVAL_PHASE.json" --decoding training --n 8
+        run_python -m experiments.coding.campaign evaluate --phase "${EVAL_PHASE:?}" --model "$BASE_MODEL" --junior "$BASE_MODEL" --data "$DATA_ROOT" --split validation --out "$RUN_ROOT/calibration/$EVAL_PHASE.json" --decoding training --n 8 &
+        wait $!
         ;;
     gate)
         run_python -m experiments.coding.campaign calibration --data "$DATA_ROOT" --solo "$RUN_ROOT/calibration/solo.json" --word "$RUN_ROOT/calibration/word-handoff.json" --out "$RUN_ROOT/calibration/report.json"
@@ -92,7 +93,8 @@ case "$PHASE" in
         MODEL=$(run_python -c 'import json,os; print(json.load(open(os.environ["RUN_ROOT"]+"/models.json"))[os.environ["ARM"]]["path"])')
         N=8
         if [ "$EVAL_PHASE" = solo ]; then N=32; fi
-        run_python -m experiments.coding.campaign evaluate --phase "$EVAL_PHASE" --model "$MODEL" --junior "$BASE_MODEL" --data "$DATA_ROOT" --out "$RUN_ROOT/results/$ARM/$EVAL_PHASE.json" --n "$N" --solo "$RUN_ROOT/results/$ARM/solo.json"
+        run_python -m experiments.coding.campaign evaluate --phase "$EVAL_PHASE" --model "$MODEL" --junior "$BASE_MODEL" --data "$DATA_ROOT" --out "$RUN_ROOT/results/$ARM/$EVAL_PHASE.json" --n "$N" --solo "$RUN_ROOT/results/$ARM/solo.json" &
+        wait $!
         ;;
     plot)
         run_python eval/figure2.py --results "$RUN_ROOT/results" --out "$RUN_ROOT/results/apps-figure2" --panel-manifest "$RUN_ROOT/panel.json"
