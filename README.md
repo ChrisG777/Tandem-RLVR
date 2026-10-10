@@ -55,3 +55,7 @@ Tandem arms. The newer pilots target shared deductions and recurring object oper
 Reasoning Gym supplies task generators/oracles; pinned vLLM and verl forks provide
 rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
 [fork patches](third_party/COMMIT_LOG.md), [environment](env/SETUP.md), and [tests](tests/README.md).
+
+[APPS coding](docs/APPS.md): [prepare data](experiments/coding/build_apps.py) →
+[sandboxed reward](experiments/coding/reward.py) →
+[calibrate, train and evaluate](experiments/coding/campaign.py).
