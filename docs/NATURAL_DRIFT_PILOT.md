@@ -84,3 +84,19 @@ therefore go to CSAIL, each on one compatible owner GPU (3090/H100/H200), with
 is retained for later independent arms, not duplicate training. Recheck routes
 when gated-model access becomes available. CSAIL has about 489GiB free on the
 Torralba filesystem. Two accessible arms budget under 100GiB combined.
+
+Submitted October 10 (CSAIL):
+
+| Arm | Training | Base + selected evaluation |
+|---|---|---|
+| Qwen2.5-0.5B candidate | 2615248 | 2615249 |
+| Qwen2.5-1.5B comparison | 2615246 | 2615247 |
+
+Both train jobs depend on CPU preparation/config verification 2615221; each
+evaluation depends only on its own training. Initially use the compatible
+vision-shared partition set while dependency-blocked, per allocation policy;
+reassess owner capacity when ready. Requeue uses the same job ID and full state.
+Engaging CPU preparation 25518485 completed; there are no Engaging training copies.
+The first prompt-length check counted a Transformers BatchEncoding's fields;
+commit 5b58e04 corrects it and job 2615221 reruns the gate before either training.
+Actual Qwen1.5B maximum lengths: train 398, validation 323, test 375 tokens.
