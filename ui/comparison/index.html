@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Tandem · Trace browser</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">TANDEM RLVR / SAVED EVALUATIONS</div>
+      <h1>Compare the reasoning.</h1>
+      <p>One problem. Five conditions. Every saved sample.</p>
+    </header>
+    <main>
+      <section class="toolbar" aria-label="Filters">
+        <label
+          >Benchmark<select id="benchmark">
+            <option value="">All benchmarks</option>
+          </select></label
+        ><label
+          >Find a problem<input
+            id="search"
+            type="search"
+            placeholder="Search prompt or problem ID" /></label
+        ><label
+          >Show<select id="filter">
+            <option value="matched">All five conditions available</option>
+            <option value="all">All problems</option>
+            <option value="disagree">Different observed success rates</option>
+            <option value="split">
+              Some conditions always fail, others succeed
+            </option>
+          </select></label
+        >
+      </section>
+      <div
+        id="condition-controls"
+        class="checks"
+        aria-label="Visible conditions"
+      ></div>
+      <nav>
+        <button id="prev" aria-label="Previous problem">← Previous</button
+        ><select id="problem" aria-label="Problem"></select
+        ><button id="next" aria-label="Next problem">Next →</button
+        ><span id="count" aria-live="polite"></span>
+      </nav>
+      <section class="question">
+        <div class="eyebrow" id="problem-id"></div>
+        <h2>Problem</h2>
+        <div id="prompt" class="text"></div>
+        <details>
+          <summary>Reference answer</summary>
+          <div id="answer" class="text"></div>
+        </details>
+      </section>
+      <div class="view-options">
+        <label
+          ><input type="checkbox" id="colors" checked /> Color handoff
+          authorship</label
+        ><span class="senior legend">Trained senior</span
+        ><span class="base legend">Frozen base</span
+        ><span class="mixed legend">Mixed character</span
+        ><span>Solo outputs have one author.</span>
+      </div>
+      <div id="status" role="status"></div>
+      <div id="panels" class="panels"></div>
+      <details class="provenance">
+        <summary>Coverage, protocol &amp; source files</summary>
+        <p id="protocol"></p>
+        <div id="sources"></div>
+      </details>
+    </main>
+    <footer>
+      Local, read-only review · Grades are the saved corrected evaluation
+      labels. Outputs are shown verbatim, including LaTeX.
+    </footer>
+  </body>
+</html>

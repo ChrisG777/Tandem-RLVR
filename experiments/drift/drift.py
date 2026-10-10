@@ -5,11 +5,13 @@ import json
 from pathlib import Path
 import sys
 
+# Reuse the reproduction utilities without changing their original import layout.
+ROOT = Path(__file__).resolve().parents[2]
+sys.path[:0] = [str(ROOT), str(ROOT / "eval"), str(ROOT / "train")]
 import common
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from data.build_drift import RAW_TEMPLATE
-from reward.gsm8k_drift import compute_score
+from experiments.drift.build_drift import RAW_TEMPLATE
+from experiments.drift.gsm8k_drift import compute_score
 from train.figure2_checkpoint import read_training_records
 
 

@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'eval'))
 import common
-import word_handoff
+from experiments.word_handoff import word_handoff
 
 
 class WordHandoff(unittest.TestCase):

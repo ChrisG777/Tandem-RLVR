@@ -1,5 +1,9 @@
 # Natural language drift pilot
 
+> Code paths and setup/submission commands were reorganized on October 10.
+> Use [current interfaces](WORKFLOWS.md) and the [experiment map](../experiments/README.md);
+> commands below describe the original campaign layout.
+
 Correctness-only Solo RL on GSM8K, following the model/task choice in
 [Sullivan & Koller (2026)](https://arxiv.org/abs/2610.02015). Their Llama/Gemma
 results motivate the treatment models; Qwen is a useful lower-drift comparison.

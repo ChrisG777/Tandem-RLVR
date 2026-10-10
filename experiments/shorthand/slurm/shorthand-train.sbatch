@@ -10,8 +10,11 @@
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
-export PILOT_ENTRYPOINT=shorthand-train.sbatch
-source "$REPO/slurm/shorthand-runtime.sh"
+export JOB_ENTRYPOINT=experiments/shorthand/slurm/shorthand-train.sbatch
+read -ra TASKS <<< "${PILOT_TASKS:-manipulate_matrix string_manipulation}"
+read -ra BUDGETS <<< "${PILOT_BUDGETS:-256 1024}"
+export RESUME_CHECKPOINT_ROOT="$RUN_ROOT/train/${TASKS[$((SLURM_ARRAY_TASK_ID / 2))]}-b${BUDGETS[$((SLURM_ARRAY_TASK_ID % 2))]}"
+source "$REPO/slurm/runtime.sh"
 [ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || { echo 'Preemption retry limit reached'; exit 1; }
 export PATH="${UV_BIN_DIR:-/data/scratch/chrisge/.local/bin}:${PATH:-/usr/bin:/bin}"
 export TANDEM_ENV_BIN="${TANDEM_ENV:?}/bin" TANDEM_ENV_FILE="$REPO/slurm/training-env.sh"
@@ -29,7 +32,7 @@ run_python() { uv run --python "$TANDEM_ENV_BIN/python" --no-project --offline p
 if [ "${CALIBRATION_VERIFIED:-0}" = 1 ]; then
     test -f "$RUN_ROOT/calibration/verified.json"
 else
-    run_python train/check_shorthand.py --calibration "$RUN_ROOT/calibration" --data-root "$DATA_ROOT" --tasks ${PILOT_TASKS:-manipulate_matrix string_manipulation} --budgets ${PILOT_BUDGETS:-256 1024}
+    run_python experiments/shorthand/check_shorthand.py --calibration "$RUN_ROOT/calibration" --data-root "$DATA_ROOT" --tasks ${PILOT_TASKS:-manipulate_matrix string_manipulation} --budgets ${PILOT_BUDGETS:-256 1024}
 fi
 export BASE_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["path"])' "$RUN_ROOT/base.json")
 read -ra TASKS <<< "${PILOT_TASKS:-manipulate_matrix string_manipulation}"; read -ra BUDGETS <<< "${PILOT_BUDGETS:-256 1024}"
@@ -56,12 +59,12 @@ REWARD_ARGS=()
 if [ -n "${PILOT_LENGTH_PENALTY:-}" ]; then
     REWARD_ARGS=(reward.reward_manager.source=importlib
       reward.reward_manager.name=LengthPenaltyRewardManager
-      "reward.reward_manager.module.path=$REPO/reward/length_penalty.py"
+      "reward.reward_manager.module.path=$REPO/experiments/shorthand/length_penalty.py"
       "+reward.length_penalty=$PILOT_LENGTH_PENALTY")
 fi
 bash train/vanilla_grpo.sh \
   "data.val_files=[$DATA_ROOT/$TASK/validation.parquet]" \
-  "reward.custom_reward_function.path=$REPO/reward/shorthand_reward.py" \
+  "reward.custom_reward_function.path=$REPO/experiments/shorthand/shorthand_reward.py" \
   'trainer.logger=[console,file]' data.seed=42 \
   "ray_kwargs.ray_init.num_cpus=$SLURM_CPUS_PER_TASK" \
   actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 \
@@ -70,5 +73,5 @@ bash train/vanilla_grpo.sh \
   "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" &
 wait $!
 if [ "${DEFER_TRAINING_CHECK:-0}" != 1 ]; then
-    run_python train/check_shorthand.py --training "$CKPT_DIR" --steps "$TOTAL_STEPS" --task "$TASK"
+    run_python experiments/shorthand/check_shorthand.py --training "$CKPT_DIR" --steps "$TOTAL_STEPS" --task "$TASK"
 fi

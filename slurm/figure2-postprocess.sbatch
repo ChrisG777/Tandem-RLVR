@@ -2,8 +2,8 @@
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
-export PILOT_ENTRYPOINT=figure2-postprocess.sbatch
-source "$REPO/slurm/shorthand-runtime.sh"
+export JOB_ENTRYPOINT=slurm/figure2-postprocess.sbatch
+source "$REPO/slurm/runtime.sh"
 export PATH="${UV_BIN_DIR:?}:$PATH"
 case "${PHASE:?}" in
     select) ARGS=(eval/select_figure2.py --root "$RUN_ROOT" --out "$RUN_ROOT/models.json");;

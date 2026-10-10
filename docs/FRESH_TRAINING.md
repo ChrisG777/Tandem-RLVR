@@ -1,5 +1,9 @@
 # Independent Figure 2 training
 
+> Code paths and setup/submission commands were reorganized on October 10.
+> Use [current interfaces](WORKFLOWS.md) and the [experiment map](../experiments/README.md);
+> commands below describe the original campaign layout.
+
 Both policies start from official `Qwen/Qwen3-4B-Instruct-2507` revision
 `cdbee75f17c01a7cc42f958dc650907174af0554`. The frozen Tandem junior is the same
 base snapshot. No authors' RL-trained checkpoint is used for initialization,

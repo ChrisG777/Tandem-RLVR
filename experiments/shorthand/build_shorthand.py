@@ -42,7 +42,7 @@ def build_dataset(task: str, out_dir: Path, seed: int = 42) -> dict[str, Any]:
     distribution = importlib.metadata.distribution("reasoning-gym")
     origin = json.loads(distribution.read_text("direct_url.json") or "{}")
     if origin.get("vcs_info", {}).get("commit_id") != REVISION:
-        raise ValueError("Use the pinned env/shorthand-data uv project")
+        raise ValueError("Use the pinned experiments/shorthand/env uv project")
     if task not in TASKS:
         raise ValueError(task)
     out_dir.mkdir(parents=True, exist_ok=False)

@@ -1,5 +1,9 @@
 # Figure 2 reproduction
 
+> Code paths and setup/submission commands were reorganized on October 10.
+> Use [current interfaces](WORKFLOWS.md) and the [experiment map](../experiments/README.md);
+> commands below describe the original campaign layout.
+
 [Current reproduction audit and corrected results](REPRODUCTION_AUDIT.md).
 
 This evaluates independently trained GRPO and Tandem policies, plus their

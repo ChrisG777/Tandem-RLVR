@@ -1,26 +1,30 @@
-"""Cancel a speculative full job if its smoke job or output verification fails."""
+"""Guard any speculative Slurm job with a smoke job and a verification command."""
 import argparse
 import json
+import re
 import signal
 import subprocess
-import sys
 import time
 from pathlib import Path
 
 
 def main() -> None:
-    """Poll a smoke job, verify five result files, and record the full job's gate status.
+    """Monitor Slurm and execute argv after smoke success; never use a shell.
 
-    Run in an independent CPU allocation. Exceptions and termination cancel only
-    --full-job; successful verification leaves it running. No jobs are retried.
+    Cancel only --full-job if the smoke, verifier, or monitor fails. Write status
+    atomically. Transient scheduler lookup failures are tolerated five times.
+    Verification must finish within --verify-timeout seconds (default 300).
     """
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--smoke-job", required=True, type=int)
-    parser.add_argument("--full-job", required=True, type=int)
-    parser.add_argument("--results", required=True, type=Path)
+    parser.add_argument("--smoke-job", required=True, type=job_id)
+    parser.add_argument("--full-job", required=True, type=job_id)
     parser.add_argument("--status", required=True, type=Path)
-    parser.add_argument("--training-arm", choices=("grpo", "tandem"))
+    parser.add_argument("--verify-timeout", type=float, default=300)
+    parser.add_argument("verify", nargs=argparse.REMAINDER, help="-- executable arguments...")
     args = parser.parse_args()
+    command = args.verify[1:] if args.verify[:1] == ["--"] else args.verify
+    if not command or args.smoke_job == args.full_job or args.verify_timeout <= 0:
+        parser.error("Require a verification command, distinct jobs, and a positive timeout")
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
     passed = False
@@ -32,7 +36,7 @@ def main() -> None:
         while True:
             proc = subprocess.run(
                 ["sacct", "-X", "-n", "-P", "-j", str(args.smoke_job),
-                 "--format=JobIDRaw,State,ExitCode"],
+                 "--format=JobID,State,ExitCode"],
                 capture_output=True, text=True, timeout=30,
             )
             rows = [line.split("|") for line in proc.stdout.splitlines()]
@@ -48,12 +52,7 @@ def main() -> None:
                 if state == "COMPLETED":
                     if code != "0:0":
                         raise RuntimeError(f"Smoke exit code {code}")
-                    if args.training_arm:
-                        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "train"))
-                        from figure2_checkpoint import verify_training
-                        verify_training(args.results, args.training_arm, 3)
-                    else:
-                        verify_outputs(args.results)
+                    subprocess.run(command, check=True, timeout=args.verify_timeout)
                     passed = True
                     record.update(passed=True, status="smoke and artifacts passed")
                     break
@@ -65,32 +64,29 @@ def main() -> None:
         record["status"] = str(exc)
         raise
     finally:
-        if not passed:
-            proc = subprocess.run(["scancel", str(args.full_job)], timeout=30)
-            record["cancel_returncode"] = proc.returncode
-        save_status(args.status, record)
+        try:
+            if not passed:
+                proc = subprocess.run(["scancel", args.full_job], timeout=30)
+                record["cancel_returncode"] = proc.returncode
+                if proc.returncode:
+                    raise RuntimeError(f"Unable to cancel guarded job {args.full_job}: {proc.returncode}")
+        except BaseException as exc:
+            record["cancel_error"] = str(exc)
+            raise
+        finally:
+            save_status(args.status, record)
+
+
+def job_id(value: str) -> str:
+    """Accept a numeric Slurm job or array-task ID, never scheduler options."""
+    if not re.fullmatch(r"[0-9]+(?:_[0-9]+)?", value):
+        raise argparse.ArgumentTypeError("Expected a job ID or jobID_arrayTaskID")
+    return value
 
 
 def interrupted(signum: int, frame: object) -> None:
     """Convert scheduler termination into cancellation of the guarded full job."""
     raise RuntimeError(f"Monitor interrupted by signal {signum}")
-
-
-def verify_outputs(root: Path) -> None:
-    """Require all five smoke outputs, complete chains, and two binary grades/problem."""
-    for arm, phase in (("base", "solo"), ("grpo", "solo"), ("tandem", "solo"),
-                       ("grpo", "handoff"), ("tandem", "handoff")):
-        path = root / arm / f"{phase}.json"
-        result = json.loads(path.read_text())
-        if (result["phase"] != phase or result["n"] != 2 or result["limit"] != 2
-                or len(result["gens"]) != 2 or result.get("unfinished_chains", 0)
-                or not result.get("same_vocab", True)):
-            raise ValueError(f"Incomplete or incompatible smoke artifact: {path}")
-        for row in result["gens"]:
-            if (len(row["texts"]) != 2 or any(not text.strip() for text in row["texts"])
-                    or len(row["correct"]) != 2
-                    or any(grade not in (0, 1) for grade in row["correct"])):
-                raise ValueError(f"Invalid smoke generations: {path}")
 
 
 def save_status(path: Path, record: dict) -> None:

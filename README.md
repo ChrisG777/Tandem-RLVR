@@ -1,57 +1,49 @@
-Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shorthand on repeated reasoning tasks.
+Reproduce Tandem RLVR with the authors’ training and evaluation code, alongside separate reasoning experiments.
 
 ## Core records
 
 | Record | Meaning |
 |---|---|
-| [Dataset manifest](data/build_shorthand.py) | Generator revision, task configuration, split seeds, and data hashes |
-| [Verified checkpoint](train/figure2_checkpoint.py) | Selected weights, held-out score, and explicit gaps in observed training metrics |
-| [Evaluation manifest](eval/select_figure2.py) | Official base and independently trained GRPO/Tandem checkpoint paths |
-| [Pilot evaluation](eval/shorthand.py) | Solo generations, correctness, lengths, and truncation for one task/budget |
+| [Data manifest](data/build_deepscaler.py) | Dataset revision, split seed, and file hashes |
+| [Verified checkpoint](train/figure2_checkpoint.py) | Validation-selected weights and explicit gaps in observed metrics |
+| [Evaluation manifest](eval/select_figure2.py) | Pinned base and selected GRPO/Tandem checkpoint paths |
 
-## Figure 2 reproduction
+## Reproduction
 
-[Prepare DeepScaleR](data/build_deepscaler.py) → [submit guarded training](slurm/submit-training.sh)
-→ [verify/select checkpoints](eval/select_figure2.py) → [evaluate and plot](slurm/figure2.sbatch).
+[Prepare DeepScaleR](data/build_deepscaler.py) → [submit training](slurm/submit-training.sh)
+→ [select checkpoints](eval/select_figure2.py) → [evaluate](slurm/figure2.sbatch)
+→ [aggregate and plot](eval/figure2.py).
 
-| Entry point | Essential inputs → outputs |
+| Entry point | Inputs → outputs |
 |---|---|
-| [Migration gate](slurm/prepare-migrated-training.sbatch) | Transfer marker, source verification receipts and checkpoint state → verified local continuation |
-| [Training job](slurm/train-figure2.sbatch) | Base/data paths, arm, smoke/full mode → checkpoints and validation logs |
-| [Tandem](train/tandem_grpo.sh) / [solo GRPO](train/vanilla_grpo.sh) | Model/data configuration → policy updates; Tandem trains only senior-authored tokens |
-| [Checkpoint verification](train/figure2_checkpoint.py) | Run directory, arm, step count → best verified held-out checkpoint; resume evidence records missing metrics explicitly |
-| [Training progress](eval/training_progress.py) | Campaign directory or snapshot → reward/validation plots and health summary |
-| [Walltime continuation](slurm/continue-training.py) | Existing job IDs/checkpoint roots → bounded same-job requeue before expiry; resumes through the training launcher |
-| [Solo](eval/solo.py), [handoff](eval/handoff.py), [legibility](eval/legibility.py) | Model(s), benchmark configuration → accuracy or junior cross-entropy |
-| [Evaluation job](slurm/figure2.sbatch) | Pinned model manifest and phase → base, individual solo/handoff phases, or full evaluation |
-| [Word handoff](eval/word_handoff.py) | Selected senior + frozen junior → resumable training-schedule scores and per-token authorship ([job](slurm/word-handoff.sbatch)) |
-| [Figure 2](eval/figure2.py) | Completed solo/handoff evaluations → figure and bootstrap statistics |
-| [Regrade](eval/regrade.py) | Saved benchmark generations + pinned CPU grader → corrected scores, original grades and provenance |
+| [Solo GRPO](train/vanilla_grpo.sh) / [Tandem](train/tandem_grpo.sh) | Base weights and data → policy checkpoints, using pinned verl/vLLM |
+| [Solo](eval/solo.py) / [paragraph handoff](eval/handoff.py) / [legibility](eval/legibility.py) | Model(s) and benchmarks → scores and traces; [original runner](eval/run_all.sh) composes these |
+| [Checkpoint verification](train/figure2_checkpoint.py) | Training logs and saved state → verified selection; [migration gate](slurm/prepare-migrated-training.sbatch) validates transferred state |
+| [Regrade](eval/regrade.py) | Saved generations → corrected scores with original grades and provenance |
+| [Figure 3 token drift](eval/figure3.py) | Figure 2 solo texts → marginal token drift, JSD and token case studies ([definitions](docs/FIGURE3.md)) |
+| [Training progress](eval/training_progress.py) | Logs or snapshots → curves and diagnostics |
+| [Trace browser](eval/comparison_browser.py) | Saved evaluations → local side-by-side browser; [UI](ui/comparison/) separate from data logic ([usage](docs/COMPARISON_BROWSER.md)) |
 
-[Training protocol/setup](docs/FRESH_TRAINING.md) · [Evaluation protocol](docs/FIGURE2.md)
-· [Monitoring](docs/TRAINING_PROGRESS.md) · [Run history](docs/FIGURE2_RUN.md)
+## Shared job tools
 
-## Solo shorthand pilot
-
-Reasoning Gym tasks test whether useful opaque conventions emerge before adding
-Tandem arms. The newer pilots target shared deductions and recurring object operations.
-
-| Entry point | Essential inputs → outputs |
+| Entry point | Inputs → outputs |
 |---|---|
-| [Build dataset](data/build_shorthand.py) | Pinned generator/configuration/seed → disjoint Parquet splits and manifest |
-| [Build concept pilots](data/build_concept_pilot.py) | RuleTaker/Re-ARC sources and seed → oracle-checked splits and manifest |
-| [Reward](reward/shorthand_reward.py) | Task/response/target → correctness reward, exact accuracy and format diagnostics |
-| [Length cost](reward/length_penalty.py) | Correctness reward + unpadded response length → penalized RL reward and separate diagnostics; enabled by `PILOT_LENGTH_PENALTY` |
-| [Submit concept pilot](slurm/submit-concept-pilot.sh) | Task, calibration job, site paths/routes → guarded training and evaluation chain |
-| [Submit Engaging pilot](slurm/submit-engaging-pilot.sh) | Prepared environments/calibration jobs/site paths → two solo runs, CPU checks, evaluations, and review |
-| [Calibration/training checks](train/check_shorthand.py) | Calibration or training artifacts and task/budget selection → verified gate status |
-| [Calibration array](slurm/shorthand-calibrate.sbatch) | Site paths and task index 0–1 → independent larger-budget calibration traces ([setup](slurm/shorthand-calibration-setup.sh)) |
-| [Evaluate](eval/shorthand.py) | Checkpoint/test split/budget/context limit → solo traces and metrics |
-| [Prepare review](eval/review_shorthand.py) | Completed evaluations/expected comparison count → paired metrics, blinded traces, and authorship key |
-| [Natural drift pilot](data/build_drift.py) | Pinned GSM8K/base weights → [correctness-only Solo training](slurm/drift-train.sbatch) → [selected checkpoint and traces](eval/drift.py) ([protocol](docs/NATURAL_DRIFT_PILOT.md)) |
+| [Setup](slurm/setup.sh) | Training/inference/grading profile and paths → pinned environment and checks |
+| [Smoke guard](slurm/watch-smoke.py) | Smoke/full job IDs and verification command → status; cancels the full job on failure |
+| [Runtime](slurm/runtime.sh) | Entrypoint and checkpoint/progress location → container execution and bounded same-job requeue |
 
-[Length-pressure pilots](docs/LENGTH_PENALTY_PILOTS.md) · [Concept pilot protocol](docs/CONCEPT_PILOTS.md) · [Engaging campaign](docs/ENGAGING_PILOT.md) · [Original protocol](docs/SHORTHAND_EXPERIMENT.md) · [Run history](docs/SHORTHAND_RUN.md)
+[Current setup and job interfaces](docs/WORKFLOWS.md) · [Reproduction protocol](docs/FRESH_TRAINING.md)
+· [Evaluation protocol](docs/FIGURE2.md) · [Grading limitations and audit](docs/REPRODUCTION_AUDIT.md)
 
-Reasoning Gym supplies task generators/oracles; pinned vLLM and verl forks provide
-rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
-[fork patches](third_party/COMMIT_LOG.md), [environment](env/SETUP.md), and [tests](tests/README.md).
+## Additional experiments
+
+[Shorthand and concept pilots](experiments/README.md#shorthand-and-concepts),
+[correctness-only drift](experiments/README.md#natural-language-drift), and
+[native word handoff](experiments/README.md#native-word-handoff) live under `experiments/`.
+They reuse the original trainer and evaluation utilities; they are not part of the Figure 2 protocol.
+
+[Architecture](docs/ARCHITECTURE.md) · [Fork patches](third_party/COMMIT_LOG.md) · [Tests](tests/README.md)
+
+[APPS coding](docs/APPS.md): [prepare data](experiments/coding/build_apps.py) →
+[sandboxed reward](experiments/coding/reward.py) →
+[calibrate, train and evaluate](experiments/coding/campaign.py).

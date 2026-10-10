@@ -21,8 +21,11 @@ for ARM in ${ARMS:-grpo tandem}; do
     WATCH=$(sbatch --parsable --job-name="$ARM-smoke-watch" --partition=tig-cpu --account=csail \
         --qos=tig-main --cpus-per-task=1 --mem=1G --time=24:00:00 --signal=B:TERM@60 \
         --export=NIL --chdir="$REPO" --output="$REPO/logs/$ARM-watch-%j.out" \
-        slurm/watch-training.sh "REPO=$REPO" "UV_CACHE_DIR=$UV_CACHE_DIR" \
-        "WATCH_ENV=$WATCH_ENV" "RUN_ROOT=$RUN_ROOT" "ARM=$ARM" "SMOKE=$SMOKE" "FULL=$FULL")
+        slurm/watch-smoke.sbatch "REPO=$REPO" "UV_CACHE_DIR=$UV_CACHE_DIR" \
+        "WATCH_ENV=$WATCH_ENV" "UV_BIN_DIR=${UV_BIN_DIR:?}" -- \
+        --smoke-job "$SMOKE" --full-job "$FULL" --status "$RUN_ROOT/$ARM-smoke-status.json" -- \
+        uv run --no-project --offline --python "$TANDEM_ENV/bin/python" python train/figure2_checkpoint.py --root "$RUN_ROOT/$ARM-smoke" \
+        --arm "$ARM" --steps 3 --mode smoke)
     # Only environment availability and monitor startup gate full training.
     # There is deliberately no dependency on smoke success.
     DEPENDENCY="after:$WATCH"

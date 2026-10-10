@@ -3,7 +3,11 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import sys
 
+# Reuse the reproduction utilities without changing their original import layout.
+ROOT = Path(__file__).resolve().parents[2]
+sys.path[:0] = [str(ROOT), str(ROOT / "eval"), str(ROOT / "train")]
 from figure2_checkpoint import finite, read_training_records, verify_weights
 
 TASKS = ("manipulate_matrix", "string_manipulation", "ruletaker_shared", "rearc_objects")

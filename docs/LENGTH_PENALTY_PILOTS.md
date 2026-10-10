@@ -30,7 +30,9 @@ format diagnostics. `PILOT_LENGTH_PENALTY=0.2` enables it in the existing
 [training entry point](../slurm/shorthand-train.sbatch); omission preserves the
 original reward. The adapter rejects invalid coefficients and response lengths.
 Hydra records the coefficient, budget, manager and verifier paths per attempt.
-Logs separately expose correctness reward, length cost, and response tokens.
+Validation logs separately expose correctness reward, length cost, and response
+tokens. Training logs currently expose only their combined reward and mean
+response length; per-prompt training rollouts are not retained.
 
 Keep prompts unchanged: step-by-step reasoning plus a final answer block, no
 supplied jargon. Batch 16 prompts, eight rollouts, minibatch eight, temperature
@@ -109,3 +111,81 @@ correctness ordering, matrix/malformed answers, unchanged accuracy diagnostics,
 zero/invalid coefficients, and assembly into token rewards. Four original
 reward/dataset tests passed locally; both full calibration/data hash gates
 passed; Hydra accepted the new configuration and shell syntax checks passed.
+
+## Collapse investigation (2026-10-10)
+
+Both 100-step runs and their evaluation chains completed. At matched evaluation
+budgets, matrix test accuracy fell from 92.38% (no-penalty 3K-trained control)
+to 15.63%, with mean length 1,889 to 678 tokens. RuleTaker at 4K fell from
+79.49% to 62.11% all-four accuracy (92.29% to 86.91% per-query), with mean
+length 2,377 to 1,290. These are fixed final-step comparisons, not selected-best
+checkpoints. RuleTaker remains above the base model's 43.55% all-four accuracy.
+
+The leading explanation is amplification of length pressure by per-prompt GRPO
+standard-deviation normalization. The saved configurations use
+`algorithm.norm_adv_by_std_in_grpo=True`, token-mean loss, no reference KL,
+and zero entropy bonus. The installed
+`verl/trainer/ppo/core_algos.py::compute_grpo_outcome_advantage` computes
+`A = (R - group_mean(R)) / (group_std(R) + 1e-6)` and broadcasts it across
+response tokens. When correctness is constant within a group, substituting
+`R = correctness - lambda * length / budget` cancels lambda and budget,
+approximately giving `A = -(length - mean(length)) / std(length)`.
+Thus a small cost can produce an order-one shortening signal, including positive
+advantages for short incorrect answers in all-wrong groups. Correctness ordering
+within a group is preserved; its priority across different prompt groups is not.
+
+A CPU check using the actual installed GRPO function on Engaging, with eight
+lengths 1,000 through 1,700 in increments of 100 and budget 3,072, confirmed:
+
+| Equal correctness in group | Coefficient | Shortest advantage | Longest advantage |
+|---|---:|---:|---:|
+| All incorrect or all correct | 0 | 0 | 0 |
+| All incorrect or all correct | .2 | +1.4288 | -1.4288 |
+| All incorrect or all correct | .02 | +1.4280 | -1.4280 |
+
+This is a synthetic mechanism check, not a reconstruction of training groups.
+Simply lowering lambda tenfold therefore does not reliably weaken the signal
+in equal-correctness groups.
+
+Observed evidence:
+
+- Matrix validation accuracy at steps 25/50/75/100 was
+  84.38/77.34/51.95/16.99%; validation penalized reward also fell from .7505
+  at step 25 to .1273 at step 100. The collapse did not improve the intended
+  scalar objective, and is not merely a test-time evaluation failure.
+- In the 1,024 matrix test completions at 3K, 476 penalty-run final answers
+  had a row/column shape different from their target, versus 24 control answers.
+  Inspected traces drop rows during transformations. These are actual content
+  errors rather than only shorter English. No truncations occurred in this
+  penalty evaluation.
+- The final matrix evaluation had all four completions wrong on 202/256
+  problems, versus 5/256 for the control. Evaluation groups have four samples;
+  they are not the eight-sample training groups and cannot measure historical
+  training advantages.
+- Mean actor entropy over steps 81–100 was .01045 with the penalty versus
+  .03043 in the control; mean gradient norm was 1.127 versus .233. These
+  support a stronger, less diverse update regime but do not establish causality.
+- RuleTaker validation query accuracy peaked among recorded checks at 90.14%
+  at step 50 and ended at 87.01%, while length continued falling. Its dense
+  partial-credit reward is a plausible reason for milder degradation than the
+  matrix exact-match reward, not a demonstrated explanation.
+
+Checks against alternative explanations: all 100 matrix steps came from one
+uninterrupted post-preemption attempt (the first attempt logged no updates).
+All recorded numeric metrics in both tasks' treatment/control runs were finite.
+Matrix control/treatment used the same base revision, learning rate, batch sizes,
+temperature, and microbatch token budget; their effective launch overrides differ
+only in the reward adapter/coefficient and artifact/data paths. Matrix train,
+validation, and test files and the correctness verifier were byte-identical
+between the inspected worktrees. All four actual-verl reward integration tests
+were rerun successfully, checking padding, token counting, correctness ordering,
+and reward assembly. No reward-accounting bug was found in these checks.
+
+Limits and next experiment: per-group training rewards/lengths were not saved,
+so the historical fraction of length-only updates cannot be recovered. Early
+model weights were pruned (the inspected run retains steps 90 and 100), although
+their validation metrics remain. A causal test should repeat both zero-penalty
+and penalty conditions with standard-deviation normalization disabled, keeping
+other settings fixed, and log per-group correctness/length/advantages. Preserve
+validation checkpoints and stop on sustained accuracy degradation. This proposed
+ablation has not been submitted; no existing jobs were changed in this audit.

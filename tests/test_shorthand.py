@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "reward"))
-from shorthand_reward import compute_score
+from experiments.shorthand.shorthand_reward import compute_score
 
 
 class ShorthandReward(unittest.TestCase):

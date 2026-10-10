@@ -10,9 +10,10 @@
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
-export PILOT_ENTRYPOINT=drift-train.sbatch
+export JOB_ENTRYPOINT=experiments/drift/slurm/drift-train.sbatch
 export CKPT_DIR="${RUN_ROOT:?}/${MODEL_KEY:?}-lr${LR:-1e-5}-s${SEED:-42}"
-source "$REPO/slurm/shorthand-runtime.sh"
+export RESUME_CHECKPOINT_ROOT="${CKPT_DIR:?}"
+source "$REPO/slurm/runtime.sh"
 [ "${SLURM_RESTART_COUNT:-0}" -le 12 ] || exit 1
 export PATH="${UV_BIN_DIR:?}:$PATH"
 export TANDEM_ENV_BIN="${TANDEM_ENV:?}/bin" TANDEM_ENV_FILE="$REPO/slurm/training-env.sh"
@@ -24,7 +25,7 @@ export TORCHINDUCTOR_CACHE_DIR="$XDG_CACHE_HOME/torchinductor"
 mkdir -p "$CKPT_DIR" "$XDG_CACHE_HOME" "$RAY_TMPDIR"
 run_python() { uv run --no-project --offline --python "$TANDEM_ENV_BIN/python" python "$@"; }
 export BASE_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["path"])' "$DATA_ROOT/$MODEL_KEY.json")
-TEMPLATE=$(run_python -c 'import json; from data.build_drift import RAW_TEMPLATE; print(json.dumps(RAW_TEMPLATE))')
+TEMPLATE=$(run_python -c 'import json; from experiments.drift.build_drift import RAW_TEMPLATE; print(json.dumps(RAW_TEMPLATE))')
 export TRAIN_FILES="$DATA_ROOT/train.parquet" MAX_PROMPT=1024 MAX_RESPONSE=256
 export TRAIN_BATCH=128 MINI_BATCH=128 ROLLOUT_N=64 ROLLOUT_TEMP=0.5 LR=${LR:-1e-5}
 export TOTAL_EPOCHS=2 TOTAL_STEPS=${TOTAL_STEPS:-114} TEST_FREQ=10 SAVE_FREQ=10
@@ -44,7 +45,7 @@ fi
 bash train/vanilla_grpo.sh \
   "data.val_files=[$DATA_ROOT/validation.parquet]" "data.seed=${SEED:-42}" \
   "actor_rollout_ref.model.custom_chat_template=$TEMPLATE" \
-  "reward.custom_reward_function.path=$REPO/reward/gsm8k_drift.py" \
+  "reward.custom_reward_function.path=$REPO/experiments/drift/gsm8k_drift.py" \
   'trainer.logger=[console,file]' "ray_kwargs.ray_init.num_cpus=$SLURM_CPUS_PER_TASK" \
   "actor_rollout_ref.rollout.seed=${SEED:-42}" \
   actor_rollout_ref.rollout.top_p=1 actor_rollout_ref.rollout.top_k=-1 \

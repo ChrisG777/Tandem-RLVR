@@ -14,8 +14,14 @@ set -euo pipefail
 # Explicit KEY=VALUE arguments also support sbatch --export=NIL on CSAIL.
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?set REPO to the git checkout}"
-export PILOT_ENTRYPOINT=figure2.sbatch
-source "$REPO/slurm/shorthand-runtime.sh"
+export JOB_ENTRYPOINT=slurm/figure2.sbatch
+export RESULTS_ROOT=${RESULTS_ROOT:-results/figure2}
+case "${MODE:-full}" in
+    base) export RESUME_PROGRESS_FILE="$RESULTS_ROOT/base/solo.json.progress.json";;
+    *-solo) export RESUME_PROGRESS_FILE="$RESULTS_ROOT/${MODE%-solo}/solo.json.progress.json";;
+    *-handoff) export RESUME_PROGRESS_FILE="$RESULTS_ROOT/${MODE%-handoff}/handoff.json.progress.json";;
+esac
+source "$REPO/slurm/runtime.sh"
 [ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || { echo 'Preemption retry limit reached'; exit 1; }
 export PATH="${UV_BIN_DIR:-${HOME:-/tmp}/.local/bin}:/data/scratch/${SLURM_JOB_USER:-${USER:-}}/.local/bin:${PATH:-/usr/bin:/bin}"
 export VLLM_WORKER_MULTIPROC_METHOD=spawn

@@ -8,9 +8,11 @@ import sys
 
 import pandas as pd
 
+# Reuse the reproduction utilities without changing their original import layout.
+ROOT = Path(__file__).resolve().parents[2]
+sys.path[:0] = [str(ROOT), str(ROOT / "eval"), str(ROOT / "train")]
 import common
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "reward"))
-from shorthand_reward import compute_score
+from experiments.shorthand.shorthand_reward import compute_score
 
 
 def main() -> None:
