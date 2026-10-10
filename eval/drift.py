@@ -67,14 +67,18 @@ def evaluate(model: str, data: Path, out: Path) -> dict:
     tokenizer.chat_template = RAW_TEMPLATE
     prompts = [tokenizer.apply_chat_template(list(row["prompt"]), tokenize=False,
                                              add_generation_prompt=True) for row in rows]
-    assert max(len(tokenizer.encode(p, add_special_tokens=False)) for p in prompts) <= 1024
+    token_ids = [tokenizer.encode(p, add_special_tokens=False) for p in prompts]
+    assert max(map(len, token_ids)) <= 1024
     problems = [{"set": "gsm8k", "idx": i, "prompt_sha256": row["extra_info"]["prompt_sha256"]}
                 for i, row in enumerate(rows)]
     progress_path, progress = common.load_progress(str(out), provenance, problems)
     generations = progress["gens"]
     engine = common.build_engine(model, 0.55, max_num_batched_tokens=2048, max_model_len=1281)
     for start in range(len(generations), len(rows), common.EVAL_BATCH_SIZE):
-        outputs = engine.generate(prompts[start:start + common.EVAL_BATCH_SIZE],
+        # The raw template already inserts BOS. Passing IDs prevents vLLM's
+        # tokenizer from inserting a second BOS for base Llama/Gemma.
+        outputs = engine.generate([{"prompt_token_ids": ids}
+                                   for ids in token_ids[start:start + common.EVAL_BATCH_SIZE]],
                                   SamplingParams(temperature=0, max_tokens=256, seed=17))
         for i, output in enumerate(outputs, start):
             completion = output.outputs[0]
