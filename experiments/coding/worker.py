@@ -8,6 +8,7 @@ import signal
 
 
 def main() -> None:
+    sys.set_int_max_str_digits(0)
     request = json.loads(Path(sys.argv[1]).read_text())
     print(json.dumps({"ready": True}), flush=True)
     if request.get("preflight"):

@@ -4,6 +4,7 @@ import hashlib
 import json
 import random
 import re
+import sys
 from pathlib import Path
 
 BASE = "Qwen/Qwen3-4B-Instruct-2507"
@@ -31,6 +32,9 @@ def build_apps(out_dir: Path, *, revision: str, seed: int = 0) -> dict:
     from huggingface_hub import hf_hub_download
     from transformers import AutoTokenizer
     import pandas as pd
+    # APPS includes valid integers longer than Python 3.11's new default cap.
+    # Execution is separately bounded by the grading sandbox.
+    sys.set_int_max_str_digits(0)
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("--revision must be an immutable 40-character commit")
     if out_dir.exists() and any(out_dir.iterdir()):
