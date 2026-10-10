@@ -62,3 +62,50 @@ Training and evaluation preserve existing bounded same-job requeue/resumption.
 Separate campaign directories prevent mixing objectives or overwriting controls.
 No cluster races or monitoring timers. Record live site selection and job IDs
 below after submission.
+
+## Submitted 2026-10-09, 23:29 Pacific
+
+Frozen code: `a1acb36`, detached worktree `Tandem-RLVR-length-20261009` on
+each cluster. No existing experiment was cancelled or modified.
+
+| Task / cluster | Train | CPU verification | Evaluation | Review vs base | Review vs no-penalty RL |
+|---|---|---|---|---|---|
+| RuleTaker / CSAIL | `2613501_0` | `2613502_0` | `2613503_0` | `2613504` | `2613505` |
+| Matrix / Engaging | `25474790_1` | `25474791_1` | `25474792_1` | `25474793` | `25474794` |
+
+At 23:30 Pacific, matrix training was running on `node2103` (A100 80 GB);
+RuleTaker was pending for priority. Downstream jobs depend on successful
+training/checks. RuleTaker's no-penalty comparison also waits for the already
+running control evaluation `2613450_0`. Each review contains four comparisons
+(two splits × two evaluation budgets), including uniform and both-correct pairs.
+
+Campaign directories:
+
+- CSAIL: `/data/vision/torralba/u/chrisge/tandem-rlvr/length-pilot-20261009/ruletaker_shared`
+- Engaging: `/orcd/scratch/orcd/013/cge7/tandem-rlvr/length-pilot-20261009/manipulate_matrix`
+
+Each stores copied base/calibration provenance, a fresh dataset gate receipt,
+`jobs.txt`, checkpoints, evaluations, and `comparison-to-control/` for the
+direct no-penalty comparison. Base/control evaluation symlinks reuse artifacts;
+the original datasets and scores were not changed.
+
+Allocation: CSAIL owner dry run forecast a material wait behind existing owner
+work; neither shared route forecast immediate admission. RuleTaker therefore
+uses all compatible vision-shared H100/H200/A100-80 partitions, per policy.
+Dependent evaluation admits all compatible 24+ GB Ampere-or-newer vision-shared
+types. Engaging combines normal/preemptible routes and excludes incompatible
+nodes using the saved live inventory and [ORCD VRAM mapping](https://orcd-docs.mit.edu/running-jobs/available-resources/).
+A hostname-feature OR list exceeded a scheduler limit during dry run, so the
+accepted request uses compressed exclusions instead. Both sites use Nice 0.
+
+Engaging reported 786.7/1,024 GB scratch usage (independently measured 787 GiB)
+before submission. The existing comparable run occupies 123 GiB; one new run
+fits with additional room for checkpoint replacement writes. CSAIL had 608 GiB
+free. These are preflight measurements, not reservations against other work.
+
+Validation: four actual-verl reward integration tests passed independently in
+both installed training environments. They cover token/padding accounting,
+correctness ordering, matrix/malformed answers, unchanged accuracy diagnostics,
+zero/invalid coefficients, and assembly into token rewards. Four original
+reward/dataset tests passed locally; both full calibration/data hash gates
+passed; Hydra accepted the new configuration and shell syntax checks passed.
