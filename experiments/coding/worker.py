@@ -17,12 +17,13 @@ def main() -> None:
         assert sys.stdin.read() == ""
         assert not Path("/dev/nvidia0").exists()
         assert not Path("/home").exists()
-        try:
-            Path("/request.json").write_text("must fail")
-        except OSError:
-            pass
-        else:
-            raise RuntimeError("Task input is writable")
+        for target in ("/request.json", "/tmp/probe", "/dev/probe", "/probe"):
+            try:
+                Path(target).write_text("must fail")
+            except OSError:
+                pass
+            else:
+                raise RuntimeError(f"Sandbox path is writable: {target}")
         try:
             socket.create_connection(("1.1.1.1", 443), timeout=1)
         except OSError:

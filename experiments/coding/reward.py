@@ -105,6 +105,7 @@ def run_sandbox(request: dict, *, timeout: int) -> dict:
             "--ro-bind", "/usr", "/usr", "--symlink", "usr/lib", "/lib",
             "--symlink", "usr/lib64", "/lib64", "--proc", "/proc", "--dev", "/dev",
             "--tmpfs", "/tmp", "--ro-bind", str(payload), "/request.json",
+            "--remount-ro", "/tmp", "--remount-ro", "/dev", "--remount-ro", "/",
             "--setenv", "PYTHONHOME", str(runtime / "python"),
             "--setenv", "PYTHONPATH", str(runtime / "env/lib/python3.11/site-packages"),
             "--setenv", "OPENBLAS_NUM_THREADS", "1", "--setenv", "OMP_NUM_THREADS", "1",

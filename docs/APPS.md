@@ -33,7 +33,9 @@ comparison semantics are preserved. Call-based arguments are serialized individu
 as JSON lines for this checker. The runtime records the original and adapted hashes.
 
 Every candidate gets a fresh Bubblewrap user/PID/mount/network namespace, a read-only
-runtime and input, private `/tmp`, minimal `/dev`, and no project/home/GPU mounts.
+runtime and input, private read-only `/tmp`, minimal `/dev`, and no project/home/GPU mounts.
+The root and device directories are read-only too, preventing temporary files from
+consuming host RAM outside the process memory limit. Stdin is `/dev/null`.
 System `/usr` supplies dynamic libraries. Limits: 2 GiB address space, 1 MiB output
 files, no subprocess creation, five seconds per test, and an outer watchdog of
 `5*(test_count+1)+10` seconds. Startup/checker failures raise; they are not wrong answers.
