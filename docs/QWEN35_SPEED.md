@@ -174,6 +174,14 @@ length 1,830 tokens, and no responses aborted. Peak policy allocation was
 56.86 GiB (63.42 GiB reserved). This verifies the cache-release transition for
 GRPO but is not a completed smoke or a 24 GPU-hour result.
 
+Subsequent speed-mode launches also set
+`actor_rollout_ref.actor.fsdp_config.use_torch_compile=False`. In this pinned
+engine that flag controls only the diagnostic entropy function. Variable padded
+shapes hit TorchDynamo's eight-recompilation limit in the first batch, then fell
+back to the same uncompiled chunked function anyway. Disabling that redundant
+compilation avoids its startup cost; it does not disable FLA's Triton kernels or
+vLLM decode graphs. Already-running jobs retain their captured configuration.
+
 The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
 `(200 × steady_step_seconds + 10 × full_validation_seconds + checkpoint_seconds
 + startup_seconds) / 3600`, without double-counting validation/save time if the
