@@ -22,3 +22,28 @@ keeps gradients on GPU until the final microbatch, trading memory for fewer
 CPU transfers. `tests/test_fsdp2_offload_accumulation.py` checks gradients and
 AdamW updates against sync-every-microbatch on a small full-weight model.
 This candidate is not yet validated for the full Qwen3.5 run.
+
+## Interactive measurements (2026-10-11)
+
+Allocation `2620920`: one H200 on `tedrake-h200-1`, eight logical CPUs and
+384 GiB host RAM. Artifacts are under
+`/data/vision/torralba/u/chrisge/tandem-rlvr/qwen35-9b-2b/speed/`.
+The cancelled full jobs were CSAIL Tandem `2618075` and Engaging GRPO `25556548`.
+
+The original Tandem step 1 spent 2,318 s in policy updates, 249 s in generation,
+and 149 s in old-policy log probabilities (2,733 s total). The initial diagnostic
+`micro10k-t4` restores the launcher's 10,000-token execution microbatch budget
+and uses four OpenMP threads. Batch 16, minibatch 8, eight responses per prompt,
+3,000 response tokens, learning rate, seed and full-weight objective are unchanged.
+
+After warm-up, forward-only calls took about 2 s. The second backward's bounded
+trace measured 50.37 s, including 37.58 s in device-to-pageable-host transfers
+and 4.45 s of CPU addition. PyTorch 2.10 FSDP2 explicitly disables asynchronous
+gradient offload when accumulating into an existing CPU gradient. This explains
+the repeated synchronous copies that the upstream deferred-sync option avoids.
+The diagnostic was stopped after obtaining this trace; it did not complete an
+RL step and is not an end-to-end speed benchmark. Trace processing itself was slow.
+
+The small CUDA parity check passed with exactly equal gradients and AdamW
+updates. Full-model candidate `nosync10k-t4` uses the isolated patched verl
+checkout, the same execution settings, and deferred synchronization enabled.

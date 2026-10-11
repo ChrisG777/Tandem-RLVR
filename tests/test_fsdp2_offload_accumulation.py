@@ -14,12 +14,12 @@ class OffloadAccumulation(unittest.TestCase):
             torch.distributed.init_process_group('nccl', init_method='file://'+root+'/init', rank=0, world_size=1)
             try:
                 outputs = []
-                for deferred in (False, True):
+                for deferred, fused in ((False, False), (True, False), (True, True)):
                     torch.manual_seed(42)
                     model = nn.Sequential(nn.Linear(128, 256), nn.GELU(), nn.Linear(256, 64)).cuda()
                     fully_shard(model, offload_policy=CPUOffloadPolicy(pin_memory=True),
                                 mp_policy=MixedPrecisionPolicy(param_dtype=torch.bfloat16, reduce_dtype=torch.float32))
-                    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-6)
+                    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-6, fused=fused)
                     for micro in range(4):
                         model.set_requires_gradient_sync(not deferred or micro == 3)
                         x = torch.randn(16, 128, device='cuda')
@@ -29,12 +29,13 @@ class OffloadAccumulation(unittest.TestCase):
                     weights = torch.cat([p.to_local().detach().flatten().clone() for p in model.parameters()])
                     outputs.append((grad, weights))
                     del optimizer, model
-                old, new = outputs
-                rms = (old[0]-new[0]).square().mean().sqrt()/old[0].square().mean().sqrt()
-                delta = (old[1]-new[1]).abs().max()
-                print(f'gradient relative RMS={rms.item():.6g}; max weight difference={delta.item():.6g}', flush=True)
-                self.assertLess(rms.item(), 0.02)
-                self.assertLess(delta.item(), 2e-7)
+                old = outputs[0]
+                for label, new in zip(('deferred', 'deferred + fused CPU AdamW'), outputs[1:]):
+                    rms = (old[0]-new[0]).square().mean().sqrt()/old[0].square().mean().sqrt()
+                    delta = (old[1]-new[1]).abs().max()
+                    print(f'{label}: gradient relative RMS={rms.item():.6g}; max weight difference={delta.item():.6g}', flush=True)
+                    self.assertLess(rms.item(), 0.02)
+                    self.assertLess(delta.item(), 2e-7)
             finally:
                 torch.distributed.destroy_process_group()
 
