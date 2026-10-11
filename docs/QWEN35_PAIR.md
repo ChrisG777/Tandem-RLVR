@@ -25,6 +25,9 @@ the paper's self-paired initialization. Both models use non-thinking mode.
   and explicitly disables thinking during training. `MODE=smoke` defaults to three
   updates; `SMOKE_STEPS=4` continues the same smoke root for a focused checkpoint
   restoration check. Full training remains fixed at 200 steps.
+  Set `EXPECTED_RESUME_STEP=3 RESUME_LOG=PATH` on that continuation to require
+  separate pre/post-resume metric attempts plus model, optimizer, RNG and scheduler
+  load evidence. The existing checkpoint verifier stores this receipt in `selected.json`.
 - `eval/select_figure2.py` preserves both initial model records and verifies
   initialization identity before selecting the trained checkpoints.
   `--arm grpo` or `--arm tandem` verifies/selects one local arm, enabling

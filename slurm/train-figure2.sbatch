@@ -78,5 +78,9 @@ bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
     "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}" "${EXTRA[@]}" &
 TRAIN_PID=$!
 wait "$TRAIN_PID"
+VERIFY_ARGS=()
+if [ -n "${EXPECTED_RESUME_STEP:-}" ]; then
+    VERIFY_ARGS+=(--expected-resume-step "$EXPECTED_RESUME_STEP" --resume-log "${RESUME_LOG:?}")
+fi
 run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" \
-    --mode "$MODE"
+    --mode "$MODE" "${VERIFY_ARGS[@]}"

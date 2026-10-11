@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "train"))
-from figure2_checkpoint import VALIDATION, verify_training, record_resume_gap, read_training_records
+from figure2_checkpoint import VALIDATION, verify_training, verify_resume, record_resume_gap, read_training_records
 
 
 class TrainingCheckpoint(unittest.TestCase):
@@ -131,6 +131,23 @@ class TrainingCheckpoint(unittest.TestCase):
             log.write_text(log.read_text().splitlines()[0])
             with self.assertRaisesRegex(ValueError, "Incomplete checkpoint-load"):
                 record_resume_gap(root, 2, log)
+
+    def test_completed_resume_requires_attempt_boundary_and_all_state_loads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = self.gap_fixture(root)
+            rows = [{"step": step, "data": {"actor/pg_loss": 0.01}} for step in (1, 2)]
+            self.write_rows(root, rows)
+            os.utime(root / "metrics-1-0.jsonl", ns=(1_000_000_000, 1_000_000_000))
+            self.assertEqual(verify_resume(root, 2, log)["step"], 2)
+            saved = log.read_text()
+            log.write_text(saved.splitlines()[0])
+            with self.assertRaisesRegex(ValueError, "Incomplete checkpoint-load"):
+                verify_resume(root, 2, log)
+            log.write_text(saved)
+            (root / "metrics-1-1.jsonl").write_text(json.dumps({"step": 1, "data": {}}))
+            with self.assertRaisesRegex(ValueError, "metric boundary"):
+                verify_resume(root, 2, log)
 
     def test_resume_log_accepts_storage_symlink_but_rejects_other_run(self):
         with tempfile.TemporaryDirectory() as directory:

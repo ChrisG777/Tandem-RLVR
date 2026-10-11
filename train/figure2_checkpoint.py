@@ -19,6 +19,7 @@ def main() -> None:
     parser.add_argument("--steps", type=int)
     parser.add_argument("--mode", choices=("smoke", "full"))
     parser.add_argument("--record-resume-step", type=int)
+    parser.add_argument("--expected-resume-step", type=int)
     parser.add_argument("--resume-log", type=Path)
     args = parser.parse_args()
     if args.record_resume_step is not None:
@@ -29,6 +30,10 @@ def main() -> None:
     if args.arm is None or args.steps is None or args.mode is None:
         parser.error("verification requires --arm, --steps and --mode")
     selected = verify_training(args.root, args.arm, args.steps, validation_metric=args.validation_metric)
+    if args.expected_resume_step is not None:
+        if args.resume_log is None or not 0 < args.expected_resume_step < args.steps:
+            parser.error("resume verification requires --resume-log and 0 < resume step < total steps")
+        selected["resume_verification"] = verify_resume(args.root, args.expected_resume_step, args.resume_log)
     selected["mode"] = args.mode
     temporary = args.root / "selected.partial"
     temporary.write_text(json.dumps(selected, indent=2) + "\n")
@@ -131,6 +136,26 @@ def merge_training_records(attempts: list[list[dict]]) -> dict[int, dict]:
         for row in rows:
             records[row["step"]] = row["data"]
     return records
+
+
+def verify_resume(root: Path, step: int, log: Path) -> dict:
+    """Verify a completed checkpoint continuation, including all four loaded states.
+
+    Require separate metric attempts ending at step and beginning at step + 1.
+    Return load evidence and the log hash; reject a fresh restart or model-only load.
+    """
+    attempts = [(path, rows) for path, rows in _read_attempts(root) if rows]
+    if not any(old[-1]["step"] == step and new[0]["step"] == step + 1
+               for (_, old), (_, new) in zip(attempts, attempts[1:])):
+        raise ValueError("Missing checkpoint-continuation metric boundary")
+    raw = log.read_bytes()
+    clean = re.sub(r"\x1b\[[0-9;]*m", "", raw.decode(errors="replace"))
+    lines = [next((line for line in clean.splitlines() if _matches_resume_message(line, message)), "")
+             for message in _resume_messages(root, step)]
+    if not all(lines):
+        raise ValueError("Incomplete checkpoint-load evidence")
+    return {"step": step, "source_log": str(log.resolve()),
+            "source_sha256": hashlib.sha256(raw).hexdigest(), "load_messages": lines}
 
 
 def record_resume_gap(root: Path, step: int, log: Path) -> dict:
