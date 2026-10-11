@@ -113,3 +113,19 @@ under `tandem/profile/`; CUDA synchronization adds diagnostic overhead. Runtime
 receipts now record resolved verl/vLLM module paths. The replacement passed all
 four preflight cases from cache and loaded the isolated trainer. Completion of
 its first update remains to be checked.
+
+The replacement completed both optimizer calls (gradient norms 0.3308 and 0.2522)
+with normal backward microbatches around 3–4 seconds and peak allocated GPU
+memory 61.54 GiB. It then failed during vLLM weight wake-up with CUDA OOM, before
+logging a complete RL step or saving a checkpoint. The trainer released unused
+CUDA cache only after that wake-up. The [handoff patch](../experiments/elegance/patches/verl-rollout-cache-handoff.patch)
+uses the existing `aggressive_empty_cache` helper before wake-up as well, preserving
+live tensors and optimizer state. Patch application and Python compilation passed;
+the live training-to-rollout transition still requires verification.
+
+Job **2623300** replaces failed 2623125, using project `98d58f4` and isolated
+verl `5807a7ec`. It started on `freeman-a100-1` with one 80-GB A100, the same
+CPU/RAM request, and all four cached preflight cases passing. The additional
+`VERL_LOGGING_LEVEL=INFO` setting records memory cleanup. Exact arguments are in
+`handoff-restart-submission.json`. No complete RL step or recovery checkpoint
+was produced by either earlier attempt; this restart replays the initial batch.
