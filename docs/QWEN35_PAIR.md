@@ -22,7 +22,9 @@ the paper's self-paired initialization. Both models use non-thinking mode.
 - `slurm/train-figure2.sbatch` uses `base` to initialize both training arms and
   the optional `junior` for the frozen partner; old base-only manifests retain
   self-pairing. A campaign `word-boundaries.json` selects its tokenizer boundaries
-  and explicitly disables thinking during training.
+  and explicitly disables thinking during training. `MODE=smoke` defaults to three
+  updates; `SMOKE_STEPS=4` continues the same smoke root for a focused checkpoint
+  restoration check. Full training remains fixed at 200 steps.
 - `eval/select_figure2.py` preserves both initial model records and verifies
   initialization identity before selecting the trained checkpoints.
 - `slurm/figure2.sbatch` supports `junior-solo`, `base-solo`, and `base-handoff`

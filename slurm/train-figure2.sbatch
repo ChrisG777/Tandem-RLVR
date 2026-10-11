@@ -52,7 +52,10 @@ if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
         '+actor_rollout_ref.rollout.engine_kwargs.vllm.limit_mm_per_prompt={image:0,video:0}')
 fi
 case "$MODE" in
-    smoke) export TOTAL_STEPS=3 TEST_FREQ=3 SAVE_FREQ=3 PERSIST_HF_INTERVAL=3; EXTRA+=(data.val_max_samples=8);;
+    smoke)
+        export TOTAL_STEPS=${SMOKE_STEPS:-3}
+        export TEST_FREQ=$TOTAL_STEPS SAVE_FREQ=$TOTAL_STEPS PERSIST_HF_INTERVAL=$TOTAL_STEPS
+        EXTRA+=(data.val_max_samples=8);;
     full) ;;
     *) echo "MODE must be smoke or full" >&2; exit 2;;
 esac
