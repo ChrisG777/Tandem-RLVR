@@ -7,6 +7,26 @@ import torch
 
 @unittest.skipUnless(torch.cuda.is_available() and find_spec("fla"), "requires CUDA and optional FLA kernels")
 class Qwen35Kernels(unittest.TestCase):
+    def test_large_vocabulary_cross_entropy(self):
+        from fla.modules.fused_cross_entropy import cross_entropy_loss
+
+        torch.manual_seed(42)
+        logits = torch.randn(128, 248320, device="cuda", dtype=torch.bfloat16)
+        labels = torch.randint(logits.shape[-1], (len(logits),), device="cuda")
+        reference = logits.float().requires_grad_()
+        expected = reference.log_softmax(-1).gather(-1, labels[:, None]).squeeze(-1)
+        expected.mean().backward()
+        for inplace in (False, True):
+            actual_input = logits.clone().requires_grad_()
+            actual = -cross_entropy_loss(actual_input, labels, inplace_backward=inplace)[0]
+            actual.mean().backward()
+            error = ((actual_input.grad.float() - reference.grad).square().mean().sqrt()
+                     / reference.grad.square().mean().sqrt())
+            print(f"cross entropy inplace={inplace}: log-prob max error="
+                  f"{(actual-expected).abs().max().item():.6g}, gradient relative RMS={error.item():.6g}", flush=True)
+            torch.testing.assert_close(actual, expected, atol=1e-4, rtol=1e-5)
+            self.assertLess(error.item(), 0.01)
+
     def test_batched_forward_and_backward(self):
         from fla.ops.gated_delta_rule import chunk_gated_delta_rule
         from transformers.models.qwen3_5.modeling_qwen3_5 import torch_chunk_gated_delta_rule
