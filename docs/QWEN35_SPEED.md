@@ -118,6 +118,9 @@ explicitly; this changes execution microbatch packing, not the RL batch or
 minibatch. Full-weight FP32 parameters/optimizer states and BF16 compute remain.
 `MODE=smoke SMOKE_STEPS=3 SMOKE_VAL_SAMPLES=1000` runs three steps and the complete
 held-out pass@4 validation. `QWEN35_PROFILE_DIR=DIR` optionally enables stage timing.
+The source held-out split has 1,000 problems; the unchanged 1,024-token prompt
+filter retains 999 with this tokenizer, so complete validation means 3,996
+sessions. This training filter does not change the separate 1,064-problem benchmark.
 All other campaigns retain their defaults. These options require both updated
 fork patches and the pinned Qwen3.5 runtime described above.
 
