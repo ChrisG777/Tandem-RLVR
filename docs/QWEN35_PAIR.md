@@ -231,7 +231,10 @@ Their strict fourth-step resume checks are `2616142` and `25539998`, respectivel
 each dependent on smoke success. The earlier pending resume checks `2616101` and
 `25539690` were replaced to set `MAX_CKPT_KEEP=2`. This keeps the previous actor
 state intact while the trainer publishes the new dataloader state and retained
-HF weights; full runs must use the same retention setting. Fallback attempts `2615963`/`25537766` and their
+HF weights. The existing trainer already promotes a limit of one to two before
+calling its checkpoint manager; the explicit setting documents that existing
+protection, rather than changing checkpoint behavior. Full runs use it too.
+Fallback attempts `2615963`/`25537766` and their
 pending continuations `2616017`/`25538683` were cancelled before replacement.
 No full 200-step training arm has launched yet.
 
