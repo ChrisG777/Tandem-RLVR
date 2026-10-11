@@ -5,6 +5,18 @@ checkpoints remain intact. Target: approximately 24 GPU-hours per complete run,
 including validation/checkpoint overhead, with the original objective, batches,
 rollout count, response budget, and full-weight training retained.
 
+Latest completed warm steps (short qualifications still running):
+
+| Arm | Hardware | Step | Generation | Old-policy probabilities | Actor update | Training-only 200-step extrapolation |
+| --- | --- | --- | --- | --- | --- | --- |
+| GRPO | 1 A100 80 GB | 424.53 s | 68.70 s | 101.66 s | 248.02 s | 23.59 GPU-hours |
+| Tandem | 1 A100 80 GB | 601.65 s | 118.77 s | 96.17 s | 379.45 s | 33.43 GPU-hours |
+
+Neither number includes full-run validation/checkpoint overhead. These are step-2
+measurements, not completed-run results or controlled comparisons with the old
+campaigns on different hardware. The complete-run 24 GPU-hour target remains
+unproven. One-H100/H200 resume qualifications are queued as described below.
+
 `train/profile_qwen35.py` is an opt-in diagnostic import for the existing trainer:
 set `QWEN35_PROFILE_DIR=DIR` and
 `actor_rollout_ref.model.external_lib=train.profile_qwen35`. It synchronizes and
@@ -199,6 +211,16 @@ smoke root. Each requests one compatible Hopper GPU, eight CPUs, 384 GiB RAM,
 24 hours, and requeue; restart loads step 3 again and retries are bounded at 12.
 These are performance/recovery tests, not resumed 200-step campaigns. Final
 `verify_resume` receipts and complete-run forecasts are still pending.
+
+Tandem's second A100 step completed with reward 0.4297, gradient norm 0.4516,
+senior token fraction 0.4989, and no aborted responses. Its two optimizer calls
+took 62.54 and 84.04 s, versus roughly 23–24 s for warm GRPO calls. Both nodes
+have AMD EPYC 7773X CPUs. Read-only affinity inspection found Tandem's worker
+allowed CPUs `0,121-127` (one GPU-local core), versus GRPO's `56-58,123-127`
+(three GPU-local cores); both workers' mapped host pages overwhelmingly resided
+on GPU-local NUMA node 0. This suggests a CPU/memory placement contribution,
+but it is not a controlled causal test. No live affinity changes were applied.
+GPU model alone is therefore insufficient to predict offloaded optimizer speed.
 
 The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
 `(200 × steady_step_seconds + 10 × full_validation_seconds + checkpoint_seconds
