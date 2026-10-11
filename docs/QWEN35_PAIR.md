@@ -75,3 +75,8 @@ to isolate RL-induced changes from initial style/capability differences.
 The revised [conclusion](https://arxiv.org/html/2606.28166v2#S6) proposes diverse
 juniors as future work. This experiment measures the initial math gap itself;
 model size is not treated as evidence of benchmark performance.
+
+Probe 2615771 loaded both models successfully, then was cancelled during
+FlashInfer's 35-target first-use kernel compilation. The diagnostic selects
+vLLM's built-in Triton GDN prefill backend and disables unused image/video
+profiling to avoid that startup cost; neither changes the Tandem architecture.

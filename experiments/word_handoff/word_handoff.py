@@ -142,7 +142,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         engine.llm_engine.engine_core.shutdown()
 
 
-def build_engine(senior: str, junior: str, boundaries: Path):
+def build_engine(senior: str, junior: str, boundaries: Path, **engine_kwargs):
     """Load both BF16 models on GPU 0, with two bounded 5-GiB KV caches."""
     from vllm import LLM
     os.environ.pop('VLLM_TANDEM_CONFIG', None)
@@ -156,7 +156,7 @@ def build_engine(senior: str, junior: str, boundaries: Path):
                tandem_config={'enabled': True, 'frozen_model': junior,
                               'selection_strategy': 'word', 'prob_primary': 0.5,
                               'max_gap_tokens': 32, 'frozen_gpu_devices': [0],
-                              'boundary_token_ids_path': str(boundaries)})
+                              'boundary_token_ids_path': str(boundaries)}, **engine_kwargs)
 
 
 def record_completion(completion, boundaries: set[int]) -> dict:

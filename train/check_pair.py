@@ -33,7 +33,8 @@ def main() -> None:
     boundaries = set(identity['boundaries'])
     if boundaries != {i for token, i in tok.get_vocab().items() if token.startswith('Ġ')}:
         raise ValueError('Word boundaries do not match this tokenizer')
-    engine = build_engine(senior, junior, args.boundaries)
+    engine = build_engine(senior, junior, args.boundaries, gdn_prefill_backend='triton',
+                          limit_mm_per_prompt={'image': 0, 'video': 0})
     try:
         prompt = common.chat_prefix(tok, 'Solve step by step: A shop sells 12 boxes of 8 pencils. How many pencils is that? Put the answer in \\boxed{}.')
         params = [SamplingParams(temperature=0.6, top_p=1, top_k=-1,
