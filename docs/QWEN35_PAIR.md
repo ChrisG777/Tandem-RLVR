@@ -281,3 +281,9 @@ validated training commit `3065ae8`; their exact commands and gate job IDs are i
 full arm is submitted. Torralba H100 is down and its H200 GPUs are occupied by
 non-preemptible owner-priority work; neither shared dry run predicted immediate
 admission, so the CSAIL job uses the policy's vision-shared queueing default.
+
+GRPO job `25556135` failed during vLLM initialization on `node4400`: its startup
+GPU inventory already showed 132,187 MiB used before loading our model, leaving
+about 9 GiB free. No training step completed. Replacement **25556548** retains the
+same settings and broad route, excluding this affected node; the exact command is
+saved in `grpo-full-retry-submission.json`. Tandem `2618075` remains running.
