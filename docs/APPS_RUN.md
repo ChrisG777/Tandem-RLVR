@@ -62,3 +62,31 @@ and the gate follow in the same allocation. Native inference uses eight active
 sequences with correspondingly sized caches on this already-allocated H100; the
 smaller default remains available for smaller GPUs. A failed gate stops training; passing
 the gate admits independent three-step GRPO/Tandem smoke runs before full training.
+
+## Revised-gate checks and conditional full runs (2026-10-11)
+
+The 10% boundary checks and existing regressions passed on allocation 2618086:
+66 focused tests plus four math-grading tests. `checks/pretraining-audit.json`
+verifies all 200 validation task IDs and all 1,600 reward/token records. Of 136
+truncated samples, 49 have complete Python blocks, 45 compile, and 10 pass tests.
+`checks/reward-reproducibility.json` confirms identical diagnostics when regrading
+14 saved samples across tiers, pass/fail outcomes and truncation status.
+`checks/word-restart.json` confirms all 112 saved native records are unchanged.
+
+Full-weight runs **2618107 (GRPO)** and **2618108 (Tandem)** are submitted on hold,
+with one GPU, six CPUs, 148 GiB host RAM and a 24-hour resumable chunk each.
+Both admit H100/H200/A100-80GB through the vision-shared route. A held job consumes
+no GPU. These are the only submitted full runs; do not submit replacements.
+
+Separate one-shot release watchers in login-node tmux `apps-checks` windows
+`grpo-release` and `tandem-release` release each arm after the completed calibration
+passes and its own three-step smoke writes a verified `selected.json`. They also
+require the reward-reproducibility receipt. GRPO need not wait for Tandem's smoke.
+If calibration fails or the interactive allocation ends before a smoke passes,
+the corresponding held full job is cancelled. Each watcher expires after 24 hours.
+`training-jobs.json`, `<arm>-release.log`, and `<arm>-release.json` record this flow.
+The interactive allocation exits after its checks and releases; it does not remain
+idle indefinitely. Batch runs retain automatic same-job requeue and checkpoint resume.
+
+At submission neither full run had started: native calibration and the training
+smokes were still prerequisites. The active checkout is pinned at `be501f7`.
