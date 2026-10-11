@@ -456,6 +456,21 @@ diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/
                  loss, meta_info = self.forward_step(micro_batch, loss_function=loss_function, forward_only=forward_only)
  
                  if not forward_only:
+@@ -1227,7 +1265,13 @@
+ 
+                 if calculate_entropy:
+                     if not self.engine_config.entropy_checkpointing:
+-                        entropy = verl_F.entropy_from_logits(logits)
++                        if self.engine_config.entropy_from_logits_with_chunking:
++                            entropy = self.compute_entropy_from_logits(
++                                logits.reshape(-1, logits.shape[-1]),
++                                chunk_size=self.engine_config.entropy_from_logits_chunk_size,
++                            ).reshape(logits.shape[:-1])
++                        else:
++                            entropy = verl_F.entropy_from_logits(logits)
+                     else:
+                         entropy = torch.utils.checkpoint.checkpoint(verl_F.entropy_from_logits, logits)
+ 
 diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_base.py
 --- a/verl/trainer/ppo/v1/trainer_base.py
 +++ b/verl/trainer/ppo/v1/trainer_base.py

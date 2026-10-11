@@ -1,8 +1,42 @@
 """GPU check of optional FLA against Transformers' Qwen3.5 reference kernels."""
 import unittest
+import ast
 from importlib.util import find_spec
+from pathlib import Path
+from types import SimpleNamespace
 
 import torch
+
+
+class PaddedEntropy(unittest.TestCase):
+    def test_existing_chunked_entropy_on_padded_logits(self):
+        spec = find_spec("verl")
+        if spec is None:
+            self.skipTest("requires the patched verl runtime")
+        from verl.utils import torch_functional as functional
+
+        path = Path(next(iter(spec.submodule_search_locations))) / "workers/engine/fsdp/transformer_impl.py"
+        tree = ast.parse(path.read_text())
+        block = next(node for node in ast.walk(tree) if isinstance(node, ast.If)
+                     and ast.unparse(node.test) == "calculate_entropy"
+                     and "logits.reshape(-1, logits.shape[-1])" in ast.unparse(node))
+        worker = SimpleNamespace(
+            engine_config=SimpleNamespace(entropy_checkpointing=False,
+                entropy_from_logits_with_chunking=True, entropy_from_logits_chunk_size=8),
+            compute_entropy_from_logits=functional.entropy_from_logits_with_chunking)
+        torch.manual_seed(42)
+        logits = torch.randn(2, 17, 257, requires_grad=True)
+        reference = logits.detach().clone().requires_grad_()
+        scope = {"self": worker, "calculate_entropy": True, "logits": logits,
+                 "torch": torch, "verl_F": functional}
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[block], type_ignores=[])),
+                     str(path), "exec"), scope)
+        expected = functional.entropy_from_logits(reference)
+        actual = scope["entropy"]
+        torch.testing.assert_close(actual, expected)
+        actual.sum().backward()
+        expected.sum().backward()
+        torch.testing.assert_close(logits.grad, reference.grad)
 
 
 @unittest.skipUnless(torch.cuda.is_available() and find_spec("fla"), "requires CUDA and optional FLA kernels")
