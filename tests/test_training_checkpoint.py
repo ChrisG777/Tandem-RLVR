@@ -61,6 +61,23 @@ class TrainingCheckpoint(unittest.TestCase):
             self.fixture(root)
             self.assertEqual(verify_training(root, "tandem", 3)["step"], 2)
 
+    def test_qwen35_checkpoints_preserve_selection_and_integrity_checks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            for config in root.glob("hf/*/config.json"):
+                config.write_text('{"model_type":"qwen3_5"}')
+            self.assertEqual(verify_training(root, "tandem", 3)["step"], 2)
+            config = root / "hf/global_step_2/config.json"
+            config.write_text('{"model_type":"unsupported"}')
+            with self.assertRaisesRegex(ValueError, "Unexpected model config"):
+                verify_training(root, "tandem", 3)
+            config.write_text('{"model_type":"qwen3_5"}')
+            shard = config.with_name("model.safetensors")
+            shard.write_bytes(shard.read_bytes()[:-1])
+            with self.assertRaisesRegex(ValueError, "Truncated checkpoint"):
+                verify_training(root, "tandem", 3)
+
     def test_missing_mask_fails_tandem_but_not_grpo(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

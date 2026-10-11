@@ -213,7 +213,7 @@ def finite(value: object, label: str) -> float:
 def verify_weights(path: Path) -> None:
     """Validate config and safetensors shard lengths without loading GPU tensors."""
     config = json.loads((path / "config.json").read_text())
-    if config.get("model_type") != "qwen3":
+    if config.get("model_type") not in {"qwen3", "qwen3_5"}:
         raise ValueError(f"Unexpected model config: {path}")
     index = path / "model.safetensors.index.json"
     shards = ([path / name for name in set(json.loads(index.read_text())["weight_map"].values())]
