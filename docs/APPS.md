@@ -86,6 +86,14 @@ Within the existing allocation, run both calibration modes with
 validation IDs, matching dataset/grader identities, and the pinned base snapshot.
 Do not run training when that command fails.
 
+Native-word inference optionally accepts `--native-concurrency N` through the
+coding campaign (`--concurrency N` on the native evaluator). It scales both KV
+caches so all active full contexts fit without eviction, and records this execution
+setting in the resume identity. Defaults retain the smaller two-sequence footprint;
+eight sequences use two 20-GiB caches plus approximately 16 GiB of BF16 weights and
+runtime overhead, requiring an appropriately sized single GPU. Use spare memory in
+an existing interactive allocation; do not request extra GPUs for this setting.
+
 ```bash
 uv run --project experiments/coding/env python -m experiments.coding.submit \
   --cpu-args "$CPU_SBATCH_ARGS" --eval-args "$EVAL_SBATCH_ARGS" \

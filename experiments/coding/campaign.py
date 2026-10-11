@@ -31,6 +31,7 @@ def main() -> None:
     run.add_argument("--n", type=int, default=8)
     run.add_argument("--decoding", choices=("training", "evaluation"), default="evaluation")
     run.add_argument("--solo", type=Path)
+    run.add_argument("--native-concurrency", type=int, help="Optional native-word execution concurrency; size GPU memory accordingly")
     select = sub.add_parser("select")
     select.add_argument("--root", type=Path, required=True)
     panel = sub.add_parser("panel")
@@ -197,6 +198,8 @@ def evaluate(args) -> None:
             command += ["--senior", args.model, "--junior", args.junior]
             if args.phase == "word-handoff":
                 command += ["--decoding", args.decoding]
+                if args.native_concurrency is not None:
+                    command += ["--concurrency", str(args.native_concurrency)]
     subprocess.run(command, check=True)
 
 

@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -22,16 +23,18 @@ def main() -> None:
     parser.add_argument('--n', type=int, default=8)
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--decoding', choices=('training', 'evaluation'), default='training')
+    parser.add_argument('--concurrency', type=int, help='Active sequences; increases both KV caches to fit full contexts')
     common.add_data_arguments(parser)
     parser.add_argument("--benchmarks", default=",".join(common.DEFAULT_SETS))
     args = parser.parse_args()
     common.configure(args)
     evaluate(args.senior, args.junior, args.out, n=args.n, limit=args.limit,
-             decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks))
+             decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks), concurrency=args.concurrency)
 
 
 def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
-             limit: int = 0, decoding: str = 'training', benchmarks=common.DEFAULT_SETS) -> dict:
+             limit: int = 0, decoding: str = 'training', benchmarks=common.DEFAULT_SETS,
+             concurrency: int | None = None) -> dict:
     """Run GPU inference and atomically save complete batches plus a final JSON.
 
     Reuses only matching saved inputs. Word-boundary Bernoulli(0.5) redraws and
@@ -44,6 +47,10 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     from vllm import SamplingParams
     if n < 1 or limit < 0 or decoding not in ('training', 'evaluation'):
         raise ValueError('Invalid sample count, limit, or decoding preset')
+    if concurrency is not None and concurrency < 1:
+        raise ValueError('Concurrency must be positive')
+    active_sequences = concurrency or (2 if common.MAX_MODEL_LEN > 4096 else 4)
+    cache_bytes = 5 * 1024**3 * math.ceil(active_sequences * common.MAX_MODEL_LEN / 16384)
     boundary_path = common.ROOT / 'train/assets/qwen3_word_boundary_ids.json'
     boundary_bytes = boundary_path.read_bytes()
     boundaries = set(json.loads(boundary_bytes))
@@ -55,8 +62,10 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                              'max_gap_tokens': 32, 'boundary_sha256': hashlib.sha256(boundary_bytes).hexdigest()},
                 'seed_rule': '1000 * problem_index + sample_index',
                 'max_model_len': common.MAX_MODEL_LEN,
-                'max_num_seqs': 2 if common.MAX_MODEL_LEN > 4096 else 4,
+                'max_num_seqs': active_sequences,
                 'budget_rule': f'min(3000, {common.MAX_MODEL_LEN} - prompt_tokens - 8)'}
+    if concurrency is not None:
+        identity['kv_cache_memory_bytes_per_model'] = cache_bytes
     problems = common.load_problems(sets=benchmarks, limit=limit)
     # Eight coding samples already saturate the two active sequences. Commit
     # each problem rather than risking a long 128-sample batch on preemption.
@@ -79,7 +88,8 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     budgets = [common.response_budget(length) for length in lengths]
     if min(budgets) < 1 and common.MAX_PROMPT is None:
         raise ValueError('A prompt exceeds the model context')
-    engine = build_engine(senior, junior, boundary_path)
+    engine = build_engine(senior, junior, boundary_path, max_num_seqs=active_sequences,
+                          kv_cache_memory_bytes=cache_bytes)
     gens = progress['gens']
     try:
         while len(gens) < len(problems):
@@ -143,17 +153,18 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         engine.llm_engine.engine_core.shutdown()
 
 
-def build_engine(senior: str, junior: str, boundaries: Path):
-    """Load both BF16 models on GPU 0, with two bounded 5-GiB KV caches."""
+def build_engine(senior: str, junior: str, boundaries: Path, *, max_num_seqs: int | None = None,
+                 kv_cache_memory_bytes: int = 5*1024**3):
+    """Load both BF16 models on GPU 0 with explicitly bounded per-model KV caches."""
     from vllm import LLM
     os.environ.pop('VLLM_TANDEM_CONFIG', None)
     os.environ.pop('VLLM_TANDEM_ALL_GPUS', None)
     return LLM(model=senior, dtype='bfloat16', enforce_eager=True,
                # Measured cache = 18,192 tokens: four full 4,096-token sequences
                # fit without eviction/replay of the stateful word sampler.
-               max_model_len=common.MAX_MODEL_LEN, max_num_seqs=2 if common.MAX_MODEL_LEN > 4096 else 4,
+               max_model_len=common.MAX_MODEL_LEN, max_num_seqs=max_num_seqs or (2 if common.MAX_MODEL_LEN > 4096 else 4),
                max_num_batched_tokens=4096, gpu_memory_utilization=0.85,
-               kv_cache_memory_bytes=5*1024**3, enable_prefix_caching=True,
+               kv_cache_memory_bytes=kv_cache_memory_bytes, enable_prefix_caching=True,
                tandem_config={'enabled': True, 'frozen_model': junior,
                               'selection_strategy': 'word', 'prob_primary': 0.5,
                               'max_gap_tokens': 32, 'frozen_gpu_devices': [0],
