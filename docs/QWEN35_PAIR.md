@@ -217,3 +217,9 @@ output and all five input gradients against Transformers' reference, using
 two independent BF16 sequences and a partial final chunk. The fallback-only
 smokes are being replaced before any accepted update/checkpoint; inference
 evaluations continue unchanged.
+
+Accelerated three-step smokes: CSAIL Tandem `2616100`, Engaging GRPO `25539689`.
+Their strict fourth-step resume checks are `2616101` and `25539690`, respectively,
+each dependent on smoke success. Fallback attempts `2615963`/`25537766` and their
+pending continuations `2616017`/`25538683` were cancelled before replacement.
+No full 200-step training arm has launched yet.

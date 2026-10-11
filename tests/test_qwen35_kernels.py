@@ -1,10 +1,11 @@
 """GPU check of optional FLA against Transformers' Qwen3.5 reference kernels."""
 import unittest
+from importlib.util import find_spec
 
 import torch
 
 
-@unittest.skipUnless(torch.cuda.is_available(), "requires a CUDA allocation")
+@unittest.skipUnless(torch.cuda.is_available() and find_spec("fla"), "requires CUDA and optional FLA kernels")
 class Qwen35Kernels(unittest.TestCase):
     def test_batched_forward_and_backward(self):
         from fla.ops.gated_delta_rule import chunk_gated_delta_rule

@@ -5,7 +5,7 @@ CPU checks for the handoff schedule, loss mask, validation protocol, and benchma
 ## CPU
 
 ```bash
-python -m unittest discover -s tests
+uv run python -m unittest discover -s tests
 ```
 
 | file | what it proves |
@@ -18,7 +18,9 @@ python -m unittest discover -s tests
 The schedule and gate tests import functions from the installed forks. The validation test
 executes the parameter setup from both installed agent-loop methods before Ray dispatch,
 and runs the launchers with a recording stub in place of the trainer. No test loads a model
-or requires a GPU or distributed group.
+or requires a GPU or distributed group. The separate optional
+`test_qwen35_kernels.py` requires CUDA and FLA; it checks accelerated outputs and
+gradients against Transformers' Qwen3.5 reference and skips without that runtime.
 
 The sampler forward check uses deliberately different synthetic logits and greedy
 decoding; it does not test GPU model forwards or weight synchronization. The loss
