@@ -80,3 +80,20 @@ Probe 2615771 loaded both models successfully, then was cancelled during
 FlashInfer's 35-target first-use kernel compilation. The diagnostic selects
 vLLM's built-in Triton GDN prefill backend and disables unused image/video
 profiling to avoid that startup cost; neither changes the Tandem architecture.
+
+Native probe **2615854 passed**: four responses, 957 tokens, senior fraction
+0.5350; every token had valid authorship and every switch passed the existing
+word-boundary/backstop check. Probe 2615815 exposed the redundant junior cache
+allocator selecting the hybrid backend's unsupported ordinary-attention API.
+A 20-line addition delegates colocated hybrid cache allocation/metadata to
+upstream vLLM. Probe 2615838 then exposed the optional prefix-cache copier's
+identical-Mamba-shape assumption. Disabling prefix caching via supported config
+resolved that failure. No model, kernel, switching or loss implementation changed.
+The hybrid path currently requires both decoders on the same GPU.
+
+Engaging setup **25536318 completed** using the existing setup entrypoint and
+an isolated training environment with the pinned grading dependencies. The
+pending CSAIL CPU-check job 2615841 was cancelled before this work moved.
+Training uses text-only mode, frozen vision tower, Triton GDN prefill, and
+disabled prefix caching. These are supported execution settings, not changes
+to the RL objective. Training/checkpoint validation remains outstanding.
