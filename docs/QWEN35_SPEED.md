@@ -65,7 +65,7 @@ No diagnostic hook is loaded. It requests three training steps followed by
 the full 1,000-problem pass@4 validation and a recovery/HF checkpoint.
 
 `train/check_pair.py --cuda-graphs` exercises the same native pair probe with
-vLLM graph capture enabled, including per-token switch checks and a full junior
+vLLM decode-only graph capture and torch.compile disabled, including per-token switch checks and a full junior
 weight fingerprint across a senior weight reload. Use a separate `--out` path
 from the eager probe; graph mode is part of its saved identity. The underlying
 `experiments.word_handoff.word_handoff.build_engine(..., enforce_eager=True)`
