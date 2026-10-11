@@ -26,7 +26,7 @@ export ELEGANCE_JUDGE_CACHE="$RUN_ROOT/judge-cache"
 export ELEGANCE_CODEX_BIN=/data/scratch/chrisge/.local/bin/codex-cluster
 export TOTAL_STEPS=${TOTAL_STEPS:-200} TOTAL_EPOCHS=100 TEST_FREQ=20 SAVE_FREQ=5
 export MAX_CKPT_KEEP=2 PERSIST_HF_INTERVAL=200 PPO_MAX_TOKEN=4096
-export MAX_PROMPT=2048 MAX_RESPONSE=3000
+export MAX_PROMPT=1024 MAX_RESPONSE=3000
 export BOUNDARY_IDS_PATH="${INITIALIZATION_ROOT:?}/word-boundaries.json"
 export TRAIN_FILES="${ELEGANCE_DATA:?}/train.parquet"
 export VERL_FILE_LOGGER_PATH="$CKPT_DIR/metrics-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}.jsonl"
@@ -39,6 +39,8 @@ run_python -m experiments.elegance.preflight --archive data/method-elegance/data
 export BASE_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["path"])' "$INITIALIZATION_ROOT/base.json")
 export POLICY_MODEL="$BASE_MODEL"
 export JUNIOR_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["junior"]["path"])' "$INITIALIZATION_ROOT/base.json")
+if [ -f "$CKPT_DIR/data-manifest.json" ]; then cmp "$ELEGANCE_DATA/manifest.json" "$CKPT_DIR/data-manifest.json"; fi
+if [ -f "$CKPT_DIR/initialization.json" ]; then cmp "$INITIALIZATION_ROOT/base.json" "$CKPT_DIR/initialization.json"; fi
 cp "$INITIALIZATION_ROOT/base.json" "$CKPT_DIR/initialization.json"
 cp "$ELEGANCE_DATA/manifest.json" "$CKPT_DIR/data-manifest.json"
 git rev-parse HEAD > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"
