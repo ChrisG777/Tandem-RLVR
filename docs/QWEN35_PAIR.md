@@ -142,3 +142,11 @@ smoke `2615918` passed; full 32-draw/1,064-problem baseline is job `2615938`.
 GRPO smoke `25536909` was preempted once and automatically requeued under the
 same ID, before any checkpoint was written. This verifies scheduler recovery,
 not checkpoint restoration.
+
+The complete evaluator installation resolves the missing module. On H200,
+9B solo/handoff smokes `2615919`/`2615920` then spent over six minutes compiling
+FlashInfer GDN prefill variants, reproducing the earlier native-probe startup
+cost. They were cancelled before generating samples. `eval.common.build_engine`
+now selects built-in Triton GDN prefill and disables image/video profiling for
+Qwen3.5 models only, matching the validated native execution settings. The 2B
+RTX 3090 path already selected Triton automatically. Decoding is unchanged.
