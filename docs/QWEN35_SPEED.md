@@ -113,7 +113,7 @@ against FP32 PyTorch log-softmax. Full-model speed and memory remain to be measu
 
 The existing `slurm/train-figure2.sbatch` accepts `QWEN35_SPEED=1` to enable the
 candidate deferred synchronization, native fused CPU AdamW, FLA cross entropy,
-four OpenMP threads, and decode-only graphs. Supply `PPO_MAX_TOKEN=16000`
+512-token chunked entropy, four OpenMP threads, and decode-only graphs. Supply `PPO_MAX_TOKEN=16000`
 explicitly; this changes execution microbatch packing, not the RL batch or
 minibatch. Full-weight FP32 parameters/optimizer states and BF16 compute remain.
 `MODE=smoke SMOKE_STEPS=3 SMOKE_VAL_SAMPLES=1000` runs three steps and the complete
@@ -121,8 +121,16 @@ held-out pass@4 validation. `QWEN35_PROFILE_DIR=DIR` optionally enables stage ti
 All other campaigns retain their defaults. These options require both updated
 fork patches and the pinned Qwen3.5 runtime described above.
 
-Restartable short jobs 2622947 (Tandem) and 2622948 (GRPO) started independently
-on one A100 80 GB each. They use source commit `0c726c3`, full validation, and
+Short jobs 2622947 (Tandem) and 2622948 (GRPO), source `0c726c3`, both failed
+before the first update on A100 80 GB. The padded forward path bypassed verl's
+configured chunked entropy function and allocated another 21–23 GiB while
+logging old-policy entropy. A six-line integration now calls the existing
+chunked function on flattened padded logits and restores the output shape.
+The value/gradient check against unchunked entropy passed. This does not remove
+entropy logging or change the objective, and all failure logs are retained.
+
+Replacement restartable short jobs 2623089 (Tandem) and 2623091 (GRPO) started
+independently on one A100 80 GB each, source `6b4867f`, with full validation and
 separate output roots under `speed/fused-ce/{tandem,grpo}-smoke`. Each saves a
 recovery/HF checkpoint at step 3, automatically resumes committed progress on
 requeue, and stops after the short test. They do not restart the cancelled
