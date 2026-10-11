@@ -11,7 +11,7 @@ index 9b618f8..6c3bf54 100644
 +        if tandem_model_mask is not None:
 +            output["tandem_model_mask"] = torch.tensor(tandem_model_mask, dtype=torch.int64)
          return output
-
+ 
  
 @@ -172,12 +176,14 @@ class _InternalAgentLoopOutput(AgentLoopOutput):
      """Padded token ids corresponding to the teacher log probabilities."""
@@ -22,16 +22,16 @@ index 9b618f8..6c3bf54 100644
      """Multi-modal inputs for processors (e.g. pixel_values, image_grid_thw, video_grid_thw)."""
      extra_fields: dict[str, Any] = {}
      """Extra fields for dynamic addition."""
-
+ 
  
 +
  class DictConfigWrap:
      """Wrapper for DictConfig to avoid hydra.utils.instantiate recursive resolve."""
-
+ 
 @@ -837,6 +843,13 @@ class AgentLoopWorker:
                  pad_token_id=self.tokenizer.pad_token_id,
              )
-
+ 
 +        tandem_model_mask = None
 +        tmm = output.extra_fields.pop("tandem_model_mask", None)
 +        if tmm is not None:
@@ -114,7 +114,7 @@ index 11547d8..d2f9573 100644
 --- a/verl/trainer/config/actor/actor.yaml
 +++ b/verl/trainer/config/actor/actor.yaml
 @@ -310,4 +310,4 @@ qat:
-
+ 
    # Path to vLLM quantization config JSON file
    quantization_config_path: null
 -
@@ -125,7 +125,7 @@ index b40c485..5aface1 100644
 +++ b/verl/trainer/ppo/v1/trainer_base.py
 @@ -98,6 +98,44 @@ logger = logging.getLogger(__name__)
  logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "INFO"))
-
+ 
  
 +def persist_hf_checkpoint(actor_local_path: str, default_local_dir: str, global_steps: int) -> str | None:
 +    """Retain immutable HF weights independently of resume-checkpoint rotation.
@@ -167,7 +167,7 @@ index b40c485..5aface1 100644
 +
  class PPOTrainer(ABC):
      """Base class for PPO trainer.
-
+ 
 @@ -694,6 +732,10 @@ class PPOTrainer(ABC):
          max_actor_ckpt_to_keep = (
              self.config.trainer.get("max_actor_ckpt_to_keep", None) if not remove_previous_ckpt_in_save else 1
@@ -182,7 +182,7 @@ index b40c485..5aface1 100644
 @@ -709,6 +751,14 @@ class PPOTrainer(ABC):
              actor_local_path, actor_remote_path, self.global_steps, max_ckpt_to_keep=max_actor_ckpt_to_keep
          )
-
+ 
 +        hf_interval = self.config.trainer.get("persist_hf_interval", 1)
 +        if self.config.trainer.get("persist_hf_model", False) and self.global_steps % hf_interval == 0:
 +            hf_dst = persist_hf_checkpoint(
@@ -203,7 +203,7 @@ index b4111f9..06b2c3f 100644
      model_config: HFModelConfig = field(default_factory=BaseConfig)
      router_replay: RouterReplayConfig = field(default_factory=RouterReplayConfig)
 +    tandem_jr_tkn_weight: float = 0.0
-
+ 
      # Store global batch info for loss aggregation:
      # dp_size: data parallel size
 diff --git a/verl/workers/rollout/vllm_rollout/utils.py b/verl/workers/rollout/vllm_rollout/utils.py
@@ -212,7 +212,7 @@ index cd8df05..59bec9f 100644
 +++ b/verl/workers/rollout/vllm_rollout/utils.py
 @@ -43,6 +43,14 @@ VLLM_LORA_PATH = "simon_lora_path"
  VLLM_ASCEND_REQUIRED_ENV_VARS = {"VLLM_ALL2ALL_BACKEND": "flashinfer_all2allv", "VLLM_ASCEND_ENABLE_NZ": "0"}
-
+ 
  
 +def _zmq_dir() -> str:
 +    import os as _os
@@ -231,7 +231,7 @@ index cd8df05..59bec9f 100644
          local_rank = _resolve_vllm_weight_sync_local_rank(self.local_rank, parallel_config)
 -        return f"ipc:///tmp/rl-colocate-zmq-{job_id}-replica-{replica_rank}-rank-{local_rank}.sock"
 +        return f"ipc://{_zmq_dir()}/rl-colocate-zmq-{job_id}-replica-{replica_rank}-rank-{local_rank}.sock"
-
+ 
  
  class SuppressSignalInThread:
 diff --git a/verl/workers/rollout/vllm_rollout/vllm_async_server.py b/verl/workers/rollout/vllm_rollout/vllm_async_server.py
@@ -240,7 +240,7 @@ index 068bab5..707a9dc 100644
 +++ b/verl/workers/rollout/vllm_rollout/vllm_async_server.py
 @@ -83,6 +83,21 @@ logger = logging.getLogger(__file__)
  logger.setLevel(logging.INFO)
-
+ 
  
 +def _tandem_extra_visible_devices(node_cuda_visible_devices, env=None):
 +    env = os.environ if env is None else env
@@ -283,7 +283,7 @@ index 052abaf..fa26b22 100644
 +++ b/verl/workers/rollout/vllm_rollout/vllm_rollout.py
 @@ -48,6 +48,14 @@ logger = logging.getLogger(__file__)
  logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "INFO"))
-
+ 
  
 +def _zmq_dir() -> str:
 +    import os as _os
@@ -302,7 +302,7 @@ index 052abaf..fa26b22 100644
          job_id = ray.get_runtime_context().get_job_id()
 -        self.zmq_handle = f"ipc:///tmp/rl-colocate-zmq-{job_id}-replica-{self.replica_rank}-rank-{local_rank}.sock"
 +        self.zmq_handle = f"ipc://{_zmq_dir()}/rl-colocate-zmq-{job_id}-replica-{self.replica_rank}-rank-{local_rank}.sock"
-
+ 
          self.use_shm = not is_support_ipc()
          if self.use_shm:
 diff --git a/verl/workers/utils/losses.py b/verl/workers/utils/losses.py
@@ -311,7 +311,7 @@ index c865b9d..6d4ea99 100644
 +++ b/verl/workers/utils/losses.py
 @@ -54,6 +54,28 @@ def sft_loss(config: ActorConfig, model_output, data: TensorDict, dp_group=None)
      return loss, {}
-
+ 
  
 +def _tandem_mask_fields(data):
 +    return ["tandem_model_mask"] if "tandem_model_mask" in data.keys() else []
@@ -344,7 +344,7 @@ index c865b9d..6d4ea99 100644
          fields.append("ref_log_prob")
 +    fields = fields + _tandem_mask_fields(data)
      data = data.select(*fields).to_padded_tensor()
-
+ 
      response_mask = data["response_mask"].to(bool)
 +    response_mask = _apply_tandem_senior_gate(config, response_mask, data, metrics)
      # compute policy loss
@@ -356,7 +356,7 @@ index 38d22b5..1ca0261 100644
 --- a/verl/utils/checkpoint/fsdp_checkpoint_manager.py
 +++ b/verl/utils/checkpoint/fsdp_checkpoint_manager.py
 @@ -216,6 +216,20 @@ class FSDPCheckpointManager(BaseCheckpointManager):
-
+ 
          # wait for everyone to load checkpoints
          torch.distributed.barrier()
 +        if self.rank == 0:
@@ -373,14 +373,14 @@ index 38d22b5..1ca0261 100644
 +                    and (path / "data.pt").is_file() and (path / loaded.name).is_dir()]
 +            else:
 +                self.previous_saved_paths = [local_path]
-
+ 
      def save_checkpoint(self, local_path: str, hdfs_path: str = None, global_step: int = 0, max_ckpt_to_keep=None):
          """
 diff --git a/verl/workers/config/engine.py b/verl/workers/config/engine.py
 --- a/verl/workers/config/engine.py
 +++ b/verl/workers/config/engine.py
 @@ -248,6 +248,8 @@
-
+ 
      # fsdp specific flags
      wrap_policy: dict[str, Any] = field(default_factory=dict)
 +    # Opt-in backport of upstream deferred gradient synchronization.
@@ -398,12 +398,12 @@ diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/
 -from contextlib import nullcontext
 +from contextlib import contextmanager, nullcontext
  from typing import Callable, ContextManager, Optional
-
+ 
  import torch
 @@ -635,6 +635,39 @@
      def get_context_parallel_group(self):
          raise NotImplementedError
-
+ 
 +    @contextmanager
 +    def _gradient_sync_context(self, *, is_last_micro_batch: bool):
 +        """Skip FSDP gradient communication on non-final accumulation steps.
@@ -443,7 +443,7 @@ diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/
 @@ -659,8 +692,13 @@
          # and _build_fsdp_module, so self.scaler may not be set.
          scaler = getattr(self, "scaler", None)
-
+ 
 -        for micro_batch in micro_batches:
 -            with ctx:
 +        for micro_batch_idx, micro_batch in enumerate(micro_batches):
@@ -454,7 +454,7 @@ diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/
 +            )
 +            with ctx, sync_ctx:
                  loss, meta_info = self.forward_step(micro_batch, loss_function=loss_function, forward_only=forward_only)
-
+ 
                  if not forward_only:
 diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_base.py
 --- a/verl/trainer/ppo/v1/trainer_base.py
@@ -507,5 +507,5 @@ diff --git a/verl/utils/torch_functional.py b/verl/utils/torch_functional.py
 +
 +    FLAH_ATTN_CROSS_ENTROPY_LOSS_AVAILABLE = True
 
- 
+
  try:
