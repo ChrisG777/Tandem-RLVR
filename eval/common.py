@@ -72,7 +72,8 @@ def load_problems(sets=DEFAULT_SETS, limit=0):
                     "idx": len(rows),
                     "content": r["prompt"][0]["content"],
                     "gt": str(r["reward_model"]["ground_truth"]),
-                    **({"data_source": "apps", "task_id": r["extra_info"]["task_id"]}
+                    "data_source": r.get("data_source", "math"),
+                    **({"task_id": r["extra_info"]["task_id"]}
                        if r.get("data_source") == "apps" else {}),
                 }
             )
