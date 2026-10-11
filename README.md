@@ -62,3 +62,9 @@ rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
 [APPS coding](docs/APPS.md): [prepare data](experiments/coding/build_apps.py) →
 [sandboxed reward](experiments/coding/reward.py) →
 [calibrate, train and evaluate](experiments/coding/campaign.py).
+
+[Method Atlas](docs/METHOD_AUDIT.md): [curate](experiments/method_audit/curate.py) →
+[mathematical review](experiments/method_audit/review.py) →
+[answer verification](experiments/method_audit/verify.py) →
+[all-path elegance labels](experiments/method_audit/elegance.py) →
+[portable dataset](experiments/method_audit/package.py) / [audit UI](experiments/method_audit/serve.py).

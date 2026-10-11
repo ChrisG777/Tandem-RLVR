@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Method Atlas · Tandem RLVR</title>
+    <link rel="stylesheet" href="/assets/katex/katex.min.css" />
+    <link rel="stylesheet" href="/style.css" />
+    <script defer src="/assets/katex/katex.min.js"></script>
+    <script defer src="/assets/katex/contrib/auto-render.min.js"></script>
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/"
+        >◈
+        <span>METHOD ATLAS<small>TANDEM RLVR · DATA CURATION</small></span></a
+      >
+      <div class="top-actions">
+        <span id="save-state" role="status">Connecting…</span
+        ><button id="atlas-button">Methods & holdouts ↗</button
+        ><button id="backup">Back up audits</button
+        ><button id="machine-export">Export labeled paths ↗</button
+        ><button id="export" class="dark">Export human approved ↗</button>
+      </div>
+    </header>
+    <div class="workspace">
+      <aside class="library">
+        <div class="section-label">RESEARCH COLLECTION</div>
+        <h1>Two ways<br />to get there.</h1>
+        <p class="intro">
+          Find the insight. Check the longer route. Keep the evidence.
+        </p>
+        <div class="stats">
+          <div><strong id="total">—</strong><span>candidates</span></div>
+          <div><strong id="reviewed">—</strong><span>AI reviewed</span></div>
+          <div><strong id="ready">—</strong><span>checked problems</span></div>
+        </div>
+        <label class="search-label"
+          ><span class="sr-only">Search problems</span
+          ><input
+            id="search"
+            type="search"
+            placeholder="Search title, question, method…"
+        /></label>
+        <div class="filter-grid">
+          <label
+            >Status<select id="status-filter">
+              <option value="">All statuses</option>
+              <option value="pending">Unreviewed</option>
+              <option value="accepted">Accepted</option>
+              <option value="needs_work">Needs work</option>
+              <option value="rejected">Rejected</option>
+              <option value="ready">Export-ready</option>
+            </select></label
+          ><label
+            >Source<select id="source-filter">
+              <option value="">All sources</option>
+            </select></label
+          ><label
+            >Partition<select id="split-filter">
+              <option value="">All partitions</option>
+              <option value="train">Train</option>
+              <option value="validation">Validation</option>
+              <option value="test">Test holdout</option>
+              <option value="unassigned">Unassigned</option>
+            </select></label
+          ><label
+            >Method<select id="method-filter">
+              <option value="">All methods</option>
+            </select></label
+          >
+        </div>
+        <label
+          >AI review<select id="machine-filter">
+            <option value="">All AI verdicts</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Rejected</option>
+            <option value="needs_work">Needs work</option>
+            <option value="unreviewed">Unreviewed</option>
+            <option value="ready" selected>Answer-checked problems</option>
+          </select></label
+        >
+        <p id="machine-progress" class="muted" role="status"></p>
+        <label class="check minor"
+          ><input id="shortlist-filter" type="checkbox" checked /> Screened
+          shortlist only</label
+        >
+        <label class="check minor"
+          ><input id="pair-filter" type="checkbox" checked /> At least two full
+          solutions</label
+        >
+        <div class="list-heading">
+          <span id="list-count"></span><span>Priority order</span>
+        </div>
+        <div
+          id="problem-list"
+          class="problem-list"
+          aria-label="Candidate problems"
+        ></div>
+      </aside>
+      <main id="main">
+        <div id="error" role="alert" hidden></div>
+        <div id="empty" hidden>No candidates match these filters.</div>
+        <div id="detail">
+          <div class="document-bar">
+            <div>
+              <span class="section-label" id="source-label"></span>
+              <h2 id="title"></h2>
+            </div>
+            <div class="navigation">
+              <button id="prev" aria-label="Previous problem">←</button
+              ><span id="position"></span
+              ><button id="next" aria-label="Next problem">→</button>
+            </div>
+          </div>
+          <div class="badges" id="badges"></div>
+          <section class="question card">
+            <div class="card-head">
+              <h3>THE QUESTION</h3>
+              <button id="raw-toggle" class="text-button">Show raw text</button>
+            </div>
+            <div id="question" class="math-text"></div>
+            <details>
+              <summary>Reference answer & provenance</summary>
+              <div id="answer" class="math-text"></div>
+              <div id="provenance"></div>
+            </details>
+          </section>
+          <section id="machine-review" class="card" hidden></section>
+          <section id="path-review" class="card"></section>
+          <div id="curator-note" class="curator-note"></div>
+          <div id="flags" class="flags"></div>
+          <div class="routes-heading">
+            <div>
+              <span class="section-label">COMPARE THE ARGUMENTS</span>
+              <p>
+                Two selected paths; source corrections and reviewed labels are
+                explicit.
+              </p>
+            </div>
+            <span id="route-count"></span>
+          </div>
+          <div class="route-grid" id="route-grid"></div>
+          <details class="card source-note">
+            <summary>
+              What this collection establishes—and what it doesn’t
+            </summary>
+            <div id="collection-notes"></div>
+            <p>
+              Acceptance records your mathematical audit. Junior accessibility
+              requires a separate model experiment. Exact answer agreement does
+              not verify an argument.
+            </p>
+          </details>
+        </div>
+      </main>
+      <aside class="audit-panel">
+        <div class="section-label">YOUR REVIEW</div>
+        <h2>Audit this pair</h2>
+        <p class="muted">
+          Assign the two roles after reading. Pane order does not imply
+          elegance.
+        </p>
+        <label>Elegant / structural route<select id="elegant"></select></label
+        ><label
+          >Elementary / roundabout route<select id="elementary"></select
+        ></label>
+        <div class="audit-checks">
+          <label class="check"
+            ><input id="correct_elegant" type="checkbox" /> Elegant route is
+            mathematically valid</label
+          ><label class="check"
+            ><input id="correct_elementary" type="checkbox" /> Elementary route
+            is mathematically valid</label
+          ><label class="check"
+            ><input id="distinct" type="checkbox" /> These are genuinely
+            different methods</label
+          >
+        </div>
+        <button id="labels-button" class="wide">
+          Review labels on all routes <span id="labels-count"></span></button
+        ><label class="check"
+          ><input id="methods_reviewed" type="checkbox" /> All route labels and
+          additional methods are complete</label
+        >
+        <label
+          >Answer correction <span class="optional">if needed</span
+          ><input
+            id="answer-correction"
+            placeholder="Leave blank to retain source answer"
+        /></label>
+        <label
+          >Junior capability evidence<select id="capability">
+            <option value="untested">Not tested</option>
+            <option value="gap_observed">
+              Gap observed in separate experiment
+            </option>
+            <option value="no_gap">No gap observed</option>
+          </select></label
+        >
+        <label
+          >Audit notes<textarea
+            id="notes"
+            rows="4"
+            placeholder="Missing assumptions, a better route, evidence, or reasons to reject…"
+          ></textarea>
+        </label>
+        <label
+          >Verdict<select id="verdict">
+            <option value="pending">Unreviewed</option>
+            <option value="accepted">Accept pair</option>
+            <option value="needs_work">Needs work</option>
+            <option value="rejected">Reject</option>
+          </select></label
+        >
+        <div id="export-readiness" class="readiness"></div>
+        <div class="audit-actions">
+          <button id="save" class="dark wide">Save review</button
+          ><button id="save-next" class="wide">Save & next →</button>
+        </div>
+        <p class="footnote">
+          Saved to local SQLite. Rebuilds preserve reviews.<br />J / K to browse
+          · Ctrl/⌘ Enter to save
+        </p>
+      </aside>
+    </div>
+    <dialog id="atlas">
+      <div class="modal-head">
+        <div>
+          <span class="section-label">GENERALIZATION BY METHOD</span>
+          <h2>Methods & holdouts</h2>
+        </div>
+        <button data-close="atlas" aria-label="Close method atlas">×</button>
+      </div>
+      <p>
+        Assign entire families. A problem using any test method goes to test;
+        validation takes precedence over train. Counts reflect all retained
+        routes, including alternatives. These assignments remain provisional
+        until labels are audited.
+      </p>
+      <div id="partition-counts" class="partition-counts"></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Method family</th>
+              <th>Domain</th>
+              <th>Candidates</th>
+              <th>Checked AI pairs</th>
+              <th>Partition</th>
+            </tr>
+          </thead>
+          <tbody id="method-table"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <span id="holdout-message"></span
+        ><button id="save-holdouts" class="dark">Save holdouts</button>
+      </div>
+    </dialog>
+    <dialog id="labels">
+      <div class="modal-head">
+        <div>
+          <span class="section-label">PREVENT METHOD LEAKAGE</span>
+          <h2>Review every route</h2>
+        </div>
+        <button data-close="labels" aria-label="Close labels">×</button>
+      </div>
+      <p>
+        Correct each route’s proposed labels. Even unselected routes determine
+        the partition. Add methods required by the question or omitted by the
+        lexical matcher. A missing family belongs in methods.json before export.
+      </p>
+      <div id="route-label-editor"></div>
+      <div class="modal-footer">
+        <span>Changes are included when you save the review.</span
+        ><button id="apply-labels" class="dark">Apply labels</button>
+      </div>
+    </dialog>
+    <dialog id="correction">
+      <div class="modal-head">
+        <h2>Correct a solution</h2>
+        <button data-close="correction" aria-label="Close correction">×</button>
+      </div>
+      <p>
+        The original source stays intact. Store a replacement derivation, or
+        clear this field to use the original.
+      </p>
+      <textarea id="corrected-text" rows="18"></textarea>
+      <div class="modal-footer">
+        <button id="apply-correction" class="dark">Apply correction</button>
+      </div>
+    </dialog>
+  </body>
+</html>
