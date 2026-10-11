@@ -1,11 +1,13 @@
 # APPS pilot run: 2026-10-10
 
-Status: the user authorized a larger response budget after solo calibration
-failed the original truncation gate. The revised protocol uses 6,000 response
-and 12,288 context tokens, retaining the same 4,096 prompt limit and validation
-split. Both modes will be recalibrated in `apps-20261010-6k` using allocation
-2615728. The original native run was stopped with partial progress preserved.
-Training remains gated on the revised calibration and independent smoke runs.
+Status (2026-10-11): the user authorized a 10% truncation threshold and training
+after additional checks. Completed 6k solo calibration: accuracy 66.94%, mixed
+reward groups 28.5%, truncation 8.5%. Native progress is saved at 112/200 tasks.
+Replacement interactive allocation 2618086 on isola-h100-1 resumes native
+calibration and performs both training smokes using the same run directory.
+It is hosted in a detached login-node tmux session (`apps-checks`, session `apps`)
+so a local client disconnect does not terminate salloc. Full training remains
+conditional on completed calibration and each arm's own smoke checks.
 
 ## Code and allocation
 

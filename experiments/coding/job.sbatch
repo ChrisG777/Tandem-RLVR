@@ -82,6 +82,7 @@ case "$PHASE" in
             "reward.custom_reward_function.path=$REPO/experiments/coding/reward.py" \
             'trainer.logger=[console,file]' "ray_kwargs.ray_init.num_cpus=$SLURM_CPUS_PER_TASK" \
             actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 actor_rollout_ref.rollout.top_k=-1 \
+            actor_rollout_ref.model.lora_rank=0 \
             actor_rollout_ref.rollout.max_model_len=12288 trainer.resume_mode=auto \
             actor_rollout_ref.rollout.max_num_seqs=2 \
             +actor_rollout_ref.rollout.engine_kwargs.vllm.kv_cache_memory_bytes=10737418240 \

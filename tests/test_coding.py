@@ -70,6 +70,12 @@ class CodingTests(unittest.TestCase):
             for tier in ('apps_introductory', 'apps_interview')}}
         kwargs = dict(manifest=manifest, manifest_sha256='same')
         self.assertTrue(calibration(solo, word, **kwargs)["passed"])
+        boundary = copy.deepcopy(solo)
+        for row in boundary['gens'][:20]:
+            row['samples'] = [{'n_tokens': 6000, 'finish_reason': 'length'} for _ in range(8)]
+        self.assertTrue(calibration(boundary, word, **kwargs)['passed'])
+        boundary['gens'][20]['samples'][0] = {'n_tokens': 6000, 'finish_reason': 'length'}
+        self.assertFalse(calibration(boundary, word, **kwargs)['passed'])
         legacy = copy.deepcopy(solo)
         legacy['sampling']['max_tokens'] = 3000
         legacy['context'] = 8192

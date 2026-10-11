@@ -10,6 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT), str(ROOT / "eval"), str(ROOT / "train")]
 TIERS = ("apps_introductory", "apps_interview")
+MAX_TRUNCATION = 0.10
 
 
 def main() -> None:
@@ -79,7 +80,8 @@ def main() -> None:
             "grader": grader_identity(), "context": 12288, "max_prompt": 4096, "max_response": 6000,
             "calibration": {"validation_tasks": 200, "samples_per_mode": 8,
                             "accuracy_range": [0.05, 0.90], "min_mixed_groups": 0.10,
-                            "max_truncation": 0.05, "threshold_status": "pilot"},
+                            "max_truncation": MAX_TRUNCATION, "threshold_status": "pilot",
+                            "revision_reason": "User-approved 10% threshold after 6k validation calibration; no test scores consulted"},
             "training": {"steps": 200, "seed": 42, "batch": 16, "minibatch": 8,
                          "rollouts": 8, "learning_rate": 1e-6, "clip_ratio": 0.2,
                          "temperature": 0.6, "top_p": 1.0, "top_k": -1,
@@ -154,11 +156,13 @@ def calibration(solo: dict, word: dict, *, manifest: dict, manifest_sha256: str)
                 raise ValueError("Expected 100 validation problems per tier")
             by_tier[tier] = describe(rows)
         pooled = describe(result["gens"])
-        passed = 0.05 <= pooled["accuracy"] <= 0.90 and pooled["mixed_groups"] >= 0.10 and pooled["truncation"] <= 0.05
+        passed = 0.05 <= pooled["accuracy"] <= 0.90 and pooled["mixed_groups"] >= 0.10 and pooled["truncation"] <= MAX_TRUNCATION
         summary[label] = {"by_tier": by_tier, "pooled": pooled, "passed": passed}
     if identities[0] != identities[1] or solo["dataset_sha256"] != word["dataset_sha256"] or solo["grader"] != word["grader"]:
         raise ValueError("Calibration inputs/graders differ")
     return {"passed": all(s["passed"] for s in summary.values()), "modes": summary,
+            "thresholds": {"accuracy_range": [0.05, 0.90], "min_mixed_groups": 0.10,
+                           "max_truncation": MAX_TRUNCATION, "status": "pilot"},
             "dataset_sha256": solo["dataset_sha256"], "grader": solo["grader"],
             "source_sha256": {name: hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
                               for name, value in (("solo", solo), ("word", word))}}

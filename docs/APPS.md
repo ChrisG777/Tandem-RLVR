@@ -44,7 +44,7 @@ files, no subprocess creation, five seconds per test, and an outer watchdog of
 
 Calibration samples eight solo and eight native-word completions for every validation
 task at 0.6/1/-1 decoding. Both modes must have 5–90% accuracy, ≥10% mixed-success
-groups, and ≤5% truncation. Failure stops the dependency chain before training.
+groups, and ≤10% truncation. Failure stops the dependency chain before training.
 
 Three-step independent smoke runs precede 200-step runs from the pinned Figure 2
 base. Batch/minibatch/group are 16/8/8, LR 1e-6, clipping .2, data/rollout seed 42,
@@ -133,3 +133,9 @@ The 4,096-token prompt limit and validation split are unchanged. Existing datase
 manifests retain their original preparation metadata; `protocol.json` records
 the active generation limits. Revised calibration uses a fresh run directory.
 Shared evaluators accept `--max-response`; their math default remains 3,000.
+
+On 2026-10-11 the user authorized relaxing the pilot truncation gate from 5%
+to 10% after observing 8.5% solo truncation at 6,000 tokens. This is a
+validation-informed protocol revision, not a preregistered threshold; no test
+scores were consulted. Both modes must still pass all gates, followed by
+independent three-step full-weight (LoRA rank zero) training smokes.
