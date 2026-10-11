@@ -524,3 +524,14 @@ diff --git a/verl/utils/torch_functional.py b/verl/utils/torch_functional.py
 
 
  try:
+diff --git a/verl/workers/engine_workers.py b/verl/workers/engine_workers.py
+--- a/verl/workers/engine_workers.py
++++ b/verl/workers/engine_workers.py
+@@ -703,6 +703,7 @@
+             return
+ 
+         set_expandable_segments(False)
++        get_torch_device().empty_cache()
+         log_gpu_memory_usage("Before resume weights", logger=logger)
+ 
+         # 1. resume rollout memory (weights were released during sleep)

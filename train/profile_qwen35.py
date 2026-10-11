@@ -33,6 +33,7 @@ def install() -> None:
         row = dict(stage=stage, seconds=time.perf_counter()-started,
                    threads=torch.get_num_threads(),
                    allocated_gib=torch.cuda.memory_allocated()/2**30,
+                   reserved_gib=torch.cuda.memory_reserved()/2**30,
                    peak_gib=torch.cuda.max_memory_allocated()/2**30, **extra)
         with path.open('a') as handle:
             handle.write(json.dumps(row)+'\n')
