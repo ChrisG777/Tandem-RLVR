@@ -1,0 +1,40 @@
+diff --git a/codex_cluster.py b/codex_cluster.py
+--- a/codex_cluster.py
++++ b/codex_cluster.py
+@@ -98,7 +98,9 @@
+         owner_path = CONTROL / 'owner.json'
+         owner = json.loads(owner_path.read_text()) if owner_path.exists() else None
+         if owner and (owner['job'] != job or owner['host'] != host):
+-            if owner['job'] == job or allocation_running(owner['job']):
++            if owner['job'] == job:
++                verify_requeued_host(job, host)
++            elif allocation_running(owner['job']):
+                 raise RuntimeError(f"Archive is owned by allocation {owner['job']} on {owner['host']}.")
+         local.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+         fs = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '-T', str(local.parent)], text=True).strip()
+@@ -170,6 +172,22 @@
+         print(f'[codex-cluster] Could not import remaining legacy history: {exc}', file=sys.stderr)
+ 
+ 
++def verify_requeued_host(job: str, host: str) -> None:
++    """Allow a same-ID move only after Slurm confirms a restarted single-node job.
++
++    This never admits another live allocation or trusts environment variables
++    as proof of ownership. Unknown scheduler output fails closed.
++    """
++    raw = subprocess.check_output(
++        ['scontrol', 'show', 'job', job, '-o'], text=True,
++        stderr=subprocess.PIPE, timeout=15, env=dict(os.environ, LC_ALL='C'),
++    )
++    fields = dict(piece.split('=', 1) for piece in raw.split() if '=' in piece)
++    if (fields.get('JobId') != job or fields.get('JobState') != 'RUNNING'
++            or fields.get('NumNodes') != '1' or fields.get('NodeList') != host
++            or fields.get('BatchHost') != host
++            or not fields.get('Restarts', '').isdigit() or int(fields['Restarts']) < 1
++            or not fields.get('UserId', '').endswith(f'({os.getuid()})')):
++        raise RuntimeError('Slurm did not confirm this requeued allocation on this host.')
++
++
+ def allocation_running(job: str) -> bool:
+     """Retain ownership for queued jobs; release only on terminal accounting.
+ 
