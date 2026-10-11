@@ -58,7 +58,7 @@ def build_apps(out_dir: Path, *, revision: str, seed: int = 0) -> dict:
                        "rows": len(rows)}
     manifest = {"dataset": "codeparrot/apps", "revision": revision, "seed": seed,
                 "tokenizer": BASE, "tokenizer_revision": BASE_REVISION,
-                "max_prompt": 4096, "max_response": 3000, "context": 8192,
+                "max_prompt": 4096, "max_response": 6000, "context": 12288,
                 "files": files, "excluded": excluded}
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest

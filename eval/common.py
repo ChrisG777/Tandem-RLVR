@@ -206,12 +206,16 @@ def add_data_arguments(parser):
     parser.add_argument("--data-root", type=Path)
     parser.add_argument("--context", type=int, default=4096)
     parser.add_argument("--max-prompt", type=int)
+    parser.add_argument("--max-response", type=int, default=3000)
 
 
 def configure(args):
     global DATA, MAX_MODEL_LEN, MAX_PROMPT
     DATA = args.data_root or ROOT / "data/eval"
     MAX_MODEL_LEN, MAX_PROMPT = args.context, args.max_prompt
+    config.MAX_TOKENS = getattr(args, "max_response", 3000)
+    if config.MAX_TOKENS < 1:
+        raise ValueError("Response budget must be positive")
     if MAX_MODEL_LEN < config.MAX_TOKENS + CONTEXT_RESERVE:
         raise ValueError("Context smaller than response budget")
 

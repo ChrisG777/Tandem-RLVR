@@ -27,7 +27,7 @@ The manifest records every retained task ID, file hash and exclusion.
 Prompts contain statements, required I/O conventions, starter code, and an instruction
 to reason step by step then provide a complete fenced Python solution. Reference
 solutions and grader tests are never inserted. Prompt/response/context limits are
-4096/3000/8192 tokens. The last complete Python block is graded without repair.
+4096/6000/12288 tokens. The last complete Python block is graded without repair.
 
 The checker is from the pinned verl commit. Its obsolete `pyext` dynamic-module
 loader is replaced with `types.ModuleType` and standard `compile`/`exec`; test and
@@ -100,7 +100,7 @@ Native-word inference optionally accepts `--native-concurrency N` through the
 coding campaign (`--concurrency N` on the native evaluator). It scales both KV
 caches so all active full contexts fit without eviction, and records this execution
 setting in the resume identity. Defaults retain the smaller two-sequence footprint;
-eight sequences use two 20-GiB caches plus approximately 16 GiB of BF16 weights and
+four sequences use two 15-GiB caches plus approximately 16 GiB of BF16 weights and
 runtime overhead, requiring an appropriately sized single GPU. Use spare memory in
 an existing interactive allocation; do not request extra GPUs for this setting.
 
@@ -113,8 +113,8 @@ uv run --project experiments/coding/env python -m experiments.coding.submit \
 Supply explicit account/QoS/partitions, CPUs, host RAM and walltime after applying
 the shared allocation policy. Evaluation args include one GPU; training GPU counts
 are added per arm. Coding configures both arms for one GPU, with Tandem's frozen
-junior colocated. Each model uses a bounded 5-GiB KV cache and two active sequences
-at the 8192-token context, preventing cache eviction from replaying native sampler
+junior colocated. Each model uses a bounded 10-GiB KV cache and two active sequences
+at the 12288-token context, preventing cache eviction from replaying native sampler
 state. The unchanged batch/group sizes queue through those active sequences.
 The training smoke must validate fit and authorship before this placement is used
 for a full run. Do not copy historical resource defaults without checking fit.
@@ -126,3 +126,10 @@ Never change a checkout or grader runtime used by active jobs.
 
 Outputs: `data/manifest.json`, `protocol.json`, `calibration/report.json`, per-arm `selected.json`,
 `models.json`, `results/<arm>/<phase>.json`, and `results/apps-figure2.{json,png,svg}`.
+
+The revised coding protocol doubles the response budget to 6,000 tokens and uses
+a 12,288-token context after the original solo calibration hit 17.06% truncation.
+The 4,096-token prompt limit and validation split are unchanged. Existing dataset
+manifests retain their original preparation metadata; `protocol.json` records
+the active generation limits. Revised calibration uses a fresh run directory.
+Shared evaluators accept `--max-response`; their math default remains 3,000.

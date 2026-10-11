@@ -76,7 +76,7 @@ def main() -> None:
         save_json(args.out, {
             "experiment": "apps-figure2-single-seed-pilot", "base": base,
             "dataset_sha256": hashlib.sha256((args.data / "manifest.json").read_bytes()).hexdigest(),
-            "grader": grader_identity(), "context": 8192, "max_prompt": 4096, "max_response": 3000,
+            "grader": grader_identity(), "context": 12288, "max_prompt": 4096, "max_response": 6000,
             "calibration": {"validation_tasks": 200, "samples_per_mode": 8,
                             "accuracy_range": [0.05, 0.90], "min_mixed_groups": 0.10,
                             "max_truncation": 0.05, "threshold_status": "pilot"},
@@ -88,7 +88,7 @@ def main() -> None:
                        "senior_probability": 0.5, "gap_cap": 32, "junior_token_loss_weight": 0},
             "selection": {"metric": "val-core/apps/acc/best@4/mean", "tie_break": "earliest_step",
                           "rollout_mode": "own_arm", "split": "validation"},
-            "evaluation": {"sampling": config.record(), "solo_samples": 32,
+            "evaluation": {"sampling": {**config.record(), "max_tokens": 6000}, "solo_samples": 32,
                            "paragraph_samples": 8, "native_word_samples": 8,
                            "macro_weighting": "equal_tier", "bootstrap_unit": "problem",
                            "cross_entropy_text": "full_response"},
@@ -131,7 +131,7 @@ def calibration(solo: dict, word: dict, *, manifest: dict, manifest_sha256: str)
         raise ValueError("Manifest must contain exactly 200 validation tasks")
     if not 0.3 < word.get("senior_token_fraction", 0) < 0.7:
         raise ValueError("Calibration lacks valid word-sampler participation")
-    expected_sampling = {"temperature": 0.6, "top_p": 1.0, "top_k": -1, "max_tokens": 3000}
+    expected_sampling = {"temperature": 0.6, "top_p": 1.0, "top_k": -1, "max_tokens": 6000}
     identities = []
     summary = {}
     for label, result in (("solo", solo), ("word", word)):
@@ -143,7 +143,7 @@ def calibration(solo: dict, word: dict, *, manifest: dict, manifest_sha256: str)
         identities.append(set(keys))
         if set(keys) != expected_ids or result["dataset_sha256"] != manifest_sha256:
             raise ValueError("Calibration does not match the prepared validation manifest")
-        if result.get("context") != 8192 or result.get("max_prompt") != 4096:
+        if result.get("context") != 12288 or result.get("max_prompt") != 4096:
             raise ValueError("Calibration context/prompt limits differ from the protocol")
         if any(value not in (0, 1) for g in result["gens"] for value in g["correct"]):
             raise ValueError("Calibration rewards must be binary")
@@ -191,7 +191,7 @@ def evaluate(args) -> None:
         command += ["--solo", str(args.solo), "--junior", args.junior]
     else:
         command += ["--data-root", str(args.data / args.split), "--benchmarks", ",".join(TIERS),
-                    "--context", "8192", "--max-prompt", "4096", "--n", str(args.n)]
+                    "--context", "12288", "--max-prompt", "4096", "--max-response", "6000", "--n", str(args.n)]
         if args.phase == "solo":
             command += ["--model", args.model, "--decoding", args.decoding]
         else:

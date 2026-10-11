@@ -54,7 +54,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     boundary_path = common.ROOT / 'train/assets/qwen3_word_boundary_ids.json'
     boundary_bytes = boundary_path.read_bytes()
     boundaries = set(json.loads(boundary_bytes))
-    sampling = ({'temperature': 0.6, 'top_p': 1.0, 'top_k': -1, 'max_tokens': 3000}
+    sampling = ({'temperature': 0.6, 'top_p': 1.0, 'top_k': -1, 'max_tokens': config.MAX_TOKENS}
                 if decoding == 'training' else config.record())
     identity = {'phase': 'word-handoff', 'senior': senior, 'junior': junior,
                 'n': n, 'sampling': sampling, 'decoding': decoding,
@@ -63,7 +63,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                 'seed_rule': '1000 * problem_index + sample_index',
                 'max_model_len': common.MAX_MODEL_LEN,
                 'max_num_seqs': active_sequences,
-                'budget_rule': f'min(3000, {common.MAX_MODEL_LEN} - prompt_tokens - 8)'}
+                'budget_rule': f'min({config.MAX_TOKENS}, {common.MAX_MODEL_LEN} - prompt_tokens - 8)'}
     if concurrency is not None:
         identity['kv_cache_memory_bytes_per_model'] = cache_bytes
     problems = common.load_problems(sets=benchmarks, limit=limit)

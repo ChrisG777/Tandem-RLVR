@@ -59,8 +59,8 @@ class CodingTests(unittest.TestCase):
         rows = [{"set": "apps_introductory" if i < 100 else "apps_interview", "task_id": f"train/{i}",
                  "correct": [1,0]*4, "diagnostics": [{}]*8,
                  "samples": [{"n_tokens": 10, "finish_reason": "stop"}]*8} for i in range(200)]
-        solo = {"phase": "solo", "n": 8, "sampling": {"temperature": .6, "top_p": 1., "top_k": -1, "max_tokens": 3000},
-                "gens": rows, "dataset_sha256": "same", "grader": {}, "context": 8192, "max_prompt": 4096}
+        solo = {"phase": "solo", "n": 8, "sampling": {"temperature": .6, "top_p": 1., "top_k": -1, "max_tokens": 6000},
+                "gens": rows, "dataset_sha256": "same", "grader": {}, "context": 12288, "max_prompt": 4096}
         from experiments.coding.build_apps import BASE_REVISION
         solo['model'] = '/snapshots/' + BASE_REVISION
         word = {**copy.deepcopy(solo), "phase": "word-handoff", "senior_token_fraction": .5,
@@ -70,6 +70,11 @@ class CodingTests(unittest.TestCase):
             for tier in ('apps_introductory', 'apps_interview')}}
         kwargs = dict(manifest=manifest, manifest_sha256='same')
         self.assertTrue(calibration(solo, word, **kwargs)["passed"])
+        legacy = copy.deepcopy(solo)
+        legacy['sampling']['max_tokens'] = 3000
+        legacy['context'] = 8192
+        with self.assertRaises(ValueError):
+            calibration(legacy, word, **kwargs)
         wrong = copy.deepcopy(word)
         wrong['gens'][0]['task_id'] = 'test/0'
         with self.assertRaisesRegex(ValueError, 'validation manifest'):
@@ -90,6 +95,30 @@ class CodingTests(unittest.TestCase):
             common.save_json(path, progress)
             with self.assertRaises(ValueError):
                 common.load_progress(out, {"grader": "b"}, problems)
+
+    def test_response_budget_override_and_resume_identity(self):
+        import argparse
+        import common
+        import config
+        saved = common.DATA, common.MAX_MODEL_LEN, common.MAX_PROMPT, config.MAX_TOKENS
+        try:
+            parser = argparse.ArgumentParser()
+            common.add_data_arguments(parser)
+            common.configure(parser.parse_args([]))
+            self.assertEqual(config.record()['max_tokens'], 3000)
+            common.configure(parser.parse_args(['--context', '12288', '--max-prompt', '4096',
+                                                '--max-response', '6000']))
+            self.assertEqual(common.response_budget(4096), 6000)
+            with tempfile.TemporaryDirectory() as d:
+                out = str(Path(d) / 'result.json')
+                problems = [{'set': 'apps', 'idx': 0}]
+                path, progress = common.load_progress(out, {'sampling': config.record()}, problems)
+                common.save_json(path, progress)
+                config.MAX_TOKENS = 3000
+                with self.assertRaises(ValueError):
+                    common.load_progress(out, {'sampling': config.record()}, problems)
+        finally:
+            common.DATA, common.MAX_MODEL_LEN, common.MAX_PROMPT, config.MAX_TOKENS = saved
 
     def test_checkpoint_metric_is_parameterized(self):
         import figure2_checkpoint as checkpoint

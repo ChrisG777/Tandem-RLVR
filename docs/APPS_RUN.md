@@ -1,10 +1,11 @@
 # APPS pilot run: 2026-10-10
 
-Status: implementation and interactive inference checks are complete. Solo
-calibration failed the truncation gate, so training is paused for protocol revision.
-Native-word calibration is still running to complete the report. Training, checkpoint selection, final test
-evaluation and scientific plots have **not** completed. This remains a single-seed
-pilot, governed by the [APPS protocol](APPS.md).
+Status: the user authorized a larger response budget after solo calibration
+failed the original truncation gate. The revised protocol uses 6,000 response
+and 12,288 context tokens, retaining the same 4,096 prompt limit and validation
+split. Both modes will be recalibrated in `apps-20261010-6k` using allocation
+2615728. The original native run was stopped with partial progress preserved.
+Training remains gated on the revised calibration and independent smoke runs.
 
 ## Code and allocation
 
