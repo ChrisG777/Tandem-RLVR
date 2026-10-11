@@ -10,6 +10,7 @@ This single-seed experiment extends Figure 2 to APPS introductory/interview task
 | [`compute_score`](../experiments/coding/reward.py) | Response plus normalized tests → binary reward and numeric failure diagnostics; infrastructure failures raise |
 | [`campaign`](../experiments/coding/campaign.py) | Sandbox preflight, evaluator dispatch, manifest-checked calibration gate, checkpoint selection, protocol and panel manifests |
 | [`submit`](../experiments/coding/submit.py) | Explicit site resources → one dependency-gated Slurm campaign with durable job IDs |
+| [`interactive.sh`](../experiments/coding/interactive.sh) | Existing allocation and prepared inputs → regression checks, calibration gate and independent training smokes; submits no jobs |
 | [`setup_grader`](../experiments/coding/setup_grader.py) | Pinned verl checker and uv runtime → isolated CPU grader directory |
 
 ## Protocol
@@ -77,6 +78,14 @@ On a cluster, set `REPO`, `RUN_ROOT`, `DATA_ROOT`, `DATA_REVISION`, `UV_BIN_DIR`
 `TANDEM_ENV`, caches, and the existing container/runtime variables. `RUN_ROOT/base.json`
 must identify the exact base revision used by Figure 2. `TANDEM_ENV` is an existing,
 verified pinned patched training environment; setup never rewrites it.
+
+After setup, `bash experiments/coding/interactive.sh` runs the regression checks,
+both calibration modes, the gate and (only after a passing gate) both three-step
+training smokes in the current allocation. Also set `GRADING_ENV` to the separate
+math-grading environment. It resumes saved generations and smoke checkpoints.
+`NATIVE_CONCURRENCY` defaults to 2; set it only after accounting for the available
+GPU memory. Full training resource selection follows the measured smoke results
+and a fresh queue check.
 
 Within the existing allocation, run both calibration modes with
 `campaign evaluate --phase solo` and `--phase word-handoff`, using `--split validation`,
