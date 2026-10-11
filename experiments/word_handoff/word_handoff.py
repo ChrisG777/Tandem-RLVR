@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument('--senior', required=True)
     parser.add_argument('--junior', required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--boundaries', type=Path, help='Tokenizer-specific word-boundary IDs')
     parser.add_argument('--n', type=int, default=8)
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--decoding', choices=('training', 'evaluation'), default='training')
@@ -29,12 +30,13 @@ def main() -> None:
     args = parser.parse_args()
     common.configure(args)
     evaluate(args.senior, args.junior, args.out, n=args.n, limit=args.limit,
-             decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks), concurrency=args.concurrency)
+             decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks), concurrency=args.concurrency,
+             boundary_path=args.boundaries)
 
 
 def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
              limit: int = 0, decoding: str = 'training', benchmarks=common.DEFAULT_SETS,
-             concurrency: int | None = None) -> dict:
+             concurrency: int | None = None, boundary_path: Path | None = None) -> dict:
     """Run GPU inference and atomically save complete batches plus a final JSON.
 
     Reuses only matching saved inputs. Word-boundary Bernoulli(0.5) redraws and
@@ -51,7 +53,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         raise ValueError('Concurrency must be positive')
     active_sequences = concurrency or (2 if common.MAX_MODEL_LEN > 4096 else 4)
     cache_bytes = 5 * 1024**3 * math.ceil(active_sequences * common.MAX_MODEL_LEN / 16384)
-    boundary_path = common.ROOT / 'train/assets/qwen3_word_boundary_ids.json'
+    boundary_path = boundary_path or common.ROOT / 'train/assets/qwen3_word_boundary_ids.json'
     boundary_bytes = boundary_path.read_bytes()
     boundaries = set(json.loads(boundary_bytes))
     sampling = ({'temperature': 0.6, 'top_p': 1.0, 'top_k': -1, 'max_tokens': config.MAX_TOKENS}
@@ -154,7 +156,8 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
 
 
 def build_engine(senior: str, junior: str, boundaries: Path, *, max_num_seqs: int | None = None,
-                 kv_cache_memory_bytes: int = 5*1024**3):
+                 kv_cache_memory_bytes: int = 5*1024**3,
+                 enable_prefix_caching: bool = True, **engine_kwargs):
     """Load both BF16 models on GPU 0 with explicitly bounded per-model KV caches."""
     from vllm import LLM
     os.environ.pop('VLLM_TANDEM_CONFIG', None)
@@ -164,11 +167,11 @@ def build_engine(senior: str, junior: str, boundaries: Path, *, max_num_seqs: in
                # fit without eviction/replay of the stateful word sampler.
                max_model_len=common.MAX_MODEL_LEN, max_num_seqs=max_num_seqs or (2 if common.MAX_MODEL_LEN > 4096 else 4),
                max_num_batched_tokens=4096, gpu_memory_utilization=0.85,
-               kv_cache_memory_bytes=kv_cache_memory_bytes, enable_prefix_caching=True,
+               kv_cache_memory_bytes=kv_cache_memory_bytes, enable_prefix_caching=enable_prefix_caching,
                tandem_config={'enabled': True, 'frozen_model': junior,
                               'selection_strategy': 'word', 'prob_primary': 0.5,
                               'max_gap_tokens': 32, 'frozen_gpu_devices': [0],
-                              'boundary_token_ids_path': str(boundaries)})
+                              'boundary_token_ids_path': str(boundaries)}, **engine_kwargs)
 
 
 def record_completion(completion, boundaries: set[int]) -> dict:

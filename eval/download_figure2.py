@@ -10,8 +10,9 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--manifest", type=Path, default=Path(__file__).with_name("figure2-models.json"))
     args = parser.parse_args()
-    manifest = json.loads(Path(__file__).with_name("figure2-models.json").read_text())
+    manifest = json.loads(args.manifest.read_text())
     for spec in manifest.values():
         spec["path"] = snapshot_download(**spec)
     args.out.parent.mkdir(parents=True, exist_ok=True)

@@ -6,7 +6,7 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 |---|---|
 | [Dataset manifest](data/build_shorthand.py) | Generator revision, task configuration, split seeds, and data hashes |
 | [Verified checkpoint](train/figure2_checkpoint.py) | Selected weights, held-out score, and explicit gaps in observed training metrics |
-| [Evaluation manifest](eval/select_figure2.py) | Official base and independently trained GRPO/Tandem checkpoint paths |
+| [Evaluation manifest](eval/select_figure2.py) | Pinned base, optional frozen junior, and selected GRPO/Tandem paths |
 | [Pilot evaluation](eval/shorthand.py) | Solo generations, correctness, lengths, and truncation for one task/budget |
 
 ## Figure 2 reproduction
@@ -30,6 +30,9 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 
 [Training protocol/setup](docs/FRESH_TRAINING.md) · [Evaluation protocol](docs/FIGURE2.md)
 · [Monitoring](docs/TRAINING_PROGRESS.md) · [Run history](docs/FIGURE2_RUN.md)
+
+[Qwen3.5 asymmetric pair](docs/QWEN35_PAIR.md): pinned 9B senior / 2B junior →
+[native compatibility probe](train/check_pair.py) → the same training and evaluation workflow.
 
 ## Solo shorthand pilot
 

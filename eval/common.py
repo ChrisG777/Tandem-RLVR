@@ -156,6 +156,7 @@ def metrics_by_set(problems, counts, n, ks=KS):
 def build_engine(model, gpu_util, device=None, max_num_batched_tokens=None,
                  max_model_len=None):
     from vllm import LLM
+    from transformers import AutoConfig
 
     saved = os.environ.get("CUDA_VISIBLE_DEVICES")
     if device is not None:
@@ -168,6 +169,10 @@ def build_engine(model, gpu_util, device=None, max_num_batched_tokens=None,
             max_model_len=max_model_len or MAX_MODEL_LEN,
             enable_prefix_caching=True,
         )
+        if AutoConfig.from_pretrained(model).model_type in {"qwen3_5", "qwen3_5_moe"}:
+            # These benchmarks are text-only; use the validated built-in GDN backend.
+            kwargs.update(limit_mm_per_prompt={"image": 0, "video": 0},
+                          gdn_prefill_backend="triton")
         if max_num_batched_tokens:
             kwargs["max_num_batched_tokens"] = max_num_batched_tokens
         return LLM(**kwargs)

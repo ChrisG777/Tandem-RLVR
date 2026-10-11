@@ -9,15 +9,17 @@ from figure2_checkpoint import verify_training
 
 
 def main() -> None:
-    """Require both complete 200-step runs and verified smoke tests; record local paths."""
+    """Verify requested 200-step arms and their smoke tests; record local paths."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--arm", choices=("grpo", "tandem"), action="append",
+                        help="Select a local arm independently; default: both")
     args = parser.parse_args()
     manifest = json.loads((args.root / "base.json").read_text())
-    if set(manifest) != {"base"}:
-        raise ValueError("Initialization manifest must contain only the official base")
-    for arm in ("grpo", "tandem"):
+    if set(manifest) not in ({"base"}, {"base", "junior"}):
+        raise ValueError("Initialization manifest must contain the senior base and optional frozen junior")
+    for arm in args.arm or ("grpo", "tandem"):
         root = args.root / f"{arm}-full"
         migration = root / "migration.json"
         if migration.exists():
@@ -26,7 +28,7 @@ def main() -> None:
                 raise ValueError(f"Missing verified source smoke test for {arm}")
         else:
             verify_training(args.root / f"{arm}-smoke", arm, 3)
-        if json.loads((root / "initialization.json").read_text()) != {"base": manifest["base"]}:
+        if json.loads((root / "initialization.json").read_text()) != {key: manifest[key] for key in ("base", "junior") if key in manifest}:
             raise ValueError(f"Unexpected initialization for {arm}")
         manifest[arm] = verify_training(root, arm, 200)
     args.out.parent.mkdir(parents=True, exist_ok=True)
