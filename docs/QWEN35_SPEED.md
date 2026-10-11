@@ -70,3 +70,14 @@ weight fingerprint across a senior weight reload. Use a separate `--out` path
 from the eager probe; graph mode is part of its saved identity. The underlying
 `experiments.word_handoff.word_handoff.build_engine(..., enforce_eager=True)`
 keeps eager execution as the default for existing callers.
+
+The default graph candidate is **rejected**: all three training batches hit the
+response limit with zero rewards, and validation crashed with
+`scheduler_metadata must have shape (metadata_size)` in the junior's FA3 call.
+Its partial validation aggregates are invalid. The source diagnosis found
+model-wide head counts in the pinned FlashAttention metadata builder, despite
+the senior using 16 query / 4 KV heads and junior 8 / 2. An isolated backport
+from upstream vLLM `f26d9f432ced7b1087d02d29bffed2249df1a18e` reads the actual
+layer's query-head count and cache specification's KV heads/head size, and groups
+metadata by query-head count. This is upstream metadata construction, not a
+replacement sampler or cache manager. It still needs full-model validation.
