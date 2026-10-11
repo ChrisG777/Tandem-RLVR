@@ -456,3 +456,32 @@ diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/
                  loss, meta_info = self.forward_step(micro_batch, loss_function=loss_function, forward_only=forward_only)
  
                  if not forward_only:
+diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_base.py
+--- a/verl/trainer/ppo/v1/trainer_base.py
++++ b/verl/trainer/ppo/v1/trainer_base.py
+@@ -760,6 +760,10 @@
+                 [str(uuid.uuid4()) for _ in range(len(batch_dict["raw_prompt"]))], dtype=object
+             )
+             batch = tu.get_tensordict(batch_dict)
++            expected_sessions = {
++                f"{uid}_{i}" for uid in batch_dict["uid"]
++                for i in range(self.config.actor_rollout_ref.rollout.val_kwargs.n)
++            }
+             tu.assign_non_tensor_data(batch, "global_steps", self.global_steps)
+             tu.assign_non_tensor_data(batch, "validate", True)
+             # Register each prompt (GRPO group) in TransferQueue as a tag-only status marker.
+@@ -792,6 +796,14 @@
+                         session_max[session_key] = (index, pos)
+                 else:
+                     session_max[key] = (0, pos)
++            if self.config.trainer.get("require_complete_validation", False):
++                missing = expected_sessions - set(session_max)
++                unexpected = set(session_max) - expected_sessions
++                if missing or unexpected:
++                    raise RuntimeError(
++                        f"Incomplete validation: {len(missing)} missing and "
++                        f"{len(unexpected)} unexpected sessions; refusing partial scores"
++                    )
+             sorted_sessions = sorted(session_max.items(), key=lambda x: x[1][1])
+             final_indices = [pos for _, (_, pos) in sorted_sessions]
+             final_keys = [batch.keys[i] for i in final_indices]

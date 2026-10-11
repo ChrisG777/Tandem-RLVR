@@ -45,6 +45,26 @@ def request_parameters(relative_path, class_name, validate):
 
 
 class ValidationParameters(unittest.TestCase):
+    def test_strict_validation_rejects_missing_or_wrong_sessions(self):
+        spec = importlib.util.find_spec("verl")
+        if spec is None:
+            self.skipTest("verl is not installed")
+        path = Path(next(iter(spec.submodule_search_locations))) / "trainer/ppo/v1/trainer_base.py"
+        tree = ast.parse(path.read_text())
+        guard = next(node for node in ast.walk(tree) if isinstance(node, ast.If)
+                     and "require_complete_validation" in ast.unparse(node.test))
+        code = compile(ast.fix_missing_locations(ast.Module(body=[guard], type_ignores=[])), str(path), "exec")
+        expected = {"a_0", "a_1", "b_0", "b_1"}
+        worker = SimpleNamespace(config=SimpleNamespace(trainer={"require_complete_validation": True}))
+        for observed in (expected, expected - {"a_1"}, (expected - {"a_1"}) | {"c_1"}):
+            scope = {"self": worker, "expected_sessions": expected,
+                     "session_max": dict.fromkeys(observed)}
+            if observed == expected:
+                exec(code, scope)
+            else:
+                with self.assertRaisesRegex(RuntimeError, "Incomplete validation"):
+                    exec(code, scope)
+
     def test_validation_preserves_authorship_and_uses_validation_decoding(self):
         for path, cls in ENTRY_POINTS:
             with self.subTest(entry_point=cls):

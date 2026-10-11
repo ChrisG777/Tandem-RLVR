@@ -81,3 +81,8 @@ from upstream vLLM `f26d9f432ced7b1087d02d29bffed2249df1a18e` reads the actual
 layer's query-head count and cache specification's KV heads/head size, and groups
 metadata by query-head count. This is upstream metadata construction, not a
 replacement sampler or cache manager. It still needs full-model validation.
+
+The Qwen wrapper also sets `trainer.require_complete_validation=True`. This
+small guard rejects missing or unexpected prompt/sample sessions before computing
+validation aggregates. The pinned replay buffer otherwise accepts failed prompts
+and can report partial pass@4 scores after an inference-engine failure.

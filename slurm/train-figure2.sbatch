@@ -46,6 +46,7 @@ EXTRA=()
 if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
     export FROZEN_GPU=${FROZEN_GPU:-0}
     EXTRA+=('+data.apply_chat_template_kwargs.enable_thinking=False'
+        +trainer.require_complete_validation=True
         actor_rollout_ref.actor.freeze_vision_tower=True
         actor_rollout_ref.actor.strategy=fsdp2
         actor_rollout_ref.actor.fsdp_config.offload_policy=True
