@@ -58,8 +58,11 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                 'max_num_seqs': 2 if common.MAX_MODEL_LEN > 4096 else 4,
                 'budget_rule': f'min(3000, {common.MAX_MODEL_LEN} - prompt_tokens - 8)'}
     problems = common.load_problems(sets=benchmarks, limit=limit)
+    # Eight coding samples already saturate the two active sequences. Commit
+    # each problem rather than risking a long 128-sample batch on preemption.
+    batch_size = 1 if any(p.get('data_source') == 'apps' for p in problems) else common.EVAL_BATCH_SIZE
     identity.update(common.evaluation_identity(problems))
-    progress_path, progress = common.load_progress(str(out), identity, problems)
+    progress_path, progress = common.load_progress(str(out), identity, problems, batch_size=batch_size)
     if out.exists():
         result = common.load_json(out)
         if result.get('identity') != identity or len(result['gens']) != len(problems):
@@ -82,7 +85,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         while len(gens) < len(problems):
             start = len(gens)
             # Validate the first complete problem before spending a full batch.
-            size = 1 if start == 0 else common.EVAL_BATCH_SIZE
+            size = 1 if start == 0 else batch_size
             batch = problems[start:start + size]
             repeated = [prompts[start+i] for i in range(len(batch)) for _ in range(n)]
             params = [SamplingParams(**{**sampling, 'max_tokens': max(1, budgets[start+i])},
@@ -127,7 +130,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
             raise ValueError('Authorship participation check failed')
         result = {**identity, 'identity': identity, 'benchmarks': list(benchmarks),
                   'coverage': common.coverage(gens),
-                  'limit': limit, 'batch_size': common.EVAL_BATCH_SIZE,
+                  'limit': limit, 'batch_size': batch_size,
                   'senior_token_fraction': senior_count/token_count,
                   'truncated_fraction': sum(s['finish_reason']=='length' for s in samples)/len(samples),
                   'metrics': common.metrics_by_set(problems, [int(sum(g['correct'])) for g in gens], n),

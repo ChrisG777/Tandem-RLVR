@@ -26,7 +26,8 @@ MAX_PROMPT = None
 CONTEXT_RESERVE = 8
 
 
-def load_progress(out_path: str, identity: dict, problems: list[dict]) -> tuple[Path, dict]:
+def load_progress(out_path: str, identity: dict, problems: list[dict], *,
+                  batch_size: int = EVAL_BATCH_SIZE) -> tuple[Path, dict]:
     """Load compatible completed evaluation batches; reject changed inputs.
 
     Progress lives beside the final JSON and is committed atomically after each
@@ -34,7 +35,7 @@ def load_progress(out_path: str, identity: dict, problems: list[dict]) -> tuple[
     """
     path = Path(str(out_path) + ".progress.json")
     signature = hashlib.sha256(json.dumps(
-        {"identity": identity, "problems": problems, "batch_size": EVAL_BATCH_SIZE},
+        {"identity": identity, "problems": problems, "batch_size": batch_size},
         sort_keys=True).encode()).hexdigest()
     if path.exists():
         progress = json.loads(path.read_text())
