@@ -1,7 +1,8 @@
 # APPS pilot run: 2026-10-10
 
-Status: implementation and interactive inference checks are complete; full
-validation calibration is running. Training, checkpoint selection, final test
+Status: implementation and interactive inference checks are complete. Solo
+calibration failed the truncation gate, so training is paused for protocol revision.
+Native-word calibration is still running to complete the report. Training, checkpoint selection, final test
 evaluation and scientific plots have **not** completed. This remains a single-seed
 pilot, governed by the [APPS protocol](APPS.md).
 
@@ -42,6 +43,7 @@ Completed manifests and checks are also copied to local
 | `calibration/solo.json.progress.json` | Atomic solo calibration progress; partial until the final JSON exists |
 | `calibration/word-handoff.json.progress.json` | Native-word progress, committed after each problem |
 | `calibration/report.json` | Gate report, created only after both complete 200-task/eight-sample runs |
+| `calibration/solo-report.json` | Completed solo-mode evidence; explicitly marks native calibration as pending |
 
 The source dataset revision is `21e74ddf8de1a21436da12e3e653065c5213e9d1`.
 Preparation retained 3,890 training problems, 200 validation problems, and all
@@ -53,5 +55,7 @@ by disabling Python 3.11's integer-string digit cap inside the bounded runtime.
 Solo calibration was deliberately interrupted after a completed batch to test
 resumption. The saved texts are retained; the final restart receipt verifies that
 the completed run preserves all 16 saved problem records. Native-word calibration
-and the gate follow in the same allocation. A failed gate stops training; passing
+and the gate follow in the same allocation. Native inference uses eight active
+sequences with correspondingly sized caches on this already-allocated H100; the
+smaller default remains available for smaller GPUs. A failed gate stops training; passing
 the gate admits independent three-step GRPO/Tandem smoke runs before full training.

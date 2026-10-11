@@ -1,6 +1,7 @@
 # APPS coding experiment
 
 This single-seed experiment extends Figure 2 to APPS introductory/interview tasks.
+See the [interactive run record](APPS_RUN.md) for current evidence and pending stages.
 
 ## Interfaces
 
