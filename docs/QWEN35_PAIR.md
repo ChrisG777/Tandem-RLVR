@@ -245,3 +245,10 @@ exports plus two overlapping resume states. Measure actual smoke checkpoint
 sizes and release only this campaign's obsolete smoke model/optimizer copies
 after verified continuation, retaining HF weights, logs and verification receipts,
 before launching full training. Existing campaigns are not storage-cleanup targets.
+
+Exported-checkpoint evaluation smokes are queued after verified fourth-step
+continuation: Tandem paragraph handoff `2616216` (CSAIL) and GRPO solo `25540901`
+(Engaging), two problems and two samples/chains each. They read
+`trained-smoke-models.json` and write `trained-eval-smoke/`, separate from full
+benchmark results. Exact training/resume/export-smoke submission arguments are
+saved as `{arm}-accelerated-jobs.json` in each campaign directory.
