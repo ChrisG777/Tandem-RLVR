@@ -113,7 +113,7 @@ against FP32 PyTorch log-softmax. Full-model speed and memory remain to be measu
 
 The existing `slurm/train-figure2.sbatch` accepts `QWEN35_SPEED=1` to enable the
 candidate deferred synchronization, native fused CPU AdamW, FLA cross entropy,
-512-token chunked entropy, four OpenMP threads, and decode-only graphs. Supply `PPO_MAX_TOKEN=16000`
+512-token chunked entropy, four OpenMP threads, and decode-only graphs. Supply `PPO_MAX_TOKEN=10000`
 explicitly; this changes execution microbatch packing, not the RL batch or
 minibatch. Full-weight FP32 parameters/optimizer states and BF16 compute remain.
 `MODE=smoke SMOKE_STEPS=3 SMOKE_VAL_SAMPLES=1000` runs three steps and the complete
@@ -138,6 +138,18 @@ separate output roots under `speed/fused-ce/{tandem,grpo}-smoke`. Each saves a
 recovery/HF checkpoint at step 3, automatically resumes committed progress on
 requeue, and stops after the short test. They do not restart the cancelled
 200-step campaigns. A separate checkpoint-resume qualification is still needed.
+
+The entropy fix reduced measured forward-only peak allocation from over 71 GiB
+to 17–19 GiB, with warm calls around 3.6–4.1 s. Both 16,000-token candidates
+then failed during accumulated-gradient backward: PyTorch's padded nested-tensor
+backward needed another 11.7–12.7 GiB alongside the resident FP32 gradients.
+The 16,000-token setting is therefore **not qualified for 80 GB GPUs**.
+The next attempts use the previously measured 10,000-token execution budget;
+the RL batch, minibatch and accumulated update are unchanged. Both failed
+attempts ended without a checkpoint. All logs remain in their original files.
+Current short attempts are Tandem `2623239` and GRPO `2623255`, source `6b4867f`,
+one A100 80 GB each. They retain the same bounded three-step/full-validation
+protocol and output roots, with distinct per-attempt logs and runtime manifests.
 
 The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
 `(200 × steady_step_seconds + 10 × full_validation_seconds + checkpoint_seconds
