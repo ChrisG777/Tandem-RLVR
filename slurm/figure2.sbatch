@@ -40,10 +40,12 @@ run_python() { uv run --python "$TANDEM_ENV/bin/python" --no-project --offline p
 ROOT=${RESULTS_ROOT:-results/figure2}
 mkdir -p "$ROOT"
 if [ -n "${CODE_COMMIT:-}" ]; then
-    echo "$CODE_COMMIT" > "$ROOT/code-commit.txt"
+    echo "$CODE_COMMIT" > "$ROOT/code-${SLURM_JOB_ID}.txt"
 else
-    git rev-parse HEAD > "$ROOT/code-commit.txt"
+    git rev-parse HEAD > "$ROOT/code-${SLURM_JOB_ID}.txt"
 fi
+cp "$ROOT/code-${SLURM_JOB_ID}.txt" "$ROOT/code-commit.txt"
+cp "${MODELS_JSON:?}" "$ROOT/models-${SLURM_JOB_ID}.json"
 nvidia-smi > "$ROOT/gpus-${SLURM_JOB_ID}.txt"
 MODE=${MODE:-full}
 case "$MODE" in base|full|base-solo|junior-solo|grpo-solo|tandem-solo|base-handoff|grpo-handoff|tandem-handoff) ;; *) echo 'Unknown evaluation mode' >&2; exit 2;; esac

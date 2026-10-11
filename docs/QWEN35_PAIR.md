@@ -163,3 +163,15 @@ Upstream `CPUOffloadPolicy` keeps parameters, gradients and optimizer state on
 CPU between computations; no trainer or optimizer implementation is replaced.
 The pending GRPO retry `25536909` was cancelled before applying this correction
 to both arms. No completed training checkpoint exists yet.
+
+FSDP2 retry jobs: Tandem `2615963` on CSAIL and GRPO `25537766` on Engaging.
+The offloaded layout admits one 80-GB-class GPU or larger (an estimate pending
+the smoke). CSAIL includes all A100/H100/H200 partitions. Engaging includes
+verified A100-80GB, H100, H200 and RTX Pro 6000 nodes across both GPU routes;
+smaller or unverified cards are excluded using the live inventory and ORCD's
+[GPU memory table](https://orcd-docs.mit.edu/running-jobs/available-resources/).
+
+Initial 9B solo smoke `2615943` passed. Paragraph handoff smoke `2615944` is
+still running. Evaluation wrappers preserve per-job source commits and copies
+of model manifests as `code-JOBID.txt` and `models-JOBID.json`, so independently
+scheduled phases retain their own provenance.
