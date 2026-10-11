@@ -273,3 +273,11 @@ HF exports stay at every 20 steps. Keep two resume states and permit at most 60
 requeues. One compatible 80-GB-class-or-larger GPU and six CPUs per arm; request
 384 GiB host RAM because smoke checkpointing reached the 320-GiB request limit.
 Engaging stores retained HF exports on pool and resume states on scratch.
+
+Submitted full jobs: Tandem **2618075** on CSAIL (24-hour shared route), GRPO
+**25556135** on Engaging (six-hour combined normal/preemptible route). Both use
+validated training commit `3065ae8`; their exact commands and gate job IDs are in
+`{arm}-full-submission.json` under the corresponding campaign root. No duplicate
+full arm is submitted. Torralba H100 is down and its H200 GPUs are occupied by
+non-preemptible owner-priority work; neither shared dry run predicted immediate
+admission, so the CSAIL job uses the policy's vision-shared queueing default.
