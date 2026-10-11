@@ -11,6 +11,8 @@ export PATH="${UV_BIN_DIR:?}:$PATH"
 export JOB_ENTRYPOINT=experiments/elegance/job.sbatch
 export MAX_RESTARTS=60
 export CKPT_DIR="${RUN_ROOT:?}/${ARM:?}"
+export PYTHONPATH="$REPO/third_party/verl:$REPO:${PYTHONPATH:-}"
+test -f "$REPO/third_party/verl/verl/workers/config/engine.py"
 export RESUME_CHECKPOINT_ROOT="$CKPT_DIR"
 source slurm/runtime.sh
 [ "${SLURM_RESTART_COUNT:-0}" -le 60 ] || exit 1
@@ -25,7 +27,8 @@ export TRAIN_GPUS=1 FROZEN_GPU=0 OMP_NUM_THREADS=4
 export ELEGANCE_JUDGE_CACHE="$RUN_ROOT/judge-cache"
 export ELEGANCE_CODEX_BIN=/data/scratch/chrisge/.local/bin/codex-cluster
 export TOTAL_STEPS=${TOTAL_STEPS:-200} TOTAL_EPOCHS=100 TEST_FREQ=20 SAVE_FREQ=5
-export MAX_CKPT_KEEP=2 PERSIST_HF_INTERVAL=200 PPO_MAX_TOKEN=4096
+export MAX_CKPT_KEEP=2 PERSIST_HF_INTERVAL=200 PPO_MAX_TOKEN=10000
+export QWEN35_PROFILE_DIR="$CKPT_DIR/profile"
 export MAX_PROMPT=1024 MAX_RESPONSE=3000
 export BOUNDARY_IDS_PATH="${INITIALIZATION_ROOT:?}/word-boundaries.json"
 export TRAIN_FILES="${ELEGANCE_DATA:?}/train.parquet"
@@ -63,6 +66,9 @@ bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
   actor_rollout_ref.actor.freeze_vision_tower=True \
   actor_rollout_ref.actor.strategy=fsdp2 \
   actor_rollout_ref.actor.fsdp_config.offload_policy=True \
+  +actor_rollout_ref.actor.fsdp_config.use_no_sync_for_gradient_accumulation=True \
+  'actor_rollout_ref.actor.optim.override_optimizer_config={fused:True}' \
+  actor_rollout_ref.model.external_lib=train.profile_qwen35 \
   actor_rollout_ref.model.use_remove_padding=False \
   actor_rollout_ref.rollout.enable_prefix_caching=False \
   +actor_rollout_ref.rollout.engine_kwargs.vllm.gdn_prefill_backend=triton \
