@@ -22,9 +22,12 @@ def main() -> None:
     parser.add_argument('--models', type=Path, required=True)
     parser.add_argument('--boundaries', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--cuda-graphs', action='store_true', help='Exercise vLLM graph capture instead of eager execution')
     args = parser.parse_args()
     models = json.loads(args.models.read_text())
     identity = {'models': models, 'boundaries': json.loads(args.boundaries.read_text())}
+    if args.cuda_graphs:
+        identity['cuda_graphs'] = True
     if args.out.exists():
         saved = json.loads(args.out.read_text())
         if saved['identity'] != identity:
@@ -44,7 +47,7 @@ def main() -> None:
         raise ValueError('Non-thinking prompt formats differ between the model pair')
     engine = build_engine(senior, junior, args.boundaries, gdn_prefill_backend='triton',
                           limit_mm_per_prompt={'image': 0, 'video': 0},
-                          enable_prefix_caching=False)
+                          enable_prefix_caching=False, enforce_eager=not args.cuda_graphs)
     try:
         params = [SamplingParams(temperature=0.6, top_p=1, top_k=-1,
                                  max_tokens=256, seed=i) for i in range(4)]

@@ -47,3 +47,26 @@ RL step and is not an end-to-end speed benchmark. Trace processing itself was sl
 The small CUDA parity check passed with exactly equal gradients and AdamW
 updates. Full-model candidate `nosync10k-t4` uses the isolated patched verl
 checkout, the same execution settings, and deferred synchronization enabled.
+
+`nosync10k-t4` completed step 1 in 667.2 s: generation 112.6 s,
+old-policy log probabilities 65.2 s, actor update 467.4 s, weight transfer 4.2 s.
+Normal backward microbatches took about 3–4 s; compilation inflated several
+calls to 15–41 s. Its two CPU AdamW updates took 81.7 and 88.7 s. Peak policy
+allocation was 60.5 GiB (76.7 GiB reserved). These are cold-start diagnostic
+numbers, not a 24-hour result. This comparison was stopped after step 1.
+
+The same small parity test also passed with native PyTorch fused CPU AdamW:
+exactly equal gradients and updated weights. The next candidate,
+`tandem-fused16k-graphs`, uses the unchanged Tandem launcher with
+`PPO_MAX_TOKEN=16000`, `OMP_NUM_THREADS=4`, `ENFORCE_EAGER=False`, deferred
+synchronization and
+`actor_rollout_ref.actor.optim.override_optimizer_config={fused:True}`.
+No diagnostic hook is loaded. It requests three training steps followed by
+the full 1,000-problem pass@4 validation and a recovery/HF checkpoint.
+
+`train/check_pair.py --cuda-graphs` exercises the same native pair probe with
+vLLM graph capture enabled, including per-token switch checks and a full junior
+weight fingerprint across a senior weight reload. Use a separate `--out` path
+from the eager probe; graph mode is part of its saved identity. The underlying
+`experiments.word_handoff.word_handoff.build_engine(..., enforce_eager=True)`
+keeps eager execution as the default for existing callers.
