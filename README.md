@@ -68,3 +68,6 @@ rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
 [answer verification](experiments/method_audit/verify.py) →
 [all-path elegance labels](experiments/method_audit/elegance.py) →
 [portable dataset](experiments/method_audit/package.py) / [audit UI](experiments/method_audit/serve.py).
+
+[Elegance RL](docs/ELEGANCE_RL.md): [fixed method holdout](experiments/elegance/prepare.py) →
+[Codex-judged reward](experiments/elegance/reward.py) → [Qwen3.5 training](experiments/elegance/job.sbatch).
