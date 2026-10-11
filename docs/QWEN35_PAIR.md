@@ -51,7 +51,7 @@ changes; fix only demonstrated integration errors using upstream components.
 Do not substitute an Agent Loop or paragraph-level training. Substantial
 architectural changes require discussion with the user.
 
-Inference probe estimate: approximately 22 GiB model weights plus 10 GiB
+Inference probe estimate: approximately 22 GiB model weights plus 5 GiB
 explicit cache budget, with remaining headroom on a 48-GiB-or-larger GPU;
 64 GiB host RAM and four CPUs. This is not a training memory estimate.
 Training and full evaluation remain gated on compatibility and focused smokes.
@@ -97,3 +97,18 @@ pending CSAIL CPU-check job 2615841 was cancelled before this work moved.
 Training uses text-only mode, frozen vision tower, Triton GDN prefill, and
 disabled prefix caching. These are supported execution settings, not changes
 to the RL objective. Training/checkpoint validation remains outstanding.
+
+Three-step training smokes: CSAIL Tandem `2615877`, Engaging solo GRPO
+`25536736`. Each requests one H200, six CPUs and 320 GiB host RAM; host RAM
+is an estimate for model loading, CPU optimizer offload and checkpoint buffers.
+The single-GPU native probe established colocated decoding support. Training
+memory peaks and checkpoint/resume behavior must still be measured before full
+launch. Walltimes are 24 hours on CSAIL shared and six hours on Engaging's
+combined normal/preemptible route.
+
+The CSAIL smoke composes the existing read-only training packages with the
+isolated patched vLLM source and the existing corrected grading packages using
+`PYTHONPATH`. Training site-packages precede grading site-packages to preserve
+NumPy 2.2.6, pandas 3.0.4, torch 2.10.0 and transformers 5.5.4; math-verify 0.9.0
+and latex2sympy2-extended 1.11.0 come from the grading environment. Engaging uses
+a separately built environment recorded in `training-environment.txt`.
