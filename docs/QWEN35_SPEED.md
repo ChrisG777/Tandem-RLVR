@@ -182,6 +182,24 @@ back to the same uncompiled chunked function anyway. Disabling that redundant
 compilation avoids its startup cost; it does not disable FLA's Triton kernels or
 vLLM decode graphs. Already-running jobs retain their captured configuration.
 
+GRPO's warm second A100 step took 424.53 s: generation 68.70 s, old-policy
+probabilities 101.66 s, actor update 248.02 s, and weight update 5.86 s. Its
+batch reward was 0.6406 and gradient norm 0.6844. At that rate, 200 steps alone
+cost 23.59 GPU-hours, before required validation, saves, and startup. A100 is
+therefore not qualified for the complete-run 24 GPU-hour target at this pace.
+
+Single-H100/H200 resume profiles are queued behind each successful three-step
+qualification: GRPO `2623566` after `2623390`, Tandem `2623567` after `2623385`.
+They resume the complete step-3 checkpoint, run steps 4–6 with the same RL
+settings and 10,000-token microbatches, then perform full eligible validation.
+They use the existing training launchers directly, disable entropy compilation,
+and do not save another large checkpoint or overwrite the step-3 selection.
+Their exact Slurm scripts are saved as `resume-submission-JOBID.sh` in each
+smoke root. Each requests one compatible Hopper GPU, eight CPUs, 384 GiB RAM,
+24 hours, and requeue; restart loads step 3 again and retries are bounded at 12.
+These are performance/recovery tests, not resumed 200-step campaigns. Final
+`verify_resume` receipts and complete-run forecasts are still pending.
+
 The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
 `(200 × steady_step_seconds + 10 × full_validation_seconds + checkpoint_seconds
 + startup_seconds) / 3600`, without double-counting validation/save time if the
