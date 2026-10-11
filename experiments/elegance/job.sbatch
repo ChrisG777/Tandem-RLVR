@@ -47,7 +47,7 @@ if [ -f "$CKPT_DIR/initialization.json" ]; then cmp "$INITIALIZATION_ROOT/base.j
 cp "$INITIALIZATION_ROOT/base.json" "$CKPT_DIR/initialization.json"
 cp "$ELEGANCE_DATA/manifest.json" "$CKPT_DIR/data-manifest.json"
 git rev-parse HEAD > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"
-run_python -c 'import importlib.metadata as m,json,os; print(json.dumps({"packages":{n:m.version(n) for n in ("torch","transformers","vllm","verl","math-verify")},"pythonpath":os.environ.get("PYTHONPATH")},indent=2))' > "$CKPT_DIR/runtime-${SLURM_JOB_ID}.json"
+run_python -c 'import importlib.metadata as m,importlib.util as u,json,os; print(json.dumps({"packages":{n:m.version(n) for n in ("torch","transformers","vllm","verl","math-verify")},"module_paths":{n:u.find_spec(n).origin for n in ("verl","vllm")},"pythonpath":os.environ.get("PYTHONPATH")},indent=2))' > "$CKPT_DIR/runtime-${SLURM_JOB_ID}.json"
 nvidia-smi > "$CKPT_DIR/gpus-${SLURM_JOB_ID}.txt"
 case "$ARM" in
   tandem) LAUNCHER=train/tandem_grpo.sh;;
