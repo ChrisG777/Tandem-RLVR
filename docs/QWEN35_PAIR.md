@@ -37,8 +37,8 @@ the paper's self-paired initialization. Both models use non-thinking mode.
   to retain the existing two-arm selection workflow.
 - `slurm/figure2.sbatch` supports `junior-solo`, `base-solo`, and `base-handoff`
   in addition to existing phases. A paired manifest's full evaluation includes
-  four solo and three handoff phases. `eval/figure2.py --paired-baselines`
-  summarizes/plots the same seven outputs, preserving the original statistics.
+  four solo and two trained-senior handoff phases. `eval/figure2.py --paired-baselines`
+  summarizes/plots the same six outputs, preserving the original statistics.
   For a separate CPU plot job, use `slurm/figure2-postprocess.sbatch` with
   `PHASE=plot PAIRED_BASELINES=1`.
 
@@ -53,7 +53,7 @@ validate every 20 steps. Select the earliest maximum held-out pass@4 for each
 arm under its own rollout protocol. Use the corrected shared math grader.
 
 Solo evaluations: initial 9B, frozen 2B, selected GRPO and selected Tandem,
-32 draws per problem. Paragraph handoffs: initial 9B, GRPO and Tandem paired
+32 draws per problem. Paragraph handoffs: GRPO and Tandem paired
 with the same 2B, eight chains per problem. Retain the existing 1,064 problems,
 decoding, macro weighting and bootstrap uncertainty estimates. No 4B baseline.
 
@@ -252,3 +252,24 @@ continuation: Tandem paragraph handoff `2616216` (CSAIL) and GRPO solo `25540901
 `trained-smoke-models.json` and write `trained-eval-smoke/`, separate from full
 benchmark results. Exact training/resume/export-smoke submission arguments are
 saved as `{arm}-accelerated-jobs.json` in each campaign directory.
+
+## Full launch, 2026-10-11
+
+The user removed initial 9B → 2B paragraph handoff from the campaign. Job
+`2615977` was cancelled with partial outputs preserved. Both solo baselines
+completed all 1,064 problems. Paired plots now require four solo and two trained
+handoff outputs; the explicit `base-handoff` diagnostic mode remains available.
+
+Both three-step training smokes, strict step-four continuation checks, and
+exported-checkpoint evaluation smokes passed. A saved language-model norm tensor
+changed between steps three and four in both arms; receipts are stored as
+`senior-update-audit.json`. Completed smoke model/optimizer resume tensors were
+retired to make room for full training; HF exports, small states, logs and receipts
+remain. Full arms start fresh from the pinned 9B initialization.
+
+Full training retains the validated optimizer, batches, decoding and execution
+settings. Recovery checkpoints are saved every five steps; validation and retained
+HF exports stay at every 20 steps. Keep two resume states and permit at most 60
+requeues. One compatible 80-GB-class-or-larger GPU and six CPUs per arm; request
+384 GiB host RAM because smoke checkpointing reached the 320-GiB request limit.
+Engaging stores retained HF exports on pool and resume states on scratch.

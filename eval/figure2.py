@@ -1,4 +1,4 @@
-"""Plot Figure 2 from five or seven evaluation JSONs, with bootstrap standard errors."""
+"""Plot Figure 2 from five or six evaluation JSONs, with bootstrap standard errors."""
 import argparse
 from pathlib import Path
 
@@ -30,7 +30,7 @@ def configure_panel(panel: dict) -> None:
 def main() -> None:
     """Read --results/{base,grpo,tandem}/phase.json; write PNG, SVG and score JSON."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--paired-baselines", action="store_true", help="Include distinct senior/junior solo baselines and untrained pair handoff")
+    parser.add_argument("--paired-baselines", action="store_true", help="Include distinct senior/junior solo baselines")
     parser.add_argument("--panel-manifest", type=Path, help="JSON with benchmark sizes, titles and expected task IDs")
     parser.add_argument("--results", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path, help="output filename stem")
@@ -46,7 +46,7 @@ def main() -> None:
         LABELS.update(base="Initial senior", junior="Frozen junior")
     curves = {}
     protocol_identity = None
-    for phase, arms in (("solo", COLORS), ("handoff", ("base", "grpo", "tandem") if args.paired_baselines else ("grpo", "tandem"))):
+    for phase, arms in (("solo", COLORS), ("handoff", ("grpo", "tandem"))):
         curves[phase] = {}
         for arm in arms:
             result = common.load_json(args.results / arm / f"{phase}.json")

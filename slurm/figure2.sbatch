@@ -61,7 +61,7 @@ HANDOFF_N=${HANDOFF_N:-8}
 # Individual phases write atomically; a retry reuses only finished phases.
 ARMS=(base grpo tandem)
 HANDOFF_ARMS=(grpo tandem)
-if [ "$PAIR" = 1 ]; then ARMS=(base junior grpo tandem); HANDOFF_ARMS=(base grpo tandem); fi
+if [ "$PAIR" = 1 ]; then ARMS=(base junior grpo tandem); fi
 case "$MODE" in
     base) ARMS=(base); HANDOFF_ARMS=();;
     *-solo) ARMS=("${MODE%-solo}"); HANDOFF_ARMS=();;

@@ -1,4 +1,4 @@
-"""Check separate junior provenance and all seven paired evaluation phases."""
+"""Check separate junior provenance and all six paired evaluation phases."""
 import json
 from pathlib import Path
 import sys
@@ -45,7 +45,7 @@ class ModelPair(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'initialization'):
                     select_figure2.main()
 
-    def test_paired_plot_reads_four_solo_and_three_handoff_results(self):
+    def test_paired_plot_reads_four_solo_and_two_handoff_results(self):
         calls = []
         def load(path):
             calls.append((path.parent.name, path.stem))
@@ -57,7 +57,7 @@ class ModelPair(unittest.TestCase):
                  patch.object(figure2, 'plot'), patch.dict(figure2.COLORS), patch.dict(figure2.LABELS):
                 figure2.main()
         self.assertEqual(set(calls), {(a, 'solo') for a in ('base', 'junior', 'grpo', 'tandem')} |
-                         {(a, 'handoff') for a in ('base', 'grpo', 'tandem')})
+                         {(a, 'handoff') for a in ('grpo', 'tandem')})
 
 
 if __name__ == '__main__':
