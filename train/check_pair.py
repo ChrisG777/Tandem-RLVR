@@ -32,7 +32,7 @@ def main() -> None:
         saved = json.loads(args.out.read_text())
         if saved['identity'] != identity:
             raise ValueError('Probe output belongs to a different model pair')
-        if saved.get('weight_isolation'):
+        if saved.get('weight_isolation', {}).get('attention_heads'):
             return
     senior, junior = (models[key]['path'] for key in ('base', 'junior'))
     tok, jtok = (AutoTokenizer.from_pretrained(path) for path in (senior, junior))
@@ -49,6 +49,7 @@ def main() -> None:
                           limit_mm_per_prompt={'image': 0, 'video': 0},
                           enable_prefix_caching=False, enforce_eager=not args.cuda_graphs)
     try:
+        isolation = engine.collective_rpc(check_weight_isolation)
         params = [SamplingParams(temperature=0.6, top_p=1, top_k=-1,
                                  max_tokens=256, seed=i) for i in range(4)]
         outputs = engine.generate([prompt] * 4, params, use_tqdm=False)
@@ -56,7 +57,6 @@ def main() -> None:
         authors = {author for s in samples for author in s['model_mask']}
         if authors != {0, 1}:
             raise ValueError('Probe did not exercise both models')
-        isolation = engine.collective_rpc(check_weight_isolation)
         common.save_json(args.out, {'identity': identity, 'samples': samples,
                                     'weight_isolation': isolation})
         print('NATIVE PAIR PROBE PASSED', flush=True)
@@ -71,6 +71,20 @@ def check_weight_isolation(worker) -> dict:
 
     runner = worker.model_runner
     junior = runner.tandem_manager.frozen_model
+    heads = []
+    layers = runner.vllm_config.compilation_config.static_forward_context
+    for groups in runner.attn_groups:
+        for group in groups:
+            builder = group.get_metadata_builder()
+            if not hasattr(builder, 'num_heads_q'):
+                continue
+            for name in group.layer_names:
+                layer = layers[name]
+                actual = (builder.num_heads_q, builder.num_heads_kv)
+                expected = (layer.num_heads, layer.num_kv_heads)
+                if actual != expected:
+                    raise ValueError(f'Wrong attention metadata for {name}: {actual} != {expected}')
+            heads.append({'layers': group.layer_names, 'query': actual[0], 'kv': actual[1]})
 
     def fingerprint() -> str:
         digest = hashlib.sha256()
@@ -98,7 +112,7 @@ def check_weight_isolation(worker) -> dict:
     if not torch.equal(parameter, original):
         raise ValueError('Senior diagnostic weight was not restored')
     return {'senior_parameter': name, 'junior_sha256_before': before,
-            'junior_sha256_after': after, 'senior_restored': True}
+            'junior_sha256_after': after, 'senior_restored': True, 'attention_heads': heads}
 
 
 if __name__ == '__main__':
