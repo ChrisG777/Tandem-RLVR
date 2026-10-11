@@ -9,6 +9,7 @@ if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 export PATH="${UV_BIN_DIR:?}:$PATH"
 export JOB_ENTRYPOINT=experiments/elegance/job.sbatch
+export MAX_RESTARTS=60
 export CKPT_DIR="${RUN_ROOT:?}/${ARM:?}"
 export RESUME_CHECKPOINT_ROOT="$CKPT_DIR"
 source slurm/runtime.sh
@@ -24,7 +25,7 @@ export TRAIN_GPUS=1 FROZEN_GPU=0 OMP_NUM_THREADS=4
 export ELEGANCE_JUDGE_CACHE="$RUN_ROOT/judge-cache"
 export ELEGANCE_CODEX_BIN=/data/scratch/chrisge/.local/bin/codex-cluster
 export TOTAL_STEPS=${TOTAL_STEPS:-200} TOTAL_EPOCHS=100 TEST_FREQ=20 SAVE_FREQ=5
-export MAX_CKPT_KEEP=2 PERSIST_HF_INTERVAL=200 PPO_MAX_TOKEN=10000
+export MAX_CKPT_KEEP=2 PERSIST_HF_INTERVAL=200 PPO_MAX_TOKEN=4096
 export MAX_PROMPT=2048 MAX_RESPONSE=3000
 export BOUNDARY_IDS_PATH="${INITIALIZATION_ROOT:?}/word-boundaries.json"
 export TRAIN_FILES="${ELEGANCE_DATA:?}/train.parquet"
@@ -41,6 +42,7 @@ export JUNIOR_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.a
 cp "$INITIALIZATION_ROOT/base.json" "$CKPT_DIR/initialization.json"
 cp "$ELEGANCE_DATA/manifest.json" "$CKPT_DIR/data-manifest.json"
 git rev-parse HEAD > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"
+run_python -c 'import importlib.metadata as m,json,os; print(json.dumps({"packages":{n:m.version(n) for n in ("torch","transformers","vllm","verl","math-verify")},"pythonpath":os.environ.get("PYTHONPATH")},indent=2))' > "$CKPT_DIR/runtime-${SLURM_JOB_ID}.json"
 nvidia-smi > "$CKPT_DIR/gpus-${SLURM_JOB_ID}.txt"
 case "$ARM" in
   tandem) LAUNCHER=train/tandem_grpo.sh;;
@@ -51,6 +53,7 @@ esac
 bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
   "data.val_files=[$ELEGANCE_DATA/validation.parquet]" \
   "reward.custom_reward_function.path=$REPO/experiments/elegance/reward.py" \
+  data.filter_overlong_prompts=False \
   "ray_kwargs.ray_init.num_cpus=${SLURM_CPUS_PER_TASK}" \
   actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 \
   actor_rollout_ref.rollout.top_k=-1 trainer.resume_mode=auto \
