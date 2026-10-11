@@ -152,3 +152,14 @@ cost. They were cancelled before generating samples. `eval.common.build_engine`
 now selects built-in Triton GDN prefill and disables image/video profiling for
 Qwen3.5 models only, matching the validated native execution settings. The 2B
 RTX 3090 path already selected Triton automatically. Decoding is unchanged.
+
+Tandem smoke `2615902` reached the first optimizer update, then exhausted the
+139.8-GiB H200 while FSDP1 lazily allocated Adam's second moment. The observed
+policy-process usage was 134.41 GiB plus 4.60 GiB for the frozen rollout partner.
+The inherited manual optimizer offload does not avoid the on-GPU optimizer step.
+The wrapper now selects verl's existing `actor.strategy=fsdp2` and
+`actor.fsdp_config.offload_policy=True`, matching its pinned Qwen3.5 example.
+Upstream `CPUOffloadPolicy` keeps parameters, gradients and optimizer state on
+CPU between computations; no trainer or optimizer implementation is replaced.
+The pending GRPO retry `25536909` was cancelled before applying this correction
+to both arms. No completed training checkpoint exists yet.
