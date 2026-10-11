@@ -21,7 +21,8 @@ The default remains false to preserve existing runs. Gradient accumulation then
 keeps gradients on GPU until the final microbatch, trading memory for fewer
 CPU transfers. `tests/test_fsdp2_offload_accumulation.py` checks gradients and
 AdamW updates against sync-every-microbatch on a small full-weight model.
-This candidate is not yet validated for the full Qwen3.5 run.
+The small gradient/update parity check and individual full-model steps passed;
+complete training/validation/resume qualification is still pending.
 
 ## Interactive measurements (2026-10-11)
 
@@ -86,3 +87,50 @@ The Qwen wrapper also sets `trainer.require_complete_validation=True`. This
 small guard rejects missing or unexpected prompt/sample sessions before computing
 validation aggregates. The pinned replay buffer otherwise accepts failed prompts
 and can report partial pass@4 scores after an inference-engine failure.
+
+The eager control `tandem-fused16k-eager` completed a valid first step in 562.97 s:
+generation 198.75 s, old-policy log probabilities 73.43 s, policy update 271.09 s.
+Reward was 0.4453, gradient norm 0.4667, and senior token fraction 0.4955.
+This is a cold step on one H200, not a complete-run forecast.
+
+The corrected `pair-decode-graphs` probe passed with actual head groups (16, 4)
+and (8, 2), valid word switches, and identical junior weight fingerprints before
+and after senior weight reload. Decode-only graphs disable torch.compile using
+`compilation_config={mode:0,cudagraph_mode:FULL_DECODE_ONLY}`.
+The subsequent `tandem-decode16k` training attempt was terminated during startup
+when interactive allocation 2620920 ended; it produced no step metrics.
+
+Profiling also found thousands of per-token log-softmax/gather backward calls in
+verl's fallback log-probability calculation. The already installed FLA 0.5.2
+provides the same cross-entropy interface used by verl's FlashAttention path.
+`VERL_USE_FLA_CROSS_ENTROPY=1` selects that existing kernel explicitly and fails
+on import if it is unavailable. No kernel or loss was reimplemented. The
+248,320-token vocabulary parity check passed for ordinary and in-place backward:
+maximum log-probability error 9.54e-7 and gradient relative RMS error 7.66e-6
+against FP32 PyTorch log-softmax. Full-model speed and memory remain to be measured.
+
+## Reproducible short qualification
+
+The existing `slurm/train-figure2.sbatch` accepts `QWEN35_SPEED=1` to enable the
+candidate deferred synchronization, native fused CPU AdamW, FLA cross entropy,
+four OpenMP threads, and decode-only graphs. Supply `PPO_MAX_TOKEN=16000`
+explicitly; this changes execution microbatch packing, not the RL batch or
+minibatch. Full-weight FP32 parameters/optimizer states and BF16 compute remain.
+`MODE=smoke SMOKE_STEPS=3 SMOKE_VAL_SAMPLES=1000` runs three steps and the complete
+held-out pass@4 validation. `QWEN35_PROFILE_DIR=DIR` optionally enables stage timing.
+All other campaigns retain their defaults. These options require both updated
+fork patches and the pinned Qwen3.5 runtime described above.
+
+Restartable short jobs 2622947 (Tandem) and 2622948 (GRPO) started independently
+on one A100 80 GB each. They use source commit `0c726c3`, full validation, and
+separate output roots under `speed/fused-ce/{tandem,grpo}-smoke`. Each saves a
+recovery/HF checkpoint at step 3, automatically resumes committed progress on
+requeue, and stops after the short test. They do not restart the cancelled
+200-step campaigns. A separate checkpoint-resume qualification is still needed.
+
+The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
+`(200 × steady_step_seconds + 10 × full_validation_seconds + checkpoint_seconds
++ startup_seconds) / 3600`, without double-counting validation/save time if the
+reported step timer includes them. Keep validation every 20 steps and include
+the actual recovery checkpoint cadence. The absolute step-only limit is 432 s;
+validation and checkpoint overhead require a lower steady-state step time.
