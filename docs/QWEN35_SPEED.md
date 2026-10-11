@@ -151,6 +151,19 @@ Current short attempts are Tandem `2623239` and GRPO `2623255`, source `6b4867f`
 one A100 80 GB each. They retain the same bounded three-step/full-validation
 protocol and output roots, with distinct per-attempt logs and runtime manifests.
 
+Both 10,000-token attempts completed the first policy update but failed while
+waking vLLM weights, before a full step could be logged. Warm backwards were
+about 4–6 s with peak policy allocation below 59 GiB; Tandem's first fused CPU
+optimizer call took 37.1 s with gradient norm 0.5125. The pinned weight-update
+path retained unused allocator memory before waking the separate rollout process.
+Upstream verl `1d367a4f459a43768f76312c0d3430a99ec46b8c` already adds
+`get_torch_device().empty_cache()` at that exact boundary. This one-line fix is
+backported in `733cc7b`; the profiler now records reserved as well as allocated
+GPU memory. No model/state-management replacement is involved. Retry Tandem
+`2623385` uses this source. No completed-step timing exists for the failed attempts.
+The retries reused unchanged node-local compiled-kernel caches where available;
+their first-step timings should not be described as wholly cold starts.
+
 The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
 `(200 × steady_step_seconds + 10 × full_validation_seconds + checkpoint_seconds
 + startup_seconds) / 3600`, without double-counting validation/save time if the
