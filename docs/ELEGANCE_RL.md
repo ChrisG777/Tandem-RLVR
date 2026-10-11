@@ -79,3 +79,11 @@ records measured maximum prompt lengths of 369/143/205 tokens for
 train/validation/test. `tandem/judge-preflight-2622847.json` contains the live
 grader receipt. `tandem-2622847.out` is the job log. This launch record does not
 assert that an optimizer update or final evaluation has completed.
+
+The site's Codex launcher was also corrected for same-job requeues onto a new
+node (site tool commit `215af52`). The [preserved patch](../experiments/elegance/patches/codex-cluster-requeue.patch)
+requires Slurm to confirm the current UID, running state, single allocated node,
+batch host and positive restart count before migrating ownership. Other live
+allocations remain excluded. All 12 existing storage tests and two focused
+[requeue tests](../tests/test_codex_cluster_requeue.py) passed. This fixes the
+grading runtime's restart path without bypassing its allocation guard.
