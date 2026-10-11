@@ -3,3 +3,8 @@
 # Existing pinned torch, Triton, Transformers and einops satisfy dependencies.
 flash-linear-attention==0.5.2
 fla-core==0.5.2
+# FLA's supported workaround for Hopper's Triton 3.6 backward correctness bug.
+# Reuses the environment's apache-tvm-ffi 0.1.12 and torch-c-dlpack-ext 0.1.5.
+tilelang==0.1.9
+ml-dtypes==0.6.0
+z3-solver==4.15.4.0
