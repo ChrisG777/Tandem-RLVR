@@ -62,3 +62,20 @@ Preemption requeues and resumes optimizer/RNG/dataloader checkpoints, while
 completed judge calls remain cached. Walltime continuation uses the existing
 bounded runtime wrapper. Exact queue routes and live job IDs belong in the
 campaign submission receipt rather than in launcher defaults.
+
+## Initial launch: 2026-10-11
+
+CSAIL job **2622847** started on `andreas-h100-1` using one H100, eight CPUs,
+384 GiB host RAM, the 24-hour vision-shared route and automatic requeue.
+Launch code is `bd84f67`. The live GPT-6.1-sol preflight passed all four cases
+in 27.9 seconds: valid/elegant reference, valid/non-elegant reference, invalid
+answer-only response, and invalid answer-only prompt injection. Four successful
+judgments were durably cached before the training launcher started.
+
+Campaign root:
+`/data/vision/torralba/u/chrisge/tandem-rlvr/elegance-20261011`.
+`submission.json` records exact submission arguments; `preparation-check.json`
+records measured maximum prompt lengths of 369/143/205 tokens for
+train/validation/test. `tandem/judge-preflight-2622847.json` contains the live
+grader receipt. `tandem-2622847.out` is the job log. This launch record does not
+assert that an optimizer update or final evaluation has completed.
