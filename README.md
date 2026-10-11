@@ -6,7 +6,7 @@ Reproduce Tandem RLVR with the authors’ training and evaluation code, alongsid
 |---|---|
 | [Data manifest](data/build_deepscaler.py) | Dataset revision, split seed, and file hashes |
 | [Verified checkpoint](train/figure2_checkpoint.py) | Validation-selected weights and explicit gaps in observed metrics |
-| [Evaluation manifest](eval/select_figure2.py) | Pinned base and selected GRPO/Tandem checkpoint paths |
+| [Evaluation manifest](eval/select_figure2.py) | Pinned base, optional frozen junior, and selected GRPO/Tandem paths |
 
 ## Reproduction
 

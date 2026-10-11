@@ -28,6 +28,8 @@ the paper's self-paired initialization. Both models use non-thinking mode.
   Set `EXPECTED_RESUME_STEP=3 RESUME_LOG=PATH` on that continuation to require
   separate pre/post-resume metric attempts plus model, optimizer, RNG and scheduler
   load evidence. The existing checkpoint verifier stores this receipt in `selected.json`.
+  Its direct CLI is `train/figure2_checkpoint.py --expected-resume-step 3
+  --resume-log PATH`, alongside the usual root/arm/steps/mode arguments.
 - `eval/select_figure2.py` preserves both initial model records and verifies
   initialization identity before selecting the trained checkpoints.
   `--arm grpo` or `--arm tandem` verifies/selects one local arm, enabling
@@ -225,7 +227,18 @@ smokes are being replaced before any accepted update/checkpoint; inference
 evaluations continue unchanged.
 
 Accelerated three-step smokes: CSAIL Tandem `2616100`, Engaging GRPO `25539689`.
-Their strict fourth-step resume checks are `2616101` and `25539690`, respectively,
-each dependent on smoke success. Fallback attempts `2615963`/`25537766` and their
+Their strict fourth-step resume checks are `2616142` and `25539998`, respectively,
+each dependent on smoke success. The earlier pending resume checks `2616101` and
+`25539690` were replaced to set `MAX_CKPT_KEEP=2`. This keeps the previous actor
+state intact while the trainer publishes the new dataloader state and retained
+HF weights; full runs must use the same retention setting. Fallback attempts `2615963`/`25537766` and their
 pending continuations `2616017`/`25538683` were cancelled before replacement.
 No full 200-step training arm has launched yet.
+
+Engaging's full-run `grpo-full/hf` points to
+`/orcd/pool/005/cge7/tandem-rlvr/qwen35-9b-2b/grpo-full/hf`, using the existing
+atomic cross-filesystem checkpoint exporter. Budget conservatively for FP32
+exports plus two overlapping resume states. Measure actual smoke checkpoint
+sizes and release only this campaign's obsolete smoke model/optimizer copies
+after verified continuation, retaining HF weights, logs and verification receipts,
+before launching full training. Existing campaigns are not storage-cleanup targets.
