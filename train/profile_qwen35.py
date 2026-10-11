@@ -1,7 +1,7 @@
 """Opt-in timing hook for the existing verl FSDP engine; never changes its loss.
 
 Set QWEN35_PROFILE_DIR and actor_rollout_ref.model.external_lib=train.profile_qwen35.
-Writes per-process JSONL timings and one CPU/CUDA backward trace. Import only in
+Writes per-process JSONL timings; QWEN35_PROFILE_TRACE=1 adds one backward trace. Import only in
 isolated profiling runs: synchronization adds overhead to the measured stages.
 """
 from contextlib import nullcontext
@@ -58,7 +58,8 @@ def install() -> None:
         state['depth'] += 1
         state['backward'] += 1
         profile = (torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CPU,
-                    torch.profiler.ProfilerActivity.CUDA]) if state['backward'] == 2 else None)
+                    torch.profiler.ProfilerActivity.CUDA])
+                   if state['backward'] == 2 and os.environ.get('QWEN35_PROFILE_TRACE') == '1' else None)
         torch.cuda.synchronize()
         started = time.perf_counter()
         try:

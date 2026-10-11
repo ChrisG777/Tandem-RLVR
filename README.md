@@ -33,6 +33,8 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 
 [Qwen3.5 asymmetric pair](docs/QWEN35_PAIR.md): pinned 9B senior / 2B junior →
 [native compatibility probe](train/check_pair.py) → the same training and evaluation workflow.
+[Execution profiling](docs/QWEN35_SPEED.md) instruments the existing trainer and
+documents measured performance changes.
 
 ## Solo shorthand pilot
 

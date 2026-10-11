@@ -21,6 +21,9 @@ and runs the launchers with a recording stub in place of the trainer. No test lo
 or requires a GPU or distributed group. The separate optional
 `test_qwen35_kernels.py` requires CUDA and FLA; it checks accelerated outputs and
 gradients against Transformers' Qwen3.5 reference and skips without that runtime.
+`test_fsdp2_offload_accumulation.py` also requires CUDA; it compares full-weight
+gradients and AdamW updates with ordinary versus deferred FSDP2 gradient
+synchronization under CPU offload.
 
 The sampler forward check uses deliberately different synthetic logits and greedy
 decoding; it does not test GPU model forwards or weight synchronization. The loss

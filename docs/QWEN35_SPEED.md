@@ -8,8 +8,9 @@ rollout count, response budget, and full-weight training retained.
 `train/profile_qwen35.py` is an opt-in diagnostic import for the existing trainer:
 set `QWEN35_PROFILE_DIR=DIR` and
 `actor_rollout_ref.model.external_lib=train.profile_qwen35`. It synchronizes and
-times existing forward/backward/optimizer calls, saving JSONL and a bounded
-PyTorch trace of the second backward. It does not implement a training loop.
+times existing forward/backward/optimizer calls, saving JSONL. Optionally set
+`QWEN35_PROFILE_TRACE=1` for a bounded PyTorch trace of the second backward;
+trace processing adds substantial diagnostic overhead. It does not implement a training loop.
 
 Candidate optimization: opt-in backport of upstream verl's
 `_gradient_sync_context` from commit

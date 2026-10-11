@@ -1,5 +1,4 @@
 """GPU parity check for upstream FSDP2 deferred sync with CPU offload."""
-import os
 import tempfile
 import unittest
 
