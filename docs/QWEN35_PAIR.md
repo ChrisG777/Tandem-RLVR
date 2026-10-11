@@ -175,3 +175,18 @@ Initial 9B solo smoke `2615943` passed. Paragraph handoff smoke `2615944` is
 still running. Evaluation wrappers preserve per-job source commits and copies
 of model manifests as `code-JOBID.txt` and `models-JOBID.json`, so independently
 scheduled phases retain their own provenance.
+
+Cross-cluster source trees match exactly: vLLM tree
+`d44a294e9073207c653e3a38684c9377939fd299`, verl tree
+`1fd0e2d493d6ca6f063f31e3fe06eccc7840b702`. Both environments use torch 2.10.0,
+transformers 5.5.4, Triton 3.6.0, FlashInfer 0.6.6, Ray 2.55.1, TransferQueue
+0.1.8, NumPy 2.2.6 and pandas 3.0.4. Full package inventories are saved in
+the campaign directories. No optional FLA/causal-conv training kernels have
+been added; Transformers currently uses its existing PyTorch training kernels.
+
+All three evaluation smokes passed. Full baseline jobs are frozen 2B solo
+`2615938`, initial 9B solo `2615969`, and initial 9B/2B paragraph handoff
+`2615977`. Handoff requests one 80-GB-class-or-larger GPU, four CPUs and 32 GiB
+host RAM, based on a sampled 19-GiB smoke RSS peak with headroom. The 9B engine
+required about 20.6 GiB before its KV cache; at the existing 0.42-per-engine
+memory fraction, 48-GB cards do not have sufficient cache headroom.
