@@ -167,6 +167,13 @@ No completed-step timing exists for the failed attempts.
 The retries reused unchanged node-local compiled-kernel caches where available;
 their first-step timings should not be described as wholly cold starts.
 
+GRPO `2623390` completed a valid first step in 513.44 s on A100: generation
+76.68 s, old-policy probabilities 122.30 s, actor update 288.37 s, and weight
+update/wake-up 5.69 s. Batch reward was 0.5547, gradient norm 0.4036, mean response
+length 1,830 tokens, and no responses aborted. Peak policy allocation was
+56.86 GiB (63.42 GiB reserved). This verifies the cache-release transition for
+GRPO but is not a completed smoke or a 24 GPU-hour result.
+
 The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
 `(200 × steady_step_seconds + 10 × full_validation_seconds + checkpoint_seconds
 + startup_seconds) / 3600`, without double-counting validation/save time if the
