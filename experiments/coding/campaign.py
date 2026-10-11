@@ -17,6 +17,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("preflight")
+    admit = sub.add_parser("admit-training")
+    admit.add_argument("--report", type=Path, required=True)
+    admit.add_argument("--allow-pending", action="store_true",
+                       help="Explicitly authorized provisional training while calibration runs")
     cal = sub.add_parser("calibration")
     cal.add_argument("--solo", type=Path, required=True)
     cal.add_argument("--word", type=Path, required=True)
@@ -43,7 +47,9 @@ def main() -> None:
     protocol.add_argument("--base", type=Path, required=True)
     protocol.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
-    if args.command == "preflight":
+    if args.command == "admit-training":
+        print(json.dumps(training_admission(args.report, allow_pending=args.allow_pending)))
+    elif args.command == "preflight":
         preflight()
     elif args.command == "calibration":
         raw_manifest = (args.data / "manifest.json").read_bytes()
@@ -101,6 +107,18 @@ def main() -> None:
         data = json.loads((args.data / "manifest.json").read_text())
         save_json(args.out, {"benchmarks": {tier: {"title": tier.removeprefix("apps_").capitalize(),
             "task_ids": data["files"][f"test/{tier}/test.parquet"]["task_ids"]} for tier in TIERS}})
+
+
+def training_admission(report: Path, *, allow_pending: bool = False) -> dict:
+    """Allow a passing gate, or explicitly authorized pending calibration; reject failures."""
+    if report.exists():
+        result = json.loads(report.read_text())
+        if result.get("passed") is not True:
+            raise ValueError("Calibration failed; stop provisional training before restarting")
+        return {"calibration": "passed", "provisional": False}
+    if not allow_pending:
+        raise ValueError("Calibration is incomplete")
+    return {"calibration": "pending", "provisional": True}
 
 
 def preflight() -> None:

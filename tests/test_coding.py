@@ -21,6 +21,23 @@ class Tokenizer:
 
 
 class CodingTests(unittest.TestCase):
+    def test_provisional_training_admission(self):
+        from experiments.coding.campaign import training_admission
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / 'report.json'
+            with self.assertRaisesRegex(ValueError, 'incomplete'):
+                training_admission(report)
+            self.assertTrue(training_admission(report, allow_pending=True)['provisional'])
+            report.write_text('{"passed": false}')
+            for allow in (False, True):
+                with self.assertRaisesRegex(ValueError, 'failed'):
+                    training_admission(report, allow_pending=allow)
+            report.write_text('{"passed": true}')
+            self.assertFalse(training_admission(report)['provisional'])
+            report.write_text('invalid')
+            with self.assertRaises(ValueError):
+                training_admission(report, allow_pending=True)
+
     def test_test_conversion(self):
         tests = normalize_tests({"inputs": [[[1, 2], 3]], "outputs": [[4, 5]], "fn_name": "add"})
         self.assertEqual(tests["inputs"], ['[1, 2]\n3'])

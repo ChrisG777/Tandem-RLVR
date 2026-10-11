@@ -51,7 +51,9 @@ case "$PHASE" in
         run_python -m experiments.coding.campaign calibration --data "$DATA_ROOT" --solo "$RUN_ROOT/calibration/solo.json" --word "$RUN_ROOT/calibration/word-handoff.json" --out "$RUN_ROOT/calibration/report.json"
         ;;
     train)
-        run_python -c 'import json,os; assert json.load(open(os.environ["RUN_ROOT"]+"/calibration/report.json"))["passed"]'
+        ADMISSION=()
+        if [ "${ALLOW_PENDING_CALIBRATION:-0}" = 1 ]; then ADMISSION+=(--allow-pending); fi
+        run_python -m experiments.coding.campaign admit-training --report "$RUN_ROOT/calibration/report.json" "${ADMISSION[@]}"
         run_python -m experiments.coding.campaign preflight
         export TANDEM_ENV_BIN="$TANDEM_ENV/bin" TANDEM_ENV_FILE="$REPO/slurm/training-env.sh"
         export BASE_MODEL POLICY_MODEL="$BASE_MODEL" JUNIOR_MODEL="$BASE_MODEL"
