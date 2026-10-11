@@ -160,7 +160,10 @@ Upstream verl `1d367a4f459a43768f76312c0d3430a99ec46b8c` already adds
 `get_torch_device().empty_cache()` at that exact boundary. This one-line fix is
 backported in `733cc7b`; the profiler now records reserved as well as allocated
 GPU memory. No model/state-management replacement is involved. Retry Tandem
-`2623385` uses this source. No completed-step timing exists for the failed attempts.
+`2623385` and GRPO `2623390` use this source. Both are running on A100 80 GB
+(`beery-a100-2` and `beery-a100-1`, respectively). The failed GRPO process was
+cancelled during shutdown after recording its fatal wakeup error.
+No completed-step timing exists for the failed attempts.
 The retries reused unchanged node-local compiled-kernel caches where available;
 their first-step timings should not be described as wholly cold starts.
 
