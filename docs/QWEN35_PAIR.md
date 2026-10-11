@@ -31,6 +31,8 @@ the paper's self-paired initialization. Both models use non-thinking mode.
   in addition to existing phases. A paired manifest's full evaluation includes
   four solo and three handoff phases. `eval/figure2.py --paired-baselines`
   summarizes/plots the same seven outputs, preserving the original statistics.
+  For a separate CPU plot job, use `slurm/figure2-postprocess.sbatch` with
+  `PHASE=plot PAIRED_BASELINES=1`.
 
 The separate native word evaluator accepts `--boundaries` for diagnostics.
 Native-word benchmark evaluation is not part of this campaign's requested scope.

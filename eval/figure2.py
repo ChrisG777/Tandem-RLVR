@@ -1,4 +1,4 @@
-"""Plot Figure 2 from five evaluation JSONs, with problem-bootstrap standard errors."""
+"""Plot Figure 2 from five or seven evaluation JSONs, with bootstrap standard errors."""
 import argparse
 from pathlib import Path
 
