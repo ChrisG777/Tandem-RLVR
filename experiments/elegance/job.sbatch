@@ -32,7 +32,7 @@ export TRAIN_FILES="${ELEGANCE_DATA:?}/train.parquet"
 export VERL_FILE_LOGGER_PATH="$CKPT_DIR/metrics-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}.jsonl"
 mkdir -p "$CKPT_DIR" "$XDG_CACHE_HOME" "$RAY_TMPDIR"
 run_python() { uv run --python "$TANDEM_ENV_BIN/python" --no-project --offline python "$@"; }
-run_python -c 'import shutil,sys; assert shutil.disk_usage(sys.argv[1]).free > 280 * 1024**3, "Need 280 GiB free for overlapping full-weight resume checkpoints"' "$RUN_ROOT"
+run_python -c 'import pathlib,shutil,sys; p=pathlib.Path(sys.argv[1]); owned=sum(f.stat().st_blocks*512 for f in p.rglob("*") if f.is_file()); assert shutil.disk_usage(p).free + owned > 280 * 1024**3, "Insufficient capacity for overlapping full-weight resume checkpoints"' "$CKPT_DIR"
 run_python -m experiments.elegance.preflight --archive data/method-elegance/dataset.zip \
   --cache "$ELEGANCE_JUDGE_CACHE" --codex "$ELEGANCE_CODEX_BIN" \
   --receipt "$CKPT_DIR/judge-preflight-${SLURM_JOB_ID}.json"
