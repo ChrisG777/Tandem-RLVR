@@ -27,6 +27,9 @@ the paper's self-paired initialization. Both models use non-thinking mode.
   restoration check. Full training remains fixed at 200 steps.
 - `eval/select_figure2.py` preserves both initial model records and verifies
   initialization identity before selecting the trained checkpoints.
+  `--arm grpo` or `--arm tandem` verifies/selects one local arm, enabling
+  cross-cluster evaluation without copying all training checkpoints. Omit it
+  to retain the existing two-arm selection workflow.
 - `slurm/figure2.sbatch` supports `junior-solo`, `base-solo`, and `base-handoff`
   in addition to existing phases. A paired manifest's full evaluation includes
   four solo and three handoff phases. `eval/figure2.py --paired-baselines`

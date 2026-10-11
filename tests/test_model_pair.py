@@ -13,6 +13,20 @@ import select_figure2
 
 
 class ModelPair(unittest.TestCase):
+    def test_independent_selection_only_requires_the_local_arm(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bases = {'base': {'path': '/senior'}, 'junior': {'path': '/junior'}}
+            (root / 'base.json').write_text(json.dumps(bases))
+            (root / 'grpo-full').mkdir()
+            (root / 'grpo-full/initialization.json').write_text(json.dumps(bases))
+            argv = ['select', '--root', str(root), '--out', str(root / 'models.json'), '--arm', 'grpo']
+            with patch.object(sys, 'argv', argv), patch.object(select_figure2, 'verify_training', return_value={'path': '/selected'}) as verify:
+                select_figure2.main()
+            self.assertEqual(set(json.loads((root / 'models.json').read_text())), {'base', 'junior', 'grpo'})
+            self.assertEqual([call.args for call in verify.call_args_list],
+                             [(root / 'grpo-smoke', 'grpo', 3), (root / 'grpo-full', 'grpo', 200)])
+
     def test_selection_preserves_frozen_junior_and_checks_initialization(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

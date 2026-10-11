@@ -9,15 +9,17 @@ from figure2_checkpoint import verify_training
 
 
 def main() -> None:
-    """Require both complete 200-step runs and verified smoke tests; record local paths."""
+    """Verify requested 200-step arms and their smoke tests; record local paths."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--arm", choices=("grpo", "tandem"), action="append",
+                        help="Select a local arm independently; default: both")
     args = parser.parse_args()
     manifest = json.loads((args.root / "base.json").read_text())
     if set(manifest) not in ({"base"}, {"base", "junior"}):
         raise ValueError("Initialization manifest must contain the senior base and optional frozen junior")
-    for arm in ("grpo", "tandem"):
+    for arm in args.arm or ("grpo", "tandem"):
         root = args.root / f"{arm}-full"
         migration = root / "migration.json"
         if migration.exists():
