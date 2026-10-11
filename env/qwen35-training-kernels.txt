@@ -1,0 +1,5 @@
+# Optional Transformers Qwen3.5 Gated DeltaNet/RMSNorm acceleration.
+# Install separately with uv pip --target to preserve active environments.
+# Existing pinned torch, Triton, Transformers and einops satisfy dependencies.
+flash-linear-attention==0.5.2
+fla-core==0.5.2
