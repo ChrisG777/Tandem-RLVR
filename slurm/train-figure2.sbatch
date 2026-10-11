@@ -29,6 +29,8 @@ export XDG_CACHE_HOME="/tmp/tandem-train-${SLURM_JOB_ID}"
 export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton"
 export TORCHINDUCTOR_CACHE_DIR="$XDG_CACHE_HOME/torchinductor"
 export FLASHINFER_WORKSPACE_BASE="$XDG_CACHE_HOME/flashinfer"
+export TILELANG_CACHE_DIR="$XDG_CACHE_HOME/tilelang"
+if [ -n "${CUDA_HOME:-}" ]; then export PATH="$CUDA_HOME/bin:$PATH"; fi
 export RAY_TMPDIR="/tmp/r${SLURM_JOB_ID}"
 export WANDB_MODE=offline TOKENIZERS_PARALLELISM=false HYDRA_FULL_ERROR=1
 export VLLM_WORKER_MULTIPROC_METHOD=spawn HF_HUB_OFFLINE=1
@@ -69,6 +71,16 @@ esac
 echo "$CODE_COMMIT" > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"
 cp "$RUN_ROOT/base.json" "$CKPT_DIR/initialization.json"
 cp "$DATA_ROOT/deepscaler/manifest.json" "$CKPT_DIR/data-manifest.json"
+run_python - <<'PY' > "$CKPT_DIR/runtime-${SLURM_JOB_ID}.json"
+import importlib.metadata as metadata
+import json
+import os
+import sys
+names = sorted({distribution.metadata["Name"] for distribution in metadata.distributions()})
+print(json.dumps({"python": sys.version, "pythonpath": os.environ.get("PYTHONPATH", ""),
+                  "cuda_home": os.environ.get("CUDA_HOME", ""),
+                  "packages": {name: metadata.version(name) for name in names}}, indent=2))
+PY
 nvidia-smi > "$CKPT_DIR/gpus-${SLURM_JOB_ID}.txt"
 # Same data order and rollout seeds for both arms. Resume is only within this run.
 bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \

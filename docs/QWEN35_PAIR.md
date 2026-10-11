@@ -198,3 +198,22 @@ All three evaluation smokes passed. Full baseline jobs are frozen 2B solo
 host RAM, based on a sampled 19-GiB smoke RSS peak with headroom. The 9B engine
 required about 20.6 GiB before its KV cache; at the existing 0.42-per-engine
 memory fraction, 48-GB cards do not have sufficient cache headroom.
+
+Optional accelerated training kernels are pinned in
+`env/qwen35-training-kernels.txt`. Install into a separate directory with
+`uv pip install --target "$RUN_ROOT/training-kernels" --python-version 3.11
+--only-binary :all: --no-deps -r env/qwen35-training-kernels.txt`, then prepend
+that directory to training's `PYTHONPATH`. Existing torch/Transformers/Triton,
+einops, apache-tvm-ffi and torch-c-dlpack-ext satisfy the remaining dependencies.
+Set `CUDA_HOME` to the site's CUDA toolkit for FLA's native TileLang backend.
+Per-job `runtime-JOBID.json` records the effective package versions and paths.
+
+FLA 0.5.2 rejected its Triton backward path on Hopper with the pinned Triton 3.6
+because of a known correctness bug. Its maintained TileLang fallback preserves
+the existing core package pins. TileLang 0.1.9 was incompatible with installed
+TVM FFI 0.1.12; TileLang 0.1.15 supports it. The GPU check
+`tests/test_qwen35_kernels.py` passed with relative RMS errors 0.52–0.68% for
+output and all five input gradients against Transformers' reference, using
+two independent BF16 sequences and a partial final chunk. The fallback-only
+smokes are being replaced before any accepted update/checkpoint; inference
+evaluations continue unchanged.
