@@ -761,7 +761,7 @@ new file mode 100644
 index 0000000..bd6edd4
 --- /dev/null
 +++ b/vllm/v1/worker/tandem.py
-@@ -0,0 +1,239 @@
+@@ -0,0 +1,259 @@
 +
 +import copy
 +import time
@@ -804,6 +804,7 @@ index 0000000..bd6edd4
 +        self.frozen_device: Optional[torch.device] = None
 +        self.frozen_kv_caches: list[torch.Tensor] = []
 +        self.frozen_layer_names: list[str] = []
++        self._native_hybrid_cache = False
 +
 +    def _build_frozen_vllm_config(self) -> VllmConfig:
 +        tc = self.tandem_config
@@ -890,6 +891,21 @@ index 0000000..bd6edd4
 +                                   attn_backend: Any) -> None:
 +        if self.frozen_model is None:
 +            return
++        # The runner already allocates/binds registered hybrid layers using
++        # upstream KVCacheSpecs. Do not overwrite those caches with Attention
++        # tensors or reuse one layer's metadata across distinct cache groups.
++        layer_types = getattr(self.primary_vllm_config.model_config.hf_text_config,
++                              "layer_types", [])
++        if "linear_attention" in layer_types:
++            if self.frozen_device != torch.device("cuda", torch.cuda.current_device()):
++                raise ValueError("Native hybrid Tandem requires colocated models")
++            self.frozen_layer_names = [
++                name for group in primary_kv_cache_config.kv_cache_groups
++                for name in group.layer_names if is_frozen_layer(name)]
++            if not self.frozen_layer_names:
++                raise ValueError("Frozen hybrid layers missing from native cache groups")
++            self._native_hybrid_cache = True
++            return
 +        from vllm.v1.worker.utils import bind_kv_cache
 +        sfc = self.primary_vllm_config.compilation_config.static_forward_context
 +        frozen_layers = {
@@ -968,6 +984,8 @@ index 0000000..bd6edd4
 +        return frozen_name[len(prefix):] if frozen_name.startswith(prefix) else frozen_name
 +
 +    def _adapt_attn_metadata(self, primary_metadata: Any) -> Any:
++        if self._native_hybrid_cache:
++            return primary_metadata
 +        if isinstance(primary_metadata, dict):
 +            adapted = {k: self._adapt_one(v) for k, v in primary_metadata.items()}
 +            rep = next(iter(adapted.values()))
@@ -984,6 +1002,8 @@ index 0000000..bd6edd4
 +        return adapted
 +
 +    def _adapt_slot_mapping(self, slot_mappings: Any) -> Any:
++        if self._native_hybrid_cache:
++            return slot_mappings
 +        if not isinstance(slot_mappings, dict):
 +            return slot_mappings
 +        adapted = {k: v.to(self.frozen_device) for k, v in slot_mappings.items()}
