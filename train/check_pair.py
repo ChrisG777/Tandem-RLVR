@@ -23,9 +23,11 @@ def main() -> None:
     models = json.loads(args.models.read_text())
     identity = {'models': models, 'boundaries': json.loads(args.boundaries.read_text())}
     if args.out.exists():
-        if json.loads(args.out.read_text())['identity'] != identity:
+        saved = json.loads(args.out.read_text())
+        if saved['identity'] != identity:
             raise ValueError('Probe output belongs to a different model pair')
-        return
+        if saved.get('weight_isolation'):
+            return
     senior, junior = (models[key]['path'] for key in ('base', 'junior'))
     tok, jtok = (AutoTokenizer.from_pretrained(path) for path in (senior, junior))
     if tok.get_vocab() != jtok.get_vocab():
@@ -45,10 +47,49 @@ def main() -> None:
         authors = {author for s in samples for author in s['model_mask']}
         if authors != {0, 1}:
             raise ValueError('Probe did not exercise both models')
-        common.save_json(args.out, {'identity': identity, 'samples': samples})
+        isolation = engine.collective_rpc(check_weight_isolation)
+        common.save_json(args.out, {'identity': identity, 'samples': samples,
+                                    'weight_isolation': isolation})
         print('NATIVE PAIR PROBE PASSED', flush=True)
     finally:
         engine.llm_engine.engine_core.shutdown()
+
+
+def check_weight_isolation(worker) -> dict:
+    """Audit the real vLLM loader: change/restore one senior weight, hash all junior weights."""
+    import hashlib
+    import torch
+
+    runner = worker.model_runner
+    junior = runner.tandem_manager.frozen_model
+
+    def fingerprint() -> str:
+        digest = hashlib.sha256()
+        for name, value in junior.named_parameters():
+            if value.requires_grad:
+                raise ValueError(f'Junior parameter is trainable: {name}')
+            digest.update(name.encode())
+            digest.update(value.detach().contiguous().view(torch.uint8).cpu().numpy().tobytes())
+        return digest.hexdigest()
+
+    before = fingerprint()
+    name, parameter = next((n, p) for n, p in runner.model.named_parameters()
+                           if n.endswith('norm.weight') and p.ndim == 1)
+    original = parameter.detach().clone()
+    replacement = original + 1
+    try:
+        runner.model.load_weights([(name, replacement)])
+        if not torch.equal(parameter, replacement):
+            raise ValueError('Senior weight reload did not update the selected parameter')
+        after = fingerprint()
+        if before != after:
+            raise ValueError('Senior weight reload changed frozen junior weights')
+    finally:
+        runner.model.load_weights([(name, original)])
+    if not torch.equal(parameter, original):
+        raise ValueError('Senior diagnostic weight was not restored')
+    return {'senior_parameter': name, 'junior_sha256_before': before,
+            'junior_sha256_after': after, 'senior_restored': True}
 
 
 if __name__ == '__main__':

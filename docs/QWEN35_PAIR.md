@@ -15,7 +15,9 @@ the paper's self-paired initialization. Both models use non-thinking mode.
 - `train/check_pair.py --models base.json --boundaries word-boundaries.json
   --out pair-probe.json` exercises the original native backend on one GPU,
   checks identical vocabularies, exact boundaries and per-token authorship,
-  and writes verified traces atomically. It does not establish training readiness.
+  and writes verified traces atomically. The probe also changes/restores one senior
+  parameter through vLLM’s weight loader and verifies all junior parameters remain
+  frozen and byte-identical. It does not establish training readiness.
   `slurm/check-pair.sbatch` wraps it with explicit site/environment arguments.
 - `slurm/train-figure2.sbatch` uses `base` to initialize both training arms and
   the optional `junior` for the frozen partner; old base-only manifests retain
@@ -122,3 +124,12 @@ difference on the second sequence when concatenated instead of batched. The
 Qwen3.5 wrapper now sets `model.use_remove_padding=False`, retaining the existing
 padded SDPA path and separate recurrent state per example. This changes execution
 layout, not batch size, token budgets, or the objective.
+
+Corrected training smoke jobs are CSAIL `2615902` and Engaging `25536909`;
+the original attempts `2615877` and `25536736` were cancelled. Evaluation
+smokes `2615910`–`2615912` failed because the isolated vLLM source lacked a
+generated FlashAttention Python module used during vision profiling. Their
+replacements `2615918`–`2615920` reuse the existing complete vLLM installation
+read-only; solo and paragraph evaluation do not need the native hybrid cache
+patch. Each smoke uses two problems and two samples/chains, separate from full
+benchmark outputs.
