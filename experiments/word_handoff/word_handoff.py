@@ -142,7 +142,8 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         engine.llm_engine.engine_core.shutdown()
 
 
-def build_engine(senior: str, junior: str, boundaries: Path, **engine_kwargs):
+def build_engine(senior: str, junior: str, boundaries: Path, *,
+                 enable_prefix_caching: bool = True, **engine_kwargs):
     """Load both BF16 models on GPU 0, with two bounded 5-GiB KV caches."""
     from vllm import LLM
     os.environ.pop('VLLM_TANDEM_CONFIG', None)
@@ -152,7 +153,7 @@ def build_engine(senior: str, junior: str, boundaries: Path, **engine_kwargs):
                # fit without eviction/replay of the stateful word sampler.
                max_model_len=common.MAX_MODEL_LEN, max_num_seqs=2 if common.MAX_MODEL_LEN > 4096 else 4,
                max_num_batched_tokens=4096, gpu_memory_utilization=0.85,
-               kv_cache_memory_bytes=5*1024**3, enable_prefix_caching=True,
+               kv_cache_memory_bytes=5*1024**3, enable_prefix_caching=enable_prefix_caching,
                tandem_config={'enabled': True, 'frozen_model': junior,
                               'selection_strategy': 'word', 'prob_primary': 0.5,
                               'max_gap_tokens': 32, 'frozen_gpu_devices': [0],
