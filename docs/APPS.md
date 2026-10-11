@@ -139,3 +139,9 @@ to 10% after observing 8.5% solo truncation at 6,000 tokens. This is a
 validation-informed protocol revision, not a preregistered threshold; no test
 scores were consulted. Both modes must still pass all gates, followed by
 independent three-step full-weight (LoRA rank zero) training smokes.
+
+The user subsequently authorized full training concurrently with pending
+calibration. `campaign admit-training --report PATH --allow-pending` permits
+that explicit exception; an existing failed or invalid report always rejects
+startup. The training wrapper opts in with `ALLOW_PENDING_CALIBRATION=1`.
+Provisional submissions require a cancellation monitor watching the gate report.

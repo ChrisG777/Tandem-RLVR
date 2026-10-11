@@ -1,13 +1,11 @@
 # APPS pilot run: 2026-10-10
 
-Status (2026-10-11): the user authorized a 10% truncation threshold and training
-after additional checks. Completed 6k solo calibration: accuracy 66.94%, mixed
-reward groups 28.5%, truncation 8.5%. Native progress is saved at 112/200 tasks.
-Replacement interactive allocation 2618086 on isola-h100-1 resumes native
-calibration and performs both training smokes using the same run directory.
-It is hosted in a detached login-node tmux session (`apps-checks`, session `apps`)
-so a local client disconnect does not terminate salloc. Full training remains
-conditional on completed calibration and each arm's own smoke checks.
+Status (2026-10-11): the user authorized full training while calibration continues.
+The original held jobs 2618107/2618108 were cancelled because their submitted
+scripts enforced the previous gate. Replacement full runs are **2618184 (GRPO)**
+and **2618185 (Tandem)**, submitted without calibration or smoke dependencies.
+Both retain full-weight training, one compatible GPU, and 24-hour resumable chunks.
+Native calibration and independent checks continue in interactive job 2618086.
 
 ## Code and allocation
 
@@ -90,3 +88,21 @@ idle indefinitely. Batch runs retain automatic same-job requeue and checkpoint r
 
 At submission neither full run had started: native calibration and the training
 smokes were still prerequisites. The active checkout is pinned at `be501f7`.
+
+## Provisional training authorization
+
+`provisional-training-jobs.json` is the current submission record; the older
+`training-jobs.json` is historical. The new training checkout is an independent
+clone on `main` at `/data/scratch/chrisge/Tandem-RLVR-apps-training-20261011`,
+commit `7322912`; the active calibration checkout was left unchanged.
+The new admission guard and shell syntax were tested on interactive node 2618086.
+
+The former per-arm release watchers were stopped. Login-node tmux `apps-checks`
+window `calibration-monitor` now checks the completed calibration report every
+30 seconds and cancels both provisional runs if it fails. It also cancels them
+if the calibration allocation ends without a report or monitoring exceeds 24 hours.
+On success it allows both full runs to continue. Logs and cancellation receipts
+are `provisional-training-monitor.{log,json}`. Failed-run artifacts are preserved;
+restart requires addressing the calibration failure, not repeatedly submitting
+an unchanged failing protocol. The training startup guard independently rejects
+an existing failed report, including on automatic requeue.
