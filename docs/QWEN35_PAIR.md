@@ -133,3 +133,12 @@ replacements `2615918`–`2615920` reuse the existing complete vLLM installation
 read-only; solo and paragraph evaluation do not need the native hybrid cache
 patch. Each smoke uses two problems and two samples/chains, separate from full
 benchmark outputs.
+
+Weight audit `2615929` passed: all junior weights remained frozen and
+byte-identical through a senior parameter reload, and the senior parameter was
+restored. The local diagnostic enables vLLM callable serialization for its own
+worker audit. Non-thinking prompt text and token IDs also matched. The 2B solo
+smoke `2615918` passed; full 32-draw/1,064-problem baseline is job `2615938`.
+GRPO smoke `25536909` was preempted once and automatically requeued under the
+same ID, before any checkpoint was written. This verifies scheduler recovery,
+not checkpoint restoration.

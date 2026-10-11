@@ -1,6 +1,7 @@
 """Exercise the existing native Tandem backend before allocating training."""
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -10,6 +11,8 @@ sys.path.insert(0, str(ROOT))
 
 def main() -> None:
     """Load pinned models on one GPU; atomically save verified authorship traces."""
+    # Only this local diagnostic serializes its own worker callable.
+    os.environ['VLLM_ALLOW_INSECURE_SERIALIZATION'] = '1'
     from transformers import AutoTokenizer
     from vllm import SamplingParams
     from experiments.word_handoff.word_handoff import build_engine, record_completion
@@ -35,11 +38,14 @@ def main() -> None:
     boundaries = set(identity['boundaries'])
     if boundaries != {i for token, i in tok.get_vocab().items() if token.startswith('Ġ')}:
         raise ValueError('Word boundaries do not match this tokenizer')
+    question = 'Solve step by step: A shop sells 12 boxes of 8 pencils. How many pencils is that? Put the answer in \\boxed{}.'
+    prompt = common.chat_prefix(tok, question)
+    if prompt != common.chat_prefix(jtok, question) or tok(prompt).input_ids != jtok(prompt).input_ids:
+        raise ValueError('Non-thinking prompt formats differ between the model pair')
     engine = build_engine(senior, junior, args.boundaries, gdn_prefill_backend='triton',
                           limit_mm_per_prompt={'image': 0, 'video': 0},
                           enable_prefix_caching=False)
     try:
-        prompt = common.chat_prefix(tok, 'Solve step by step: A shop sells 12 boxes of 8 pencils. How many pencils is that? Put the answer in \\boxed{}.')
         params = [SamplingParams(temperature=0.6, top_p=1, top_k=-1,
                                  max_tokens=256, seed=i) for i in range(4)]
         outputs = engine.generate([prompt] * 4, params, use_tqdm=False)
