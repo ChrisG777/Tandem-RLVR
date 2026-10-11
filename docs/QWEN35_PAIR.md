@@ -112,3 +112,13 @@ isolated patched vLLM source and the existing corrected grading packages using
 NumPy 2.2.6, pandas 3.0.4, torch 2.10.0 and transformers 5.5.4; math-verify 0.9.0
 and latex2sympy2-extended 1.11.0 come from the grading environment. Engaging uses
 a separately built environment recorded in `training-environment.txt`.
+
+The first training smoke attempts were cancelled before accepting training
+results: the pinned Transformers Qwen3.5 GDN forward has neither sequence
+boundaries nor position IDs in its interface, so verl's packed/remove-padding
+path carries recurrent state across examples. A two-sequence check using the
+installed `torch_chunk_gated_delta_rule` produced a 1.39206 maximum absolute
+difference on the second sequence when concatenated instead of batched. The
+Qwen3.5 wrapper now sets `model.use_remove_padding=False`, retaining the existing
+padded SDPA path and separate recurrent state per example. This changes execution
+layout, not batch size, token budgets, or the objective.
