@@ -87,3 +87,29 @@ batch host and positive restart count before migrating ownership. Other live
 allocations remain excluded. All 12 existing storage tests and two focused
 [requeue tests](../tests/test_codex_cluster_requeue.py) passed. This fixes the
 grading runtime's restart path without bypassing its allocation guard.
+
+## CPU-offload correction: 2026-10-11
+
+The original job produced 23 rollout judgments but no completed optimizer update
+in 36 minutes. The worker was computing; separate Qwen profiling identified
+repeated synchronous gradient copies to CPU during accumulation as the bottleneck.
+It was cancelled before submitting replacement **2623125**, which started on
+`andreas-h100-1` with the same resources and campaign directory. Cached grades
+and original logs are preserved. `restart-submission.json` records the replacement.
+
+Launch code `070625c` explicitly loads an isolated verl checkout at `010d023a`,
+based on the validated fork `48edde50`. The [patch](../experiments/elegance/patches/verl-deferred-sync.patch)
+backports deferred gradient synchronization and honors the existing entropy
+chunking option. Native fused CPU AdamW and a 10,000-token execution microbatch
+budget reduce CPU overhead. The full-weight objective, batch/minibatch sizes,
+rollout count, response limit, eager decoding, and data split remain unchanged.
+The [parity check](../tests/test_fsdp2_offload_accumulation.py) previously produced
+exactly equal gradients and AdamW updates for ordinary, deferred, and deferred
+plus fused execution; separate full 9B eager training steps also passed. These
+checks do not establish complete-run equivalence or final performance.
+
+[`train/profile_qwen35.py`](../train/profile_qwen35.py) adds per-stage timings
+under `tandem/profile/`; CUDA synchronization adds diagnostic overhead. Runtime
+receipts now record resolved verl/vLLM module paths. The replacement passed all
+four preflight cases from cache and loaded the isolated trainer. Completion of
+its first update remains to be checked.
