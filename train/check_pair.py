@@ -32,7 +32,8 @@ def main() -> None:
         saved = json.loads(args.out.read_text())
         if saved['identity'] != identity:
             raise ValueError('Probe output belongs to a different model pair')
-        if saved.get('weight_isolation', {}).get('attention_heads'):
+        audits = saved.get('weight_isolation', [])
+        if audits and all(audit.get('attention_heads') for audit in audits):
             return
     senior, junior = (models[key]['path'] for key in ('base', 'junior'))
     tok, jtok = (AutoTokenizer.from_pretrained(path) for path in (senior, junior))
