@@ -12,7 +12,7 @@ diff --git a/codex_cluster.py b/codex_cluster.py
                  raise RuntimeError(f"Archive is owned by allocation {owner['job']} on {owner['host']}.")
          local.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
          fs = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '-T', str(local.parent)], text=True).strip()
-@@ -170,6 +172,22 @@
+@@ -170,6 +172,25 @@
          print(f'[codex-cluster] Could not import remaining legacy history: {exc}', file=sys.stderr)
  
  
