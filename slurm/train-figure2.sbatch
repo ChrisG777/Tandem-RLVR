@@ -55,11 +55,22 @@ if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
         +actor_rollout_ref.rollout.engine_kwargs.vllm.gdn_prefill_backend=triton
         '+actor_rollout_ref.rollout.engine_kwargs.vllm.limit_mm_per_prompt={image:0,video:0}')
 fi
+if [ "${QWEN35_SPEED:-0}" = 1 ]; then
+    test -f "$RUN_ROOT/word-boundaries.json" || { echo 'Qwen speed mode requires a pair manifest'; exit 2; }
+    export ENFORCE_EAGER=False OMP_NUM_THREADS=4
+    export VERL_USE_FLA_CROSS_ENTROPY=1
+    EXTRA+=(+actor_rollout_ref.actor.fsdp_config.use_no_sync_for_gradient_accumulation=True
+        'actor_rollout_ref.actor.optim.override_optimizer_config={fused:True}'
+        '+actor_rollout_ref.rollout.engine_kwargs.vllm.compilation_config={mode:0,cudagraph_mode:FULL_DECODE_ONLY}')
+    if [ -n "${QWEN35_PROFILE_DIR:-}" ]; then
+        EXTRA+=(actor_rollout_ref.model.external_lib=train.profile_qwen35)
+    fi
+fi
 case "$MODE" in
     smoke)
         export TOTAL_STEPS=${SMOKE_STEPS:-3}
         export TEST_FREQ=$TOTAL_STEPS SAVE_FREQ=$TOTAL_STEPS PERSIST_HF_INTERVAL=$TOTAL_STEPS
-        EXTRA+=(data.val_max_samples=8);;
+        EXTRA+=("data.val_max_samples=${SMOKE_VAL_SAMPLES:-8}");;
     full) ;;
     *) echo "MODE must be smoke or full" >&2; exit 2;;
 esac
