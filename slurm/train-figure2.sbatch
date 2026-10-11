@@ -43,7 +43,7 @@ export PPO_MAX_TOKEN=${PPO_MAX_TOKEN:-4096}
 export PERSIST_HF_INTERVAL=20
 EXTRA=()
 if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
-    EXTRA+=('+data.apply_chat_template_kwargs.enable_thinking=False' '+actor_rollout_ref.rollout.engine_kwargs.vllm.limit_mm_per_prompt.image=0' '+actor_rollout_ref.rollout.engine_kwargs.vllm.limit_mm_per_prompt.video=0')
+    EXTRA+=('+data.apply_chat_template_kwargs.enable_thinking=False')
 fi
 case "$MODE" in
     smoke) export TOTAL_STEPS=3 TEST_FREQ=3 SAVE_FREQ=3 PERSIST_HF_INTERVAL=3; EXTRA+=(data.val_max_samples=8);;

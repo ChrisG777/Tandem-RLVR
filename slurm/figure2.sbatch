@@ -57,6 +57,7 @@ TANDEM=${MODELS[2]:-}
 JUNIOR=${MODELS[3]:-$BASE}
 PAIR=0
 if [ -n "${MODELS[3]:-}" ]; then PAIR=1; fi
+if [ "$MODE" = junior-solo ] && [ "$PAIR" = 0 ]; then echo "junior-solo requires an explicit junior manifest entry" >&2; exit 2; fi
 LIMIT=${LIMIT:-0}
 SOLO_N=${SOLO_N:-32}
 HANDOFF_N=${HANDOFF_N:-8}
