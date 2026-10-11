@@ -88,6 +88,12 @@ The revised [conclusion](https://arxiv.org/html/2606.28166v2#S6) proposes divers
 juniors as future work. This experiment measures the initial math gap itself;
 model size is not treated as evidence of benchmark performance.
 
+The original version also reports evaluation-only partner changes in Appendix B.2:
+the self-paired trained seniors are paired with unseen Qwen3-0.6B and Qwen3-1.7B
+juniors. Handoff gains are mixed across benchmarks/partner sizes, and legibility
+gains do not reliably transfer. The authors explicitly avoid broad generalization
+claims. Our experiment instead changes the junior during training itself.
+
 Probe 2615771 loaded both models successfully, then was cancelled during
 FlashInfer's 35-target first-use kernel compilation. The diagnostic selects
 vLLM's built-in Triton GDN prefill backend and disables unused image/video
