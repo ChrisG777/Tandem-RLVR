@@ -25,7 +25,7 @@ def main() -> None:
     def submit(name, phase, resources, deps=(), **environment):
         command = ["sbatch", "--parsable", "--job-name=apps-"+name,
                    "--output="+str(root / (name+"-%j.out")), "--kill-on-invalid-dep=yes",
-                   *shlex.split(resources)]
+                   *shlex.split(resources), "--export=ALL"]
         if deps:
             command += ["--dependency=afterok:"+":".join(deps)]
         env = {**os.environ, **environment}
