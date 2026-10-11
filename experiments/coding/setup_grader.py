@@ -7,6 +7,7 @@ import shutil
 import re
 import subprocess
 import sys
+import tomllib
 import urllib.request
 
 
@@ -51,13 +52,21 @@ def _load_module(source):
         shutil.copytree(base, root / "python", symlinks=True)
     if not (root / "env").exists():
         subprocess.run(["uv", "venv", "--python", str(root / "python/bin/python3.11"), str(root / "env")], check=True)
-    subprocess.run(["uv", "pip", "install", "--python", str(root / "env/bin/python"), "numpy==2.2.6"], check=True)
+    lock_path = Path(__file__).parent / "env/uv.lock"
+    numpy = next(p for p in tomllib.loads(lock_path.read_text())["package"] if p["name"] == "numpy")
+    if numpy["version"] != "2.2.6":
+        raise ValueError("Grading numpy pin differs from the CPU tools lock")
+    artifacts = [numpy["sdist"], *numpy["wheels"]]
+    requirement = "numpy==2.2.6 " + " ".join("--hash=" + a["hash"] for a in artifacts) + "\n"
+    (root / "requirements.lock").write_text(requirement)
+    subprocess.run(["uv", "pip", "sync", "--require-hashes", "--python", str(root / "env/bin/python"),
+                    str(root / "requirements.lock")], check=True)
     record = {"verl_revision": revision, "upstream_sha256": hashlib.sha256(original).hexdigest(),
               "checker_sha256": hashlib.sha256(code.encode()).hexdigest(),
               "patch": "Replace pyext dynamic loader with types.ModuleType and compile/exec",
               "python": sys.version, "numpy": "2.2.6",
               "bwrap_sha256": hashlib.sha256((root / "bwrap").read_bytes()).hexdigest(),
-              "tools_lock_sha256": hashlib.sha256((Path(__file__).parent / "env/uv.lock").read_bytes()).hexdigest()}
+              "tools_lock_sha256": hashlib.sha256(lock_path.read_bytes()).hexdigest()}
     (root / "runtime.json").write_text(json.dumps(record, indent=2) + "\n")
 
 
