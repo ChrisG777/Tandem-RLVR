@@ -120,10 +120,9 @@ index 11547d8..d2f9573 100644
 -
 +tandem_jr_tkn_weight: 0.0
 diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_base.py
-index b40c485..5aface1 100644
 --- a/verl/trainer/ppo/v1/trainer_base.py
 +++ b/verl/trainer/ppo/v1/trainer_base.py
-@@ -98,6 +98,44 @@ logger = logging.getLogger(__name__)
+@@ -98,6 +98,84 @@
  logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "INFO"))
  
  
@@ -165,10 +164,50 @@ index b40c485..5aface1 100644
 +    return hf_dst
 +
 +
++def commit_latest_checkpoint(default_local_dir: str, global_steps: int) -> None:
++    """Atomically commit a synchronous save, then retire other optimizer shards.
++
++    Called only after all model, optimizer, RNG and dataloader writes succeed.
++    Keep the prior optimizer during the save; leave model/HF weights untouched.
++    A failed marker write never removes the previously recoverable state.
++    """
++    from pathlib import Path
++    import tempfile
++
++    root = Path(default_local_dir)
++    current = root / f"global_step_{global_steps}"
++    if not (current / "data.pt").is_file() or not (current / "actor").is_dir():
++        raise RuntimeError(f"Cannot commit incomplete checkpoint: {current}")
++    marker = root / "latest_checkpointed_iteration.txt"
++    with tempfile.NamedTemporaryFile(mode="w", dir=root, prefix=".latest-", delete=False) as f:
++        temporary = Path(f.name)
++        try:
++            f.write(str(global_steps))
++            f.flush()
++            os.fsync(f.fileno())
++        except BaseException:
++            temporary.unlink(missing_ok=True)
++            raise
++    try:
++        os.replace(temporary, marker)
++    finally:
++        temporary.unlink(missing_ok=True)
++    for checkpoint in root.glob("global_step_*"):
++        if checkpoint == current or not checkpoint.name.removeprefix("global_step_").isdigit():
++            continue
++        if checkpoint.is_symlink():
++            continue
++        for role in ("actor", "critic"):
++            directory = checkpoint / role
++            if not directory.is_symlink():
++                for shard in directory.glob("optim_world_size_*_rank_*.pt"):
++                    shard.unlink()
++
++
  class PPOTrainer(ABC):
      """Base class for PPO trainer.
  
-@@ -694,6 +732,10 @@ class PPOTrainer(ABC):
+@@ -694,6 +772,10 @@
          max_actor_ckpt_to_keep = (
              self.config.trainer.get("max_actor_ckpt_to_keep", None) if not remove_previous_ckpt_in_save else 1
          )
@@ -179,10 +218,11 @@ index b40c485..5aface1 100644
          max_critic_ckpt_to_keep = (
              self.config.trainer.get("max_critic_ckpt_to_keep", None) if not remove_previous_ckpt_in_save else 1
          )
-@@ -709,6 +751,14 @@ class PPOTrainer(ABC):
+@@ -708,6 +790,14 @@
+         self.actor_rollout_wg.save_checkpoint(
              actor_local_path, actor_remote_path, self.global_steps, max_ckpt_to_keep=max_actor_ckpt_to_keep
          )
- 
++
 +        hf_interval = self.config.trainer.get("persist_hf_interval", 1)
 +        if self.config.trainer.get("persist_hf_model", False) and self.global_steps % hf_interval == 0:
 +            hf_dst = persist_hf_checkpoint(
@@ -190,10 +230,48 @@ index b40c485..5aface1 100644
 +            )
 +            if hf_dst is not None:
 +                logger.info(f"Persisted HF weights to {hf_dst}")
-+
+ 
          # save critic
          if self.use_critic:
-             critic_local_path = os.path.join(local_global_step_folder, str(Role.Critic))
+@@ -733,11 +823,7 @@
+         if actor_ckpt_cfg.get("async_save", False):
+             logger.info("skip write latest_checkpointed_iteration.txt when async_save is True")
+             return
+-        local_latest_checkpointed_iteration = os.path.join(
+-            self.config.trainer.default_local_dir, "latest_checkpointed_iteration.txt"
+-        )
+-        with open(local_latest_checkpointed_iteration, "w") as f:
+-            f.write(str(self.global_steps))
++        commit_latest_checkpoint(self.config.trainer.default_local_dir, self.global_steps)
+ 
+     def _validate(self) -> dict[str, float]:
+         # Lists to collect samples for the table
+@@ -760,6 +846,10 @@
+                 [str(uuid.uuid4()) for _ in range(len(batch_dict["raw_prompt"]))], dtype=object
+             )
+             batch = tu.get_tensordict(batch_dict)
++            expected_sessions = {
++                f"{uid}_{i}" for uid in batch_dict["uid"]
++                for i in range(self.config.actor_rollout_ref.rollout.val_kwargs.n)
++            }
+             tu.assign_non_tensor_data(batch, "global_steps", self.global_steps)
+             tu.assign_non_tensor_data(batch, "validate", True)
+             # Register each prompt (GRPO group) in TransferQueue as a tag-only status marker.
+@@ -792,6 +882,14 @@
+                         session_max[session_key] = (index, pos)
+                 else:
+                     session_max[key] = (0, pos)
++            if self.config.trainer.get("require_complete_validation", False):
++                missing = expected_sessions - set(session_max)
++                unexpected = set(session_max) - expected_sessions
++                if missing or unexpected:
++                    raise RuntimeError(
++                        f"Incomplete validation: {len(missing)} missing and "
++                        f"{len(unexpected)} unexpected sessions; refusing partial scores"
++                    )
+             sorted_sessions = sorted(session_max.items(), key=lambda x: x[1][1])
+             final_indices = [pos for _, (_, pos) in sorted_sessions]
+             final_keys = [batch.keys[i] for i in final_indices]
 diff --git a/verl/workers/config/actor.py b/verl/workers/config/actor.py
 index b4111f9..06b2c3f 100644
 --- a/verl/workers/config/actor.py
@@ -471,35 +549,6 @@ diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/
                      else:
                          entropy = torch.utils.checkpoint.checkpoint(verl_F.entropy_from_logits, logits)
  
-diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_base.py
---- a/verl/trainer/ppo/v1/trainer_base.py
-+++ b/verl/trainer/ppo/v1/trainer_base.py
-@@ -760,6 +760,10 @@
-                 [str(uuid.uuid4()) for _ in range(len(batch_dict["raw_prompt"]))], dtype=object
-             )
-             batch = tu.get_tensordict(batch_dict)
-+            expected_sessions = {
-+                f"{uid}_{i}" for uid in batch_dict["uid"]
-+                for i in range(self.config.actor_rollout_ref.rollout.val_kwargs.n)
-+            }
-             tu.assign_non_tensor_data(batch, "global_steps", self.global_steps)
-             tu.assign_non_tensor_data(batch, "validate", True)
-             # Register each prompt (GRPO group) in TransferQueue as a tag-only status marker.
-@@ -792,6 +796,14 @@
-                         session_max[session_key] = (index, pos)
-                 else:
-                     session_max[key] = (0, pos)
-+            if self.config.trainer.get("require_complete_validation", False):
-+                missing = expected_sessions - set(session_max)
-+                unexpected = set(session_max) - expected_sessions
-+                if missing or unexpected:
-+                    raise RuntimeError(
-+                        f"Incomplete validation: {len(missing)} missing and "
-+                        f"{len(unexpected)} unexpected sessions; refusing partial scores"
-+                    )
-             sorted_sessions = sorted(session_max.items(), key=lambda x: x[1][1])
-             final_indices = [pos for _, (_, pos) in sorted_sessions]
-             final_keys = [batch.keys[i] for i in final_indices]
 diff --git a/verl/utils/torch_functional.py b/verl/utils/torch_functional.py
 --- a/verl/utils/torch_functional.py
 +++ b/verl/utils/torch_functional.py

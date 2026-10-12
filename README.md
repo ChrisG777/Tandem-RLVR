@@ -35,6 +35,9 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 [native compatibility probe](train/check_pair.py) → the same training and evaluation workflow.
 [Execution profiling](docs/QWEN35_SPEED.md) instruments the existing trainer and
 documents measured performance changes.
+[Portable CUDA setup](env/install-qwen35-cuda.sh) installs pinned compiler/headers
+for Hopper training. Checkpoint saves retain optimizer state only for the latest
+committed step; evaluation weights are retained separately.
 
 ## Solo shorthand pilot
 

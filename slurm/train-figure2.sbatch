@@ -57,6 +57,9 @@ if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
 fi
 if [ "${QWEN35_SPEED:-0}" = 1 ]; then
     test -f "$RUN_ROOT/word-boundaries.json" || { echo 'Qwen speed mode requires a pair manifest'; exit 2; }
+    test -x "${CUDA_HOME:?Qwen speed mode requires a CUDA compiler}/bin/nvcc" || {
+        echo 'TileLang requires nvcc; run env/install-qwen35-cuda.sh and set CUDA_HOME' >&2; exit 2;
+    }
     export ENFORCE_EAGER=False OMP_NUM_THREADS=4
     export VERL_USE_FLA_CROSS_ENTROPY=1
     EXTRA+=(+actor_rollout_ref.actor.fsdp_config.use_no_sync_for_gradient_accumulation=True
