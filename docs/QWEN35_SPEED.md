@@ -40,8 +40,13 @@ tests cover failed commit, idempotent cleanup, multiple ranks, weight retention,
 cross-filesystem HF persistence and resumed checkpoint history. Async checkpoint
 writing is not used by these jobs.
 
-The current kernel/resume checks are still running; no completed H100 step or
-24 GPU-hour complete-run result is claimed yet.
+The three kernel tests passed on both H100 nodes in 82.5/85.0 seconds. Gated
+DeltaNet output/gradient relative RMS errors versus the Transformers reference
+were 0.52–0.68%; fused cross-entropy log-probability max error was 9.54e-7.
+Full-model initialization/resume is underway. No completed H100 step or
+24 GPU-hour complete-run result is claimed yet. Cluster execution is pinned to
+`1de8bae`; the subsequent optional-critic retention guard is irrelevant to these
+critic-free GRPO jobs and has not been hot-applied to their running checkout.
 
 Storage cleanup authorized October 11: obsolete checkpoints from the cancelled
 Qwen campaigns and old reproduction attempts, plus old matrix/concept/length
