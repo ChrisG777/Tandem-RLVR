@@ -5,6 +5,38 @@ checkpoints remain intact. Target: approximately 24 GPU-hours per complete run,
 including validation/checkpoint overhead, with the original objective, batches,
 rollout count, response budget, and full-weight training retained.
 
+Status, October 11 evening (Pacific): GRPO three-step qualification `2623390`
+completed successfully. Tandem `2623385` completed all three updates and strict
+full validation, but its final file-logger flush failed with `EDQUOT`; subsequent
+artifact verification therefore failed. Its exact step-3 numeric record was
+recovered from the complete console line into
+`metrics-2623385-recovered-3.jsonl`, with source SHA-256 and method recorded in
+`metrics-recovery.json`. No values were imputed. Existing checkpoint verification
+then passed and wrote `selected.json`.
+
+The H100 GRPO continuation `2623566` loaded model, optimizer, RNG, and scheduler
+states but failed before logging a new step. Its shared log stopped while the
+quota was exhausted, so the terminal cause is not established. Blocked Tandem
+continuation `2623567` was cancelled. The rejected default-graph candidate's
+remaining 17-GiB HF snapshot was deleted; valid checkpoints and all diagnostic
+logs were preserved. Subsequent shared-volume free space was 143 GiB (this change
+also reflects other activity; it was not all freed by that deletion).
+
+Replacement resume tests `2624570` (GRPO, `andreas-h100-1`) and `2624571`
+(Tandem, `isola-h100-1`) are running independently, one H100 each, from the valid
+step-3 checkpoints. They retain the existing steps 4–6/full-validation scope,
+automatic resume, 24-hour walltime, and no additional large checkpoint writes.
+The old 200-step campaigns remain cancelled; these retries do not restart them.
+
+Completed A100 warm steps 2/3 took 424.53/418.82 s for GRPO and
+601.65/640.57 s for Tandem, subtracting the separate checkpoint save from step 3.
+The full eligible pass@4 validation took 2,027.85 s (33.8 min) for GRPO and
+3,490.92 s (58.2 min) for Tandem. Saves took 354.93/360.17 s. Using mean warm
+step time, ten validations and ten saves gives about **30.0/45.2 GPU-hours**
+for a 200-step GRPO/Tandem run on these A100 nodes, before startup. This is an
+extrapolation from two steps and one validation, not a completed-run measurement.
+There is still no completed post-optimization H100 step measurement.
+
 Latest completed warm steps (short qualifications still running):
 
 | Arm | Hardware | Step | Generation | Old-policy probabilities | Actor update | Training-only 200-step extrapolation |
