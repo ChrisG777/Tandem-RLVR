@@ -78,7 +78,7 @@ case "$PHASE" in
         export RAY_TMPDIR="/tmp/apps-ray-${SLURM_JOB_ID}" XDG_CACHE_HOME="/tmp/apps-cache-${SLURM_JOB_ID}"
         export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton" TORCHINDUCTOR_CACHE_DIR="$XDG_CACHE_HOME/inductor"
         mkdir -p "$CKPT_DIR" "$RAY_TMPDIR" "$XDG_CACHE_HOME"
-        export VERL_FILE_LOGGER_PATH="$CKPT_DIR/metrics-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}.jsonl"
+        export VERL_FILE_LOGGER_PATH=${VERL_FILE_LOGGER_PATH:-"$CKPT_DIR/metrics-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}.jsonl"}
         EXTRA=()
         if [ "$MODE" = smoke ]; then
             export TOTAL_STEPS=3 TEST_FREQ=3 SAVE_FREQ=3 PERSIST_HF_INTERVAL=3
