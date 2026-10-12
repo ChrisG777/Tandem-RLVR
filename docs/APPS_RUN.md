@@ -1,5 +1,37 @@
 # APPS pilot run: 2026-10-10
 
+## Engaging container repair: 2026-10-12
+
+Jobs 25630667 and 25632334 both failed after three seconds, before model loading
+or checkpoint creation. Calibration passed, but Bubblewrap could not bind `/usr`
+from Apptainer's unbindable overlay mount. Commit `12a27e1` runs Bubblewrap inside
+a new user/mount namespace with private propagation when the container is active.
+This changes neither the parent container/host mounts nor grading logic, limits,
+or calibration identity. The existing sandbox preflight remains mandatory.
+
+Engaging compute allocation **25639298**, node `node1609`, passed sandbox isolation,
+known-correct/failing stdin and call-based grading, and all **72 regression tests**
+inside the actual CUDA container. This CPU-only compatibility check needed no GPU;
+the earlier H200 throughput qualification is unchanged. The allocation was released.
+Receipts are `checks/engaging-sandbox.json` and `engaging-sandbox-regression.log`.
+
+Replacement jobs are **25639349 (Tandem)** and **25639351 (GRPO)**, queued for
+priority when checked. They retain the qualified one-H200 configurations, 48-hour
+allocations, automatic resume, and 44.82/27.74 GPU-hour forecasts. Failed job IDs
+are archived in `training-jobs-before-sandbox-fix.json`; no old continuation is live.
+
+Recent CSAIL history does not establish a reliable six-hour uninterrupted window:
+from October 10 through this check, eight H200 attempts were preempted before six
+hours, while eight others ran longer than six hours (some 7–14 hours). Short jobs
+and early application failures are excluded from this comparison; several attempts
+share a preemption event, so it is not an independent survival-rate estimate.
+CSAIL-wide shared jobs in this sample fared better than vision-shared jobs.
+Torralba's eight H200s remained occupied by a non-preemptible owner job. CSAIL
+project storage had only 376 GiB free and scratch was full, versus 754 GiB free
+on Engaging. Both new checkpoint histories therefore remain on Engaging.
+Engaging's six-hour limit applies to normal GPUs; these jobs use its separate
+48-hour preemptible route. Neither cluster guarantees uninterrupted shared access.
+
 ## Optimized relaunch: 2026-10-12
 
 The user authorized relaunch after throughput qualification and explicitly accepted

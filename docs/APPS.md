@@ -158,6 +158,13 @@ bootstraps with replacement and is retained only as a raw diagnostic. Full runs
 require all 200 manifest tasks with exactly four responses at every validation
 checkpoint; smoke runs may use eight manifest tasks. Math selection is unchanged.
 
+Under Apptainer, `job.sbatch` prefixes Bubblewrap with
+`unshare --user --map-root-user --mount --propagation private`. This makes the
+container runtime bindable inside a fresh mount namespace; the parent mounts
+remain unchanged. Bubblewrap still creates the isolated candidate sandbox and
+startup still requires its isolation/grading preflight. Test this inside the
+target container on an allocated compute node when changing deployment settings.
+
 After changing the grader, run `uv run --python "$TANDEM_ENV/bin/python" --no-project
 --offline python -m experiments.coding.regrade --input OLD.json --out NEW.json
 --data "$DATA_ROOT" --workers 4` for each saved calibration mode. This executes
