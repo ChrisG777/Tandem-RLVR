@@ -3,6 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --requeue
+#SBATCH --open-mode=append
 #SBATCH --signal=B:USR1@300
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
