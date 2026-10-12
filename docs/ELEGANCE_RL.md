@@ -147,8 +147,9 @@ Tandem job 2631898 hit a 30-second timeout in the launcher's `--version`
 probe, before the actual judge call. That exception bypassed judge retries;
 upstream verl accepted failed prompts and padded the incomplete batch. Step 66
 contained 126 real responses and two empty padding rows. Updates 66–69 were
-rejected and their saved rollouts and job metrics archived under
-`tandem/rejected-after-step65-job2631898/`. The committed checkpoint remained 65.
+rejected. Their saved rollouts and job metrics were temporarily moved under
+`tandem/rejected-after-step65-job2631898/`, then deleted at the user’s request
+(including that directory). The committed checkpoint at restart remained 65.
 
 [`judge.py`](../experiments/elegance/judge.py) now uses `run_codex(command,
 prompt, timeout)` for both version probes and grading: it bounds process lifetime,
