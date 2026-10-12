@@ -71,3 +71,5 @@ rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
 
 [Elegance RL](docs/ELEGANCE_RL.md): [fixed method holdout](experiments/elegance/prepare.py) →
 [Codex-judged reward](experiments/elegance/reward.py) → [Qwen3.5 training](experiments/elegance/job.sbatch).
+
+[Elegance RL](docs/ELEGANCE_RL.md): matched solo/Tandem reward and [isolated ephemeral judge](experiments/elegance/codex-runtime.py).

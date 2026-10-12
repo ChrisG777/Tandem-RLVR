@@ -25,7 +25,7 @@ export WANDB_MODE=offline TOKENIZERS_PARALLELISM=false HYDRA_FULL_ERROR=1
 export VLLM_WORKER_MULTIPROC_METHOD=spawn HF_HUB_OFFLINE=1
 export TRAIN_GPUS=1 FROZEN_GPU=0 OMP_NUM_THREADS=4
 export ELEGANCE_JUDGE_CACHE="$RUN_ROOT/judge-cache"
-export ELEGANCE_CODEX_BIN=/data/scratch/chrisge/.local/bin/codex-cluster
+export ELEGANCE_CODEX_BIN=${ELEGANCE_CODEX_BIN:-/data/scratch/chrisge/.local/bin/codex-cluster}
 export TOTAL_STEPS=${TOTAL_STEPS:-200} TOTAL_EPOCHS=100 TEST_FREQ=20 SAVE_FREQ=5
 export MAX_CKPT_KEEP=2 PERSIST_HF_INTERVAL=200 PPO_MAX_TOKEN=10000
 export QWEN35_PROFILE_DIR="$CKPT_DIR/profile"
@@ -59,6 +59,9 @@ bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
   "data.val_files=[$ELEGANCE_DATA/validation.parquet]" \
   "reward.custom_reward_function.path=$REPO/experiments/elegance/reward.py" \
   data.filter_overlong_prompts=False \
+  data.dataloader_num_workers=2 \
+  "trainer.rollout_data_dir=$CKPT_DIR/rollouts" \
+  "trainer.validation_data_dir=$CKPT_DIR/validation" \
   "ray_kwargs.ray_init.num_cpus=${SLURM_CPUS_PER_TASK}" \
   actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 \
   actor_rollout_ref.rollout.top_k=-1 trainer.resume_mode=auto \

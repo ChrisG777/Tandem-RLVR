@@ -113,3 +113,21 @@ under `tandem/profile/`; CUDA synchronization adds diagnostic overhead. Runtime
 receipts now record resolved verl/vLLM module paths. The replacement passed all
 four preflight cases from cache and loaded the isolated trainer. Completion of
 its first update remains to be checked.
+
+## Parallel senior-only RL: 2026-10-12
+
+The user authorized the missing 9B solo arm in parallel with Tandem. Both use
+full weights, the same base, split, reward, 3,000-token limit and 200 updates.
+Solo clears native Tandem variables; only the senior generates and trains.
+Raw rollout and validation records are saved for truncation diagnosis.
+
+[`codex-runtime.py`](../experiments/elegance/codex-runtime.py) accepts only ephemeral
+judge calls through the installed CSAIL allocation/storage launcher. Set
+`ELEGANCE_CODEX_HOME` to an initialized private independent archive. This runtime
+skips personal transcript imports, while retaining Slurm ownership exclusion,
+node-local SQLite, snapshot recovery and same-job requeue checks. Credentials
+and executable links stay outside git. Both arms share the original judge cache
+and its four-slot concurrency pool. The running Tandem checkout is unchanged.
+The job wrapper accepts `ELEGANCE_CODEX_BIN` to select this runtime.
+
+The submission receipt is `solo-submission-20261012.json` under the campaign root.
