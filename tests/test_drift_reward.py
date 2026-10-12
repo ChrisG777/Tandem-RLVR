@@ -1,6 +1,6 @@
 """Protect outcome-only reward and the first-vs-last diagnostic."""
 import unittest
-from reward.gsm8k_drift import compute_score
+from experiments.drift.gsm8k_drift import compute_score
 
 
 class DriftRewardTest(unittest.TestCase):

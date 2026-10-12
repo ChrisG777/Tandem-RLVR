@@ -3,8 +3,8 @@
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
-export PILOT_ENTRYPOINT=shorthand-check.sbatch
-source "$REPO/slurm/shorthand-runtime.sh"
+export JOB_ENTRYPOINT=experiments/shorthand/slurm/shorthand-check.sbatch
+source "$REPO/slurm/runtime.sh"
 export PATH="${UV_BIN_DIR:?}:$PATH"
 export UV_CACHE_DIR=${UV_CACHE_DIR:-/data/vision/torralba/u/chrisge/.cache/uv}
 export HF_HOME=${HF_HOME:-/data/vision/torralba/u/chrisge/.cache/huggingface}
@@ -19,4 +19,4 @@ if [ "${PHASE:-calibration}" = training ]; then
     ARGS=(--training "$RUN_ROOT/train/$TASK-b$BUDGET" --task "$TASK" --steps 100)
 fi
 uv run --python "${TANDEM_ENV:?}/bin/python" --no-project --offline python \
-    train/check_shorthand.py "${ARGS[@]}"
+    experiments/shorthand/check_shorthand.py "${ARGS[@]}"

@@ -1,5 +1,9 @@
 # Reusable-concept Solo RL pilots
 
+> Code paths and setup/submission commands were reorganized on October 10.
+> Use [current interfaces](WORKFLOWS.md) and the [experiment map](../experiments/README.md);
+> commands below describe the original campaign layout.
+
 Two independent task pilots test whether repeated reasoning induces reusable
 conventions beyond shorter English. These are adapted synthetic tasks, not
 claims of results on the original RuleTaker or ARC benchmarks.

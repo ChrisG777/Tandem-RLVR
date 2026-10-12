@@ -44,7 +44,7 @@ def build_dataset(task: str, out_dir: Path, seed: int = 42,
     import importlib.metadata
     origin = json.loads(importlib.metadata.distribution("reasoning-gym").read_text("direct_url.json"))
     if origin["vcs_info"]["commit_id"] != REVISION:
-        raise ValueError("Use env/shorthand-data with its pinned Reasoning Gym")
+        raise ValueError("Use experiments/shorthand/env with its pinned Reasoning Gym")
     rt = load_ruletaker(ruletaker_source) if task == "ruletaker_shared" else None
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER, revision=TOKENIZER_REVISION)
     out_dir.mkdir(parents=True, exist_ok=False)

@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "train"))
-from check_shorthand import check_calibration
+from experiments.shorthand.check_shorthand import check_calibration
 
 
 class PilotMigration(unittest.TestCase):
@@ -24,14 +24,15 @@ class PilotMigration(unittest.TestCase):
                 output.mkdir(parents=True)
                 (output / "test.json.progress.json").write_text('{"gens": [1]}')
                 env = {**os.environ, "REPO": str(ROOT), "RUN_ROOT": str(root),
-                       "PILOT_ENTRYPOINT": "shorthand-eval.sbatch", "PHASE": "trained",
+                       "JOB_ENTRYPOINT": "experiments/shorthand/slurm/shorthand-eval.sbatch",
+                       "RESUME_PROGRESS_DIR": str(root / "eval/rearc_objects-b3072"), "PHASE": "trained",
                        "PILOT_TASKS": "rearc_objects", "PILOT_BUDGETS": "1024 3072",
                        "SLURM_JOB_ID": "125", "SLURM_ARRAY_JOB_ID": "124",
                        "SLURM_ARRAY_TASK_ID": "1", "SLURM_RESTART_COUNT": str(restarts),
                        "APPTAINER_IMAGE": "", "TANDEM_CONTAINER_ACTIVE": "0"}
                 command = '''
                     scontrol() { echo "$*" > "$RUN_ROOT/requeue-call"; }
-                    source "$REPO/slurm/shorthand-runtime.sh"
+                    source "$REPO/slurm/runtime.sh"
                     kill -USR1 $$
                 '''
                 proc = subprocess.run(["bash", "-euc", command], env=env, cwd=ROOT,
@@ -56,12 +57,13 @@ class PilotMigration(unittest.TestCase):
                 env = {**os.environ, "REPO": str(ROOT), "RESULTS_ROOT": str(root),
                        "TANDEM_CONTAINER_ACTIVE": "0", "APPTAINER_IMAGE": "test.sif",
                        "APPTAINER_BIN_DIR": str(root), "CONTAINER_BIND": str(root),
-                       "PILOT_ENTRYPOINT": "figure2.sbatch", "MODE": "grpo-handoff",
+                       "JOB_ENTRYPOINT": "slurm/figure2.sbatch",
+                       "RESUME_PROGRESS_FILE": str(root / "grpo/handoff.json.progress.json"), "MODE": "grpo-handoff",
                        "SLURM_JOB_ID": "456", "SLURM_RESTART_COUNT": str(restarts), "MAX_RESTARTS": "12"}
                 command = '''
                     scontrol() { echo "$*" > "$RESULTS_ROOT/requeue-call"; }
                     export -f scontrol
-                    source "$REPO/slurm/shorthand-runtime.sh"
+                    source "$REPO/slurm/runtime.sh"
                 '''
                 proc = subprocess.run(["bash", "-euc", command], env=env, cwd=ROOT,
                                       capture_output=True, text=True)
@@ -114,12 +116,13 @@ class PilotMigration(unittest.TestCase):
                 command = r'''
                     scontrol() { echo "$*" > "$RUN_ROOT/requeue-call"; }
                     export -f scontrol
-                    source "$REPO/slurm/shorthand-runtime.sh"
+                    source "$REPO/slurm/runtime.sh"
                 '''
                 env = {**os.environ, "REPO": str(ROOT), "RUN_ROOT": str(root),
                        "TANDEM_CONTAINER_ACTIVE": "0",
                        "APPTAINER_IMAGE": "test.sif", "APPTAINER_BIN_DIR": str(root),
-                       "CONTAINER_BIND": str(root), "PILOT_ENTRYPOINT": "shorthand-train.sbatch",
+                       "CONTAINER_BIND": str(root), "JOB_ENTRYPOINT": "experiments/shorthand/slurm/shorthand-train.sbatch",
+                       "RESUME_CHECKPOINT_ROOT": str(actor.parent.parent),
                        "PILOT_TASKS": "manipulate_matrix", "PILOT_BUDGETS": "2048 3072",
                        "SLURM_JOB_ID": "123", "SLURM_ARRAY_JOB_ID": "122",
                        "SLURM_ARRAY_TASK_ID": "1", "SLURM_RESTART_COUNT": "0"}

@@ -13,8 +13,9 @@
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
-export PILOT_ENTRYPOINT=train-figure2.sbatch
-source "$REPO/slurm/shorthand-runtime.sh"
+export JOB_ENTRYPOINT=slurm/train-figure2.sbatch
+export RESUME_CHECKPOINT_ROOT="$RUN_ROOT/${ARM:?}-${MODE:?}"
+source "$REPO/slurm/runtime.sh"
 [ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || { echo 'Preemption retry limit reached'; exit 1; }
 export PATH="${UV_BIN_DIR:-/data/scratch/${SLURM_JOB_USER:-chrisge}/.local/bin}:$PATH"
 export TANDEM_ENV_BIN="${TANDEM_ENV:?}/bin"

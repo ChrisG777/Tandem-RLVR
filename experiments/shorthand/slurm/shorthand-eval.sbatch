@@ -10,8 +10,15 @@
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
-export PILOT_ENTRYPOINT=shorthand-eval.sbatch
-source "$REPO/slurm/shorthand-runtime.sh"
+export JOB_ENTRYPOINT=experiments/shorthand/slurm/shorthand-eval.sbatch
+read -ra TASKS <<< "${PILOT_TASKS:-manipulate_matrix string_manipulation}"
+read -ra BUDGETS <<< "${PILOT_BUDGETS:-256 1024}"
+case "${PHASE:?}" in
+    calibration) export RESUME_PROGRESS_DIR="$RUN_ROOT/calibration";;
+    base) export RESUME_PROGRESS_DIR="$RUN_ROOT/eval/base";;
+    trained) export RESUME_PROGRESS_DIR="$RUN_ROOT/eval/${TASKS[$((SLURM_ARRAY_TASK_ID / 2))]}-b${BUDGETS[$((SLURM_ARRAY_TASK_ID % 2))]}";;
+esac
+source "$REPO/slurm/runtime.sh"
 [ "${SLURM_RESTART_COUNT:-0}" -le "${MAX_RESTARTS:-12}" ] || exit 1
 export PATH="${UV_BIN_DIR:-/data/scratch/chrisge/.local/bin}:${PATH:-/usr/bin:/bin}"
 export HF_HOME=${HF_HOME:-/data/vision/torralba/u/chrisge/.cache/huggingface}
@@ -50,8 +57,8 @@ case "${PHASE:?}" in
     DATA=("$DATA_ROOT/$TASK/test.parquet" "$DATA_ROOT/$TASK/long.parquet");;
   *) exit 2;;
 esac
-run_python eval/shorthand.py --model "$MODEL" --data "${DATA[@]}" --out-dir "$OUTPUT" --n 4 --budgets "${BUDGETS[@]}" --max-model-len "${PILOT_CONTEXT:-4096}" &
+run_python experiments/shorthand/shorthand.py --model "$MODEL" --data "${DATA[@]}" --out-dir "$OUTPUT" --n 4 --budgets "${BUDGETS[@]}" --max-model-len "${PILOT_CONTEXT:-4096}" &
 wait $!
-if [ "$PHASE" = calibration ]; then
-  run_python train/check_shorthand.py --calibration "$RUN_ROOT/calibration" --data-root "$DATA_ROOT" --tasks ${PILOT_TASKS:-manipulate_matrix string_manipulation} --budgets ${PILOT_BUDGETS:-256 1024}
+if [ "$PHASE" = calibration ] && [ "${CHECK_CALIBRATION:-1}" = 1 ]; then
+  run_python experiments/shorthand/check_shorthand.py --calibration "$RUN_ROOT/calibration" --data-root "$DATA_ROOT" --tasks ${PILOT_TASKS:-manipulate_matrix string_manipulation} --budgets ${PILOT_BUDGETS:-256 1024}
 fi

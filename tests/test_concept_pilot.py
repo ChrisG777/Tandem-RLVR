@@ -7,8 +7,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "reward"), str(ROOT / "train")]
-from shorthand_reward import compute_score
-from check_shorthand import check_concept_signal
+from experiments.shorthand.shorthand_reward import compute_score
+from experiments.shorthand.check_shorthand import check_concept_signal
 
 
 class ConceptPilot(unittest.TestCase):

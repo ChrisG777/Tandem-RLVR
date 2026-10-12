@@ -21,8 +21,8 @@ class LengthPenalty(unittest.TestCase):
             "reward": {
                 "length_penalty": coefficient,
                 "reward_manager": {"source": "importlib", "name": "LengthPenaltyRewardManager",
-                                   "module": {"path": str(ROOT / "reward/length_penalty.py")}},
-                "custom_reward_function": {"path": str(ROOT / "reward/shorthand_reward.py"),
+                                   "module": {"path": str(ROOT / "experiments/shorthand/length_penalty.py")}},
+                "custom_reward_function": {"path": str(ROOT / "experiments/shorthand/shorthand_reward.py"),
                                            "name": "compute_score"},
             },
         })

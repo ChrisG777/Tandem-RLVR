@@ -1,5 +1,9 @@
 # Solo RL shorthand pilot
 
+> Code paths and setup/submission commands were reorganized on October 10.
+> Use [current interfaces](WORKFLOWS.md) and the [experiment map](../experiments/README.md);
+> commands below describe the original campaign layout.
+
 The first experiment asks whether solo RL develops useful shorthand that readers cannot readily interpret. Tandem training is deferred until there is an effect to test. This uses the existing single-completion GRPO/vLLM/verl stack, with task adapters and no memory reset.
 
 ## Task sources and selection
