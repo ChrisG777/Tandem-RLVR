@@ -64,6 +64,8 @@ if [ "${QWEN35_SPEED:-0}" = 1 ]; then
     export VERL_USE_FLA_CROSS_ENTROPY=1
     EXTRA+=(+actor_rollout_ref.actor.fsdp_config.use_no_sync_for_gradient_accumulation=True
         actor_rollout_ref.actor.fsdp_config.use_torch_compile=False
+        "trainer.rollout_data_dir=$CKPT_DIR/rollouts"
+        "trainer.validation_data_dir=$CKPT_DIR/validation"
         actor_rollout_ref.actor.fsdp_config.entropy_from_logits_with_chunking=True
         actor_rollout_ref.actor.fsdp_config.entropy_from_logits_chunk_size=512
         'actor_rollout_ref.actor.optim.override_optimizer_config={fused:True}'

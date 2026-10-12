@@ -40,3 +40,9 @@ replace the Tandem sampler or senior-token loss gate. File/line counts above
 describe the original patch, before subsequent compatibility fixes.
 
 The patches apply at the pinned commits only; upstream has moved past both, and a later base needs the patches rebased.
+
+- Qwen3.5 Hopper collapse: disable cross-group FlashAttention metadata reuse when
+  full CUDA graphs capture per-builder FA3 scheduling buffers. Reuse upstream
+  `build()` to refresh each buffer. H200 controlled long-rollout comparison:
+  unmodified FA3 graphs 1/16 correct vs eager and isolated metadata 16/16.
+  See `docs/QWEN35_COLLAPSE.md`; model architecture and native sampler unchanged.

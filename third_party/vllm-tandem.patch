@@ -1050,6 +1050,19 @@ diff --git a/vllm/v1/attention/backends/flash_attn.py b/vllm/v1/attention/backen
          self.block_size = kv_cache_spec.block_size
  
          self.max_num_splits = 0  # No upper bound on the number of splits.
+@@ -322,6 +323,12 @@
+         self.use_full_cuda_graph = (
+             self.compilation_config.cudagraph_mode.has_full_cudagraphs()
+         )
++        # Graphs capture each builder's own FA3 scheduler buffer. Reusing
++        # another group's metadata skips refreshing that captured buffer,
++        # yielding stale scheduling as sequence lengths grow. Let upstream
++        # build() refresh every group's persistent buffer instead.
++        if self.use_full_cuda_graph and self.aot_schedule:
++            self.supports_update_block_table = False
+         self.max_cudagraph_size = self.compilation_config.max_cudagraph_capture_size
+ 
+         if self.use_full_cuda_graph and self.aot_schedule:
 diff --git a/vllm/v1/attention/backends/utils.py b/vllm/v1/attention/backends/utils.py
 --- a/vllm/v1/attention/backends/utils.py
 +++ b/vllm/v1/attention/backends/utils.py
