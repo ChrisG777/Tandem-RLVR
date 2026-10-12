@@ -119,6 +119,21 @@ state. The unchanged batch/group sizes queue through those active sequences.
 The training smoke must validate fit and authorship before this placement is used
 for a full run. Do not copy historical resource defaults without checking fit.
 
+For bounded throughput checks in an existing GPU allocation, use
+`MODE=profile PROFILE_STEPS=2 ARM=grpo` (or `tandem`) with `job.sbatch train`.
+Use a fresh `RUN_ROOT` containing the pinned `base.json` and a link to the grading
+runtime, with `DATA_ROOT` pointing to the prepared dataset. Profiles use full-weight
+updates and the unchanged training batch/decoding, but run at most five steps,
+save no checkpoints, and do not select a model. They may run independently of a
+failed calibration gate; that exception never admits full training.
+`ROLLOUT_MAX_SEQS` and `ROLLOUT_KV_BYTES` override the active-sequence limit and
+per-model KV cache bytes; defaults remain two and 10 GiB. Increase both together
+and verify cache capacity, finite losses, executable rewards, and Tandem authorship.
+`PROFILE_TEST_FREQ` optionally enables validation to measure its cost. Before any
+full launch, forecast all 200 steps plus validation, saves, and startup below
+the user's 48-GPU-hour limit. A short allocation or automatic requeue is not a
+substitute for this whole-run budget check.
+
 `jobs.json` is created exclusively to prevent duplicate campaigns. Partial submissions
 remain recorded and require reconciliation with Slurm before further submissions.
 Requeues restore exact compatible generation progress or the latest optimizer state.
