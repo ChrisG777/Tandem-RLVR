@@ -14,6 +14,7 @@ See the [interactive run record](APPS_RUN.md) for current evidence and pending s
 | [`interactive.sh`](../experiments/coding/interactive.sh) | Existing allocation and prepared inputs → regression checks, calibration gate and independent training smokes; submits no jobs |
 | [`setup_grader`](../experiments/coding/setup_grader.py) | Pinned verl checker and uv runtime → isolated CPU grader directory |
 | [`regrade`](../experiments/coding/regrade.py) | Saved validation responses → resumable isolated regrading with original scores and texts preserved |
+| [`validation_pass4`](../experiments/coding/validation.py) | Manifest-matched four-response validation groups → exact pooled pass@4 for checkpoint selection; incomplete or foreign tasks raise |
 
 ## Protocol
 
@@ -147,6 +148,15 @@ substitute for this whole-run budget check.
 `MODE=smoke SMOKE_VAL_MAX_SAMPLES=200` combines the required three-step
 checkpoint-writing smoke with a full validation timing measurement; the default
 smoke still validates eight problems.
+The qualified GRPO configuration uses 64 sequences and 96 GiB KV on one H200;
+Tandem uses the 32-sequence/48-GiB-per-model defaults. See the run record for
+measured memory, timing, and complete-run budget evidence.
+
+APPS selection uses `apps/validation/pass@4`, computed from saved validation
+responses with the existing pass@k estimator. The pinned verl `best@4` metric
+bootstraps with replacement and is retained only as a raw diagnostic. Full runs
+require all 200 manifest tasks with exactly four responses at every validation
+checkpoint; smoke runs may use eight manifest tasks. Math selection is unchanged.
 
 After changing the grader, run `uv run --python "$TANDEM_ENV/bin/python" --no-project
 --offline python -m experiments.coding.regrade --input OLD.json --out NEW.json

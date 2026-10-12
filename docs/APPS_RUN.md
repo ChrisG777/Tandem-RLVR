@@ -1,5 +1,71 @@
 # APPS pilot run: 2026-10-10
 
+## Optimized relaunch: 2026-10-12
+
+The user authorized relaunch after throughput qualification and explicitly accepted
+truncation around 10%. The recorded pilot limit is now 10.1%, not a silent override
+of the failed 10% report. Regrading all 3,200 saved calibration responses with
+`grader-v2` changed zero rewards. Solo/native accuracy is 66.9375%/65.8125%, mixed
+groups 28.5%/28%, and truncation 8.5%/10.0625%. All 72 regression tests passed on
+the interactive H200; current grader identity passes training admission.
+
+At 32 active sequences and 48 GiB KV per model, Tandem's three complete profile
+steps took 393.19, 451.25, and 592.52 seconds; generation took 250.77, 292.88, and
+390.96 seconds. Senior fractions were 0.501/0.500/0.502, with finite gradients and
+zero aborted responses. Full 200-problem/four-sample validation took 1,457.60
+seconds and the profile exited zero. A dataloader cleanup warning occurred after
+all metrics were emitted; no grading infrastructure error occurred during validation.
+
+Tandem's checkpoint smoke passed and saved weights in 156.19 seconds. Its validation
+trace contains all 32 responses for eight problems. A separate process restored
+model, optimizer, RNG, scheduler and dataloader state at step three, then completed
+step four in 494.98 seconds. Original smoke records were preserved; the restart
+receipt is `checks/tandem-resume.json`.
+
+The final Tandem forecast is **44.82 GPU-hours**, using the slowest observed time
+for each of the four measured batches: 26.93 hours for 200 steps, 4.05 for ten
+validations, 4.37 for twenty saves at the worst historical save time (787.4 seconds),
+and two hours startup/recovery, then 20% headroom. The measured checkpoint cost is
+lower than this allowance. Recovery saves are every ten steps; validation and
+retained selection exports stay every twenty. Native retry count is bounded at
+three. Checkpoint export reached the 148-GiB allocation's cache-reclaim boundary
+without an OOM; full jobs request 160 GiB host RAM for additional headroom.
+
+Tandem full job **25630667** was submitted on Engaging with one H200, six CPUs,
+160 GiB host RAM, and the route's maximum 48-hour allocation. It starts independently
+from the pinned base, uses 32 sequences/48 GiB KV per model, and was queued for
+priority at submission. GRPO full job **25632334** uses 64 sequences/96 GiB KV
+for its one model, with the same GPU/CPU/RAM/walltime request. Both jobs are
+independently queued on Engaging; neither has begun training at this report.
+
+GRPO's completed three-step smoke took 259.97, 264.13, and 315.98 seconds for
+training (checkpoint time excluded); generation took 106.62, 106.62, and 118.60
+seconds. Full validation took 426.77 seconds, and checkpoint saving took 143.39.
+All 800 validation responses matched the 200-task manifest. Its complete-run
+forecast is **27.74 GPU-hours**, using the same conservative save allowance,
+two-hour startup/recovery allowance and 20% headroom as Tandem. Both budgets
+are below the user's 48-GPU-hour cap. These are short-pilot forecasts.
+
+Code `bcb3daf` selects checkpoints by exact `apps/validation/pass@4` from saved
+four-response groups, rather than verl's with-replacement bootstrap `best@4`.
+Both saved smoke checkpoints passed the new manifest-matched audit. Tandem was
+briefly held while this was tested, then released under the same job ID. Its
+container entrypoint loads the updated script. The full jobs retain independent
+base initialization, recovery saves every ten steps and validation every twenty.
+The shared resume path passed a focused process restart. Allocation **2624911**
+was released after qualification; no duplicate APPS continuation remains.
+
+The optimized run root is `apps-optimized-20261011` under CSAIL's
+`/data/vision/torralba/u/chrisge/tandem-rlvr` and Engaging's
+`/orcd/pool/005/cge7/tandem-rlvr`. Engaging has matching dataset/grader hashes,
+identical patched vLLM/verl source trees and identical compiled vLLM libraries.
+The original failed calibration and interrupted runs are preserved.
+CSAIL scratch was full and its separate project quota had 784 GiB remaining while
+the existing Qwen/elegance runs were still growing. The new full jobs use Engaging
+pool storage. Its untyped GPU/feature request was rejected; the valid typed H200
+request includes every H200 in `mit_preemptable`, the only GPU class large enough
+for this measured configuration. No racing or duplicate continuation was submitted.
+
 ## Concurrency qualification: 2026-10-11
 
 Interactive allocation **2624911** on one H200 (`isola-h200-1`, six CPUs,
@@ -26,11 +92,12 @@ The full regression suite, including stale-grader admission checks, passed 69 te
 The corrected 16-sequence Tandem screening step took 482.46 seconds (344.84 seconds
 generation), with senior-token fraction 0.498 and finite gradients. It was stopped
 after that completed step to test 32 sequences/48 GiB per model in `c32`, with three
-steps and full validation for each arm. The cache calculation uses the actual
+steps and full validation. The queued GRPO profile was interrupted during startup
+to combine its remaining timing check with a checkpoint-writing smoke. The cache calculation uses the actual
 4,096-prompt + 6,000-response cap, not the unused remainder of the 12,288-token
-model context. Full training remains stopped pending calibration admission and
-a complete-run forecast below 48 GPU-hours. Existing calibration must be regraded
-before admission with the revised grader; do not silently rewrite its identity.
+model context. At this stage full training remained stopped pending calibration
+admission and a complete-run forecast below 48 GPU-hours; the relaunch section
+above supersedes that status.
 Other inspected RL configurations already use sequence limits of 1,024
 (Qwen3.5/elegance) or 32 (NLA); they do not share APPS's two-sequence restriction.
 
