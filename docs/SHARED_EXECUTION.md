@@ -25,3 +25,9 @@ Qualification is pending: compare timed stages and generated tokens, check finit
 updates and native authorship, inspect cap hits/raw outputs, require complete
 validation, then separately validate checkpoint/resume before production rollout.
 The current production jobs still use their original source checkouts.
+
+Elegance's response limit is 6,000 tokens for both arms and profiling (increased
+from 3,000 on October 12 at the user's request). The rollout context limit follows
+the prompt plus response budgets. Continuations retain their earlier checkpoints;
+the submission receipt records the step where the budget changed, so earlier
+3,000-token results must not be treated as results under the new budget.
