@@ -69,7 +69,7 @@ def main() -> None:
         from common import save_json
         manifest = json.loads((args.root / "base.json").read_text())
         for arm in ("grpo", "tandem"):
-            verify_training(args.root / f"{arm}-smoke", arm, 3, validation_metric="apps/validation/pass@4")
+            # Smokes gate admission; selection does not need their disposable weights.
             manifest[arm] = verify_training(args.root / f"{arm}-full", arm, 200, validation_metric="apps/validation/pass@4")
             if json.loads((args.root / f"{arm}-full/initialization.json").read_text()) != {"base": manifest["base"]}:
                 raise ValueError("Arm did not initialize from the pinned base")
