@@ -1,7 +1,14 @@
 # Qwen3.5 execution profiling
 
+Latest status: the Hopper Tandem rollout collapse was isolated to stale
+FlashAttention 3 scheduling buffers under CUDA graphs. The controlled comparison,
+targeted fix, cancelled job, and replacement `2625164` are recorded in
+[QWEN35_COLLAPSE.md](QWEN35_COLLAPSE.md). GRPO `2624812` remains active on its
+original runtime. Earlier qualification/launch notes below are historical.
+
 The slow 200-step campaigns were cancelled at the user's request; their saved
-checkpoints remain intact. Target: approximately 24 GPU-hours per complete run,
+nonfinal checkpoints were subsequently removed during authorized storage cleanup.
+Target: approximately 24 GPU-hours per complete run,
 including validation/checkpoint overhead, with the original objective, batches,
 rollout count, response budget, and full-weight training retained.
 

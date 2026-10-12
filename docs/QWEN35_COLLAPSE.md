@@ -64,6 +64,7 @@ The controlled comparison produced:
 | --- | ---: | ---: |
 | FlashAttention 3 + decode graphs | 1 | 15 |
 | FlashAttention 3 eager | 16 | 0 |
+| FlashAttention 2 + decode graphs | 16 | 0 |
 | FlashAttention 3 + decode graphs, metadata isolated | 16 | 1 |
 
 The isolated path's one length-limited response retained the correct boxed
@@ -79,6 +80,26 @@ builders using both full CUDA graphs and ahead-of-time scheduling. The existing
 upstream `build()` implementation then refreshes each group's persistent buffer.
 Graphs, FlashAttention 3, the native sampler, and hybrid state management remain
 enabled. No model, optimizer, objective, or decoding settings change.
+
+All four array tasks `2625088_0`–`2625088_3` completed successfully. The two
+existing hybrid-cache delegation tests pass; their source extractor was fixed
+to stop at the next file's patch rather than accidentally parsing later hunks.
+Both full patches passed `git apply --check` against their pinned library bases
+and were applied in the isolated `/data/scratch/chrisge/Tandem-RLVR-qwen35-fixed`
+checkout at source revision `59049bd`. Compiled extension binaries are reused
+unchanged; running GRPO's source checkout is untouched.
+
+Replacement job **2625164**, `q35-tandem-200-fixed`, was submitted to the
+compatible vision-shared H100/H200 route with one GPU, eight CPUs, 384 GiB host
+RAM, 24-hour walltime, requeue, and bounded automatic resume. Its launch script
+is `optimized-200-fixed/tandem-full-submission.sh`. It starts from the pinned
+base, not any collapsed-run checkpoint. Before the first training launch it
+runs the long probe against the actual patched library (no diagnostic override),
+requiring at least 14/16 correct and at most two length-limited responses.
+The atomic diagnostic result is reused after requeue. It then runs the existing
+200-step protocol with validation/checkpoint selection every 20 steps and
+latest-only optimizer retention. At submission it was pending resources; the
+actual patched-runtime preflight and new training rewards were not yet observed.
 
 Replacement Qwen speed runs enable verl's existing `trainer.rollout_data_dir`
 and `trainer.validation_data_dir`, preserving text, scores, and ground truth in
