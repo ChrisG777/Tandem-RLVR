@@ -23,9 +23,15 @@ def main() -> None:
     parser.add_argument('--boundaries', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--cuda-graphs', action='store_true', help='Exercise decode-only CUDA graphs without torch.compile')
+    parser.add_argument('--long-rollouts', action='store_true', help='Grade 3000-token diagnostic rollouts, preserving text and authorship')
+    parser.add_argument('--flash-attn-version', type=int, choices=(2, 3), help='Pin upstream attention implementation for a controlled comparison')
     args = parser.parse_args()
     models = json.loads(args.models.read_text())
     identity = {'models': models, 'boundaries': json.loads(args.boundaries.read_text())}
+    if args.long_rollouts:
+        identity['long_rollouts'] = True
+    if args.flash_attn_version:
+        identity['flash_attn_version'] = args.flash_attn_version
     if args.cuda_graphs:
         identity['cuda_graphs'] = 'FULL_DECODE_ONLY'
         identity['torch_compile'] = False
@@ -49,15 +55,37 @@ def main() -> None:
         raise ValueError('Non-thinking prompt formats differ between the model pair')
     graph_kwargs = ({'compilation_config': {'mode': 0, 'cudagraph_mode': 'FULL_DECODE_ONLY'}}
                     if args.cuda_graphs else {})
+    if args.flash_attn_version:
+        graph_kwargs['attention_config'] = {'flash_attn_version': args.flash_attn_version}
     engine = build_engine(senior, junior, args.boundaries, gdn_prefill_backend='triton',
                           limit_mm_per_prompt={'image': 0, 'video': 0},
                           enable_prefix_caching=False, enforce_eager=not args.cuda_graphs, **graph_kwargs)
     try:
         isolation = engine.collective_rpc(check_weight_isolation)
+        questions = [(question, '96')]
+        if args.long_rollouts:
+            questions = [
+                ('What is the largest five-digit number whose digits add up to 20?', '99200'),
+                ('What is the largest prime factor of 3328?', '13'),
+                ('The bottom layer of a display has 28 cans, the next 25, and so on until one can at the top. How many cans are there in total?', '145'),
+                ('Compute 2/(1-2/3).', '6'),
+            ]
+        prompts = [common.chat_prefix(tok, q + ' Solve step by step. Put your final answer inside \\boxed{}.')
+                   for q, _ in questions for _ in range(4)] if args.long_rollouts else [prompt] * 4
         params = [SamplingParams(temperature=0.6, top_p=1, top_k=-1,
-                                 max_tokens=256, seed=i) for i in range(4)]
-        outputs = engine.generate([prompt] * 4, params, use_tqdm=False)
+                                 max_tokens=3000 if args.long_rollouts else 256, seed=i)
+                  for i in range(len(prompts))]
+        outputs = engine.generate(prompts, params, use_tqdm=False)
         samples = [record_completion(o.outputs[0], boundaries) for o in outputs]
+        if args.long_rollouts:
+            from reward.math_boxed_reward import compute_score
+            for i, sample in enumerate(samples):
+                q, answer = questions[i // 4]
+                sample.update(question=q, ground_truth=answer,
+                              reward=compute_score('math', sample['text'], answer))
+            print('LONG ROLLOUTS ' + json.dumps([
+                {'tokens': len(s['token_ids']), 'reward': s['reward'], 'finish': s['finish_reason']}
+                for s in samples]), flush=True)
         authors = {author for s in samples for author in s['model_mask']}
         if authors != {0, 1}:
             raise ValueError('Probe did not exercise both models')
