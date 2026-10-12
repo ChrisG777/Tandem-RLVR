@@ -157,12 +157,12 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
 
 def build_engine(senior: str, junior: str, boundaries: Path, *, max_num_seqs: int | None = None,
                  kv_cache_memory_bytes: int = 5*1024**3,
-                 enable_prefix_caching: bool = True, **engine_kwargs):
+                 enable_prefix_caching: bool = True, enforce_eager: bool = True, **engine_kwargs):
     """Load both BF16 models on GPU 0 with explicitly bounded per-model KV caches."""
     from vllm import LLM
     os.environ.pop('VLLM_TANDEM_CONFIG', None)
     os.environ.pop('VLLM_TANDEM_ALL_GPUS', None)
-    return LLM(model=senior, dtype='bfloat16', enforce_eager=True,
+    return LLM(model=senior, dtype='bfloat16', enforce_eager=enforce_eager,
                # Measured cache = 18,192 tokens: four full 4,096-token sequences
                # fit without eviction/replay of the stateful word sampler.
                max_model_len=common.MAX_MODEL_LEN, max_num_seqs=max_num_seqs or (2 if common.MAX_MODEL_LEN > 4096 else 4),

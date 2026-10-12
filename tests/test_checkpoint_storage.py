@@ -10,20 +10,62 @@ import unittest
 from unittest.mock import patch
 
 
-def patched_function():
+def patched_function(name="persist_hf_checkpoint"):
     text = (Path(__file__).resolve().parents[1] / "third_party/verl-tandem.patch").read_text()
     block = text.split("+def persist_hf_checkpoint(", 1)[1].split(" class PPOTrainer", 1)[0]
     source = "def persist_hf_checkpoint(" + "\n".join(
         line[1:] for line in ("+" + block).splitlines() if line.startswith("+"))
     scope = {"os": os}
     exec(source, scope)
-    return scope["persist_hf_checkpoint"]
+    return scope[name]
 
 
 class CheckpointStorage(unittest.TestCase):
+    def test_commit_keeps_only_latest_optimizer_and_preserves_weights(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for step in (10, 20, 30):  # 30 is an abandoned partial future save
+                checkpoint = root / f"global_step_{step}"
+                for role in ("actor", "critic"):
+                    (checkpoint / role).mkdir(parents=True)
+                    for rank in (0, 1):
+                        (checkpoint / role / f"optim_world_size_2_rank_{rank}.pt").write_bytes(b"state")
+                    (checkpoint / role / "model.pt").write_bytes(b"weights")
+                if step != 30:
+                    (checkpoint / "data.pt").write_bytes(b"loader")
+            commit = patched_function("commit_latest_checkpoint")
+            commit(directory, 20)
+            commit(directory, 20)  # cleanup is idempotent
+            self.assertEqual((root / "latest_checkpointed_iteration.txt").read_text(), "20")
+            self.assertEqual(len(list(root.glob("global_step_*/**/optim_*.pt"))), 4)
+            self.assertEqual(len(list(root.glob("global_step_*/**/model.pt"))), 6)
+            self.assertTrue(all(p.is_file() for p in (root / "global_step_20/actor").glob("optim_*.pt")))
+
+    def test_failed_commit_preserves_previous_optimizer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for step in (10, 20):
+                actor = root / f"global_step_{step}/actor"
+                actor.mkdir(parents=True)
+                (actor / "optim_world_size_1_rank_0.pt").write_bytes(b"state")
+                (actor.parent / "data.pt").write_bytes(b"loader")
+            marker = root / "latest_checkpointed_iteration.txt"
+            marker.write_text("10")
+            commit = patched_function("commit_latest_checkpoint")
+            with patch("os.replace", side_effect=OSError(errno.EDQUOT, "quota")):
+                with self.assertRaises(OSError):
+                    commit(directory, 20)
+            self.assertEqual(marker.read_text(), "10")
+            self.assertEqual(len(list(root.glob("global_step_*/actor/optim_*.pt"))), 2)
+            self.assertFalse(list(root.glob(".latest-*")))
+            (root / "global_step_20/data.pt").unlink()
+            with self.assertRaisesRegex(RuntimeError, "incomplete checkpoint"):
+                commit(directory, 20)
+            self.assertEqual(marker.read_text(), "10")
+
     def test_resume_adopts_old_states_but_not_future_partial_checkpoints(self):
         text = (Path(__file__).resolve().parents[1] / "third_party/verl-tandem.patch").read_text()
-        section = text.split("diff --git a/verl/utils/checkpoint/fsdp_checkpoint_manager.py", 1)[1]
+        section = text.split("diff --git a/verl/utils/checkpoint/fsdp_checkpoint_manager.py", 1)[1].split("diff --git ", 1)[0]
         added = textwrap.dedent("\n".join(line[1:] for line in section.splitlines()
                                         if line.startswith("+") and not line.startswith("+++")))
         with tempfile.TemporaryDirectory() as directory:

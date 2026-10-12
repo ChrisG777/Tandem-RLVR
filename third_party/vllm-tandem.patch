@@ -1021,3 +1021,131 @@ index 0000000..bd6edd4
 +        if self.frozen_device is None:
 +            raise RuntimeError("Frozen device not set.")
 +        return self.frozen_device
+diff --git a/vllm/v1/attention/backends/flash_attn.py b/vllm/v1/attention/backends/flash_attn.py
+--- a/vllm/v1/attention/backends/flash_attn.py
++++ b/vllm/v1/attention/backends/flash_attn.py
+@@ -52,6 +52,7 @@
+ )
+ from vllm.v1.attention.backends.utils import (
+     get_dcp_local_seq_lens,
++    get_num_attention_heads_from_layers,
+     get_kv_cache_layout,
+ )
+ from vllm.v1.kv_cache_interface import AttentionSpec
+@@ -293,12 +294,12 @@
+         self.compilation_config = vllm_config.compilation_config
+         self.attention_config = vllm_config.attention_config
+ 
+-        self.num_heads_q = self.model_config.get_num_attention_heads(
+-            self.parallel_config
+-        )
+-        self.num_heads_kv = self.model_config.get_num_kv_heads(self.parallel_config)
++        self.num_heads_q = get_num_attention_heads_from_layers(
++            vllm_config, layer_names
++        ) or self.model_config.get_num_attention_heads(self.parallel_config)
++        self.num_heads_kv = kv_cache_spec.num_kv_heads
+         self.kv_cache_dtype = kv_cache_spec.dtype
+-        self.headdim = self.model_config.get_head_size()
++        self.headdim = kv_cache_spec.head_size
+         self.block_size = kv_cache_spec.block_size
+ 
+         self.max_num_splits = 0  # No upper bound on the number of splits.
+@@ -322,6 +323,12 @@
+         self.use_full_cuda_graph = (
+             self.compilation_config.cudagraph_mode.has_full_cudagraphs()
+         )
++        # Graphs capture each builder's own FA3 scheduler buffer. Reusing
++        # another group's metadata skips refreshing that captured buffer,
++        # yielding stale scheduling as sequence lengths grow. Let upstream
++        # build() refresh every group's persistent buffer instead.
++        if self.use_full_cuda_graph and self.aot_schedule:
++            self.supports_update_block_table = False
+         self.max_cudagraph_size = self.compilation_config.max_cudagraph_capture_size
+ 
+         if self.use_full_cuda_graph and self.aot_schedule:
+diff --git a/vllm/v1/attention/backends/utils.py b/vllm/v1/attention/backends/utils.py
+--- a/vllm/v1/attention/backends/utils.py
++++ b/vllm/v1/attention/backends/utils.py
+@@ -9,6 +9,7 @@
+     Literal,
+     Protocol,
+     get_args,
++    cast,
+ )
+ 
+ import numpy as np
+@@ -133,6 +134,35 @@
+         )
+ 
+     return per_layer_params
++
++
++def get_num_attention_heads_from_layers(
++    vllm_config: VllmConfig, layer_names: list[str]
++) -> int | None:
++    """Per-TP-rank ``num_heads`` shared by the named Attention layers.
++
++    Use in metadata builders whose plan-time allocations depend on the
++    head count: the model-wide ``get_num_attention_heads()`` is wrong
++    for models with non-uniform per-layer head counts. All layers in
++    one attention group must agree on ``num_heads``; this is asserted.
++    Returns ``None`` when no matching Attention layer is found.
++    """
++    attn_layers = get_layers_from_vllm_config(
++        vllm_config,
++        AttentionLayerBase,  # type: ignore[type-abstract]
++        layer_names,
++    )
++    if not attn_layers:
++        return None
++    heads = {
++        cast(Any, getattr(layer, "impl", layer)).num_heads
++        for layer in attn_layers.values()
++    }
++    assert len(heads) == 1, (
++        f"All layers in one attention group must share num_heads; "
++        f"got {heads} for {layer_names}."
++    )
++    return heads.pop()
+ 
+ 
+ def infer_global_hyperparameters(
+diff --git a/vllm/v1/worker/gpu_model_runner.py b/vllm/v1/worker/gpu_model_runner.py
+--- a/vllm/v1/worker/gpu_model_runner.py
++++ b/vllm/v1/worker/gpu_model_runner.py
+@@ -6144,6 +6144,7 @@
+         class AttentionGroupKey(NamedTuple):
+             attn_backend: type[AttentionBackend]
+             kv_cache_spec: KVCacheSpec
++            num_heads_q: int
+ 
+         def get_attn_backends_for_group(
+             kv_cache_group_spec: KVCacheGroupSpec,
+@@ -6172,9 +6173,10 @@
+                 layer_kv_cache_spec = kv_cache_group_spec.kv_cache_spec
+                 if isinstance(layer_kv_cache_spec, UniformTypeKVCacheSpecs):
+                     layer_kv_cache_spec = layer_kv_cache_spec.kv_cache_specs[layer_name]
+-                key = (full_cls_name, layer_kv_cache_spec)
++                num_heads_q = getattr(layers[layer_name], "num_heads", 0)
++                key = (full_cls_name, layer_kv_cache_spec, num_heads_q)
+                 attn_backends[key] = AttentionGroupKey(
+-                    attn_backend, layer_kv_cache_spec
++                    attn_backend, layer_kv_cache_spec, num_heads_q
+                 )
+                 attn_backend_layers[key].append(layer_name)
+             return (
+@@ -6187,11 +6189,11 @@
+             kv_cache_group_id: int,
+         ) -> list[AttentionGroup]:
+             attn_groups: list[AttentionGroup] = []
+-            for (attn_backend, kv_cache_spec), layer_names in attn_backends_map.items():
++            for key, layer_names in attn_backends_map.items():
+                 attn_group = AttentionGroup(
+-                    attn_backend,
++                    key.attn_backend,
+                     layer_names,
+-                    kv_cache_spec,
++                    key.kv_cache_spec,
+                     kv_cache_group_id,
+                 )
+ 

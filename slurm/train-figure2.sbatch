@@ -46,6 +46,7 @@ EXTRA=()
 if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
     export FROZEN_GPU=${FROZEN_GPU:-0}
     EXTRA+=('+data.apply_chat_template_kwargs.enable_thinking=False'
+        +trainer.require_complete_validation=True
         actor_rollout_ref.actor.freeze_vision_tower=True
         actor_rollout_ref.actor.strategy=fsdp2
         actor_rollout_ref.actor.fsdp_config.offload_policy=True
@@ -54,11 +55,20 @@ if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
         +actor_rollout_ref.rollout.engine_kwargs.vllm.gdn_prefill_backend=triton
         '+actor_rollout_ref.rollout.engine_kwargs.vllm.limit_mm_per_prompt={image:0,video:0}')
 fi
+if [ "${QWEN35_SPEED:-0}" = 1 ]; then
+    test -f "$RUN_ROOT/word-boundaries.json" || { echo 'Qwen speed mode requires a pair manifest'; exit 2; }
+    source "$REPO/train/execution.sh"
+    export TRAIN_PROFILE_DIR=${TRAIN_PROFILE_DIR:-${QWEN35_PROFILE_DIR:-}}
+    configure_training_execution qwen35 optimized
+    EXTRA+=("${EXECUTION_EXTRA[@]}"
+        "trainer.rollout_data_dir=$CKPT_DIR/rollouts"
+        "trainer.validation_data_dir=$CKPT_DIR/validation")
+fi
 case "$MODE" in
     smoke)
         export TOTAL_STEPS=${SMOKE_STEPS:-3}
         export TEST_FREQ=$TOTAL_STEPS SAVE_FREQ=$TOTAL_STEPS PERSIST_HF_INTERVAL=$TOTAL_STEPS
-        EXTRA+=(data.val_max_samples=8);;
+        EXTRA+=("data.val_max_samples=${SMOKE_VAL_SAMPLES:-8}");;
     full) ;;
     *) echo "MODE must be smoke or full" >&2; exit 2;;
 esac

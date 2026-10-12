@@ -92,6 +92,9 @@ case "$PHASE" in
             export TOTAL_STEPS=${PROFILE_STEPS:-3} TEST_FREQ=${PROFILE_TEST_FREQ:--1} SAVE_FREQ=-1 PERSIST_HF_INTERVAL=20
             [[ "$TOTAL_STEPS" =~ ^[1-9][0-9]*$ ]] && [ "$TOTAL_STEPS" -le 5 ] || exit 2
         elif [ "$MODE" != full ]; then exit 2; fi
+        source "$REPO/train/execution.sh"
+        configure_training_execution qwen3 "${TRAIN_EXECUTION:-baseline}"
+        EXTRA+=("${EXECUTION_EXTRA[@]}" "trainer.rollout_data_dir=$CKPT_DIR/rollouts" +trainer.require_complete_validation=True)
         cp "$RUN_ROOT/base.json" "$CKPT_DIR/initialization.json"
         cp "$DATA_ROOT/manifest.json" "$CKPT_DIR/data-manifest.json"
         printf '%s\n' "$CODE_COMMIT" > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"

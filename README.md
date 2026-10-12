@@ -33,6 +33,12 @@ Reproduce Tandem RLVR and test whether solo RL develops reusable, opaque shortha
 
 [Qwen3.5 asymmetric pair](docs/QWEN35_PAIR.md): pinned 9B senior / 2B junior →
 [native compatibility probe](train/check_pair.py) → the same training and evaluation workflow.
+[Long-rollout diagnostics](docs/QWEN35_COLLAPSE.md) compare attention execution and preserve response text.
+[Execution profiling](docs/QWEN35_SPEED.md) instruments the existing trainer and
+documents measured performance changes.
+[Portable CUDA setup](env/install-qwen35-cuda.sh) installs pinned compiler/headers
+for Hopper training. Checkpoint saves retain optimizer state only for the latest
+committed step; evaluation weights are retained separately.
 
 ## Solo shorthand pilot
 
@@ -62,3 +68,5 @@ rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
 [APPS coding](docs/APPS.md): [prepare data](experiments/coding/build_apps.py) →
 [sandboxed reward](experiments/coding/reward.py) →
 [calibrate, train and evaluate](experiments/coding/campaign.py).
+
+[Shared execution](docs/SHARED_EXECUTION.md): [execution options](train/execution.sh) compose with existing experiment launchers; [bounded profiling](train/profile-experiment.sh) uses an existing allocation.

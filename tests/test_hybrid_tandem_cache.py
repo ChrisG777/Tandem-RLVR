@@ -8,6 +8,7 @@ import unittest
 def manager_type():
     patch = (Path(__file__).resolve().parents[1] / 'third_party/vllm-tandem.patch').read_text()
     section = patch.split('+++ b/vllm/v1/worker/tandem.py\n', 1)[1]
+    section = section.split('\ndiff --git ', 1)[0]
     source = '\n'.join(line[1:] for line in section.splitlines() if line.startswith('+'))
     tree = ast.parse(source)
     cls = next(n for n in tree.body if isinstance(n, ast.ClassDef))

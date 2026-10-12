@@ -28,4 +28,21 @@ co-generation for the tandem arm and solo generation for the baselines.
 
 ## Maintenance
 
+Qwen3.5 execution additions reuse upstream implementations: verl deferred FSDP
+gradient synchronization from `1d367a4f459a43768f76312c0d3430a99ec46b8c`, and vLLM
+per-layer attention-head metadata from `f26d9f432ced7b1087d02d29bffed2249df1a18e`.
+The opt-in FLA cross-entropy import reuses verl's existing fused-loss call path.
+Strict Qwen validation rejects missing sessions before aggregating scores.
+Synchronous saves atomically commit the latest-step marker, then remove older
+actor/critic optimizer shards; failed saves preserve the previous resume state.
+See [profiling and qualification](../docs/QWEN35_SPEED.md); these additions do not
+replace the Tandem sampler or senior-token loss gate. File/line counts above
+describe the original patch, before subsequent compatibility fixes.
+
 The patches apply at the pinned commits only; upstream has moved past both, and a later base needs the patches rebased.
+
+- Qwen3.5 Hopper collapse: disable cross-group FlashAttention metadata reuse when
+  full CUDA graphs capture per-builder FA3 scheduling buffers. Reuse upstream
+  `build()` to refresh each buffer. H200 controlled long-rollout comparison:
+  unmodified FA3 graphs 1/16 correct vs eager and isolated metadata 16/16.
+  See `docs/QWEN35_COLLAPSE.md`; model architecture and native sampler unchanged.
