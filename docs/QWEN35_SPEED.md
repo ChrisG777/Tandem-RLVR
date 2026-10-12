@@ -5,6 +5,20 @@ checkpoints remain intact. Target: approximately 24 GPU-hours per complete run,
 including validation/checkpoint overhead, with the original objective, batches,
 rollout count, response budget, and full-weight training retained.
 
+Storage cleanup authorized October 11: obsolete checkpoints from the cancelled
+Qwen campaigns and old reproduction attempts, plus old matrix/concept/length
+pilot artifacts, were removed on both clusters. Estimated released file allocation
+after accounting for hard links: 988.38 GiB on CSAIL and 833.41 GiB on Engaging.
+CSAIL reported approximately 1.3 TiB free afterward. The active optimized step-3
+checkpoints are preserved, as are the original reproduction's selected HF models
+(GRPO 160, Tandem 180) and both step-200 final checkpoints. Retained HF shard
+length/header verification passed. Historical non-final checkpoint paths in older
+notes below may therefore no longer exist. Logs/results outside retired pilot
+directories, model caches, environments, and current unrelated campaigns remain.
+Deletion receipts list exact paths, inode identities and completion status:
+`/data/vision/torralba/u/chrisge/tandem-rlvr/cleanup-20261011.json` and
+`/orcd/pool/005/cge7/tandem-rlvr-recovery-20261008/cleanup-20261011.json`.
+
 Status, October 11 evening (Pacific): GRPO three-step qualification `2623390`
 completed successfully. Tandem `2623385` completed all three updates and strict
 full validation, but its final file-logger flush failed with `EDQUOT`; subsequent
