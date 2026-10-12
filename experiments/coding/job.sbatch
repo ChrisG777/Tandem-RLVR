@@ -5,6 +5,10 @@
 #SBATCH --requeue
 #SBATCH --signal=B:USR1@300
 set -euo pipefail
+if [ "${SLURM_RESTART_COUNT:-0}" -gt "${MAX_RESTARTS:-12}" ]; then
+    echo "APPS restart limit exceeded; refusing another attempt" >&2
+    exit 70
+fi
 cd "${REPO:?}"
 export PATH="${UV_BIN_DIR:?}:$PATH"
 export APPS_GRADER_RUNTIME="${RUN_ROOT:?}/grader"

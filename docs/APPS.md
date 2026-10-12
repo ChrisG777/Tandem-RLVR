@@ -158,6 +158,8 @@ the calibration report and protocol with `campaign calibration` and `campaign pr
 `jobs.json` is created exclusively to prevent duplicate campaigns. Partial submissions
 remain recorded and require reconciliation with Slurm before further submissions.
 Requeues restore exact compatible generation progress or the latest optimizer state.
+`MAX_RESTARTS` also bounds native preemption retries at job startup; the optimized
+relaunch uses three retries and ten-step recovery saves within its budget forecast.
 Never change a checkout or grader runtime used by active jobs.
 
 Outputs: `data/manifest.json`, `protocol.json`, `calibration/report.json`, per-arm `selected.json`,
