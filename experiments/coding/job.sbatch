@@ -94,6 +94,7 @@ case "$PHASE" in
             actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 actor_rollout_ref.rollout.top_k=-1 \
             actor_rollout_ref.model.lora_rank=0 \
             actor_rollout_ref.rollout.max_model_len=12288 trainer.resume_mode=auto \
+            "trainer.validation_data_dir=$CKPT_DIR/validation" \
             "actor_rollout_ref.rollout.max_num_seqs=${ROLLOUT_MAX_SEQS:-32}" \
             "+actor_rollout_ref.rollout.engine_kwargs.vllm.kv_cache_memory_bytes=${ROLLOUT_KV_BYTES:-51539607552}" \
             "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}" "${EXTRA[@]}" &
