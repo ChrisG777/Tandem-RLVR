@@ -82,6 +82,10 @@ def main() -> None:
                   for i in range(len(prompts))]
         outputs = engine.generate(prompts, params, use_tqdm=False)
         samples = [record_completion(o.outputs[0], boundaries) for o in outputs]
+        # Preserve expensive raw generations even if an optional grader fails.
+        if args.long_rollouts:
+            common.save_json(args.out.with_suffix('.raw.json'),
+                             {'identity': identity, 'samples': samples, 'weight_isolation': isolation})
         if args.long_rollouts:
             from reward.math_boxed_reward import compute_score
             for i, sample in enumerate(samples):
