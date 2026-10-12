@@ -50,7 +50,7 @@ mkdir -p "$CKPT_DIR" "$XDG_CACHE_HOME" "$RAY_TMPDIR"
 run_python() { uv run --python "$TANDEM_ENV_BIN/python" --no-project --offline python "$@"; }
 run_python -c 'import pathlib,shutil,sys; p=pathlib.Path(sys.argv[1]); owned=sum(f.stat().st_blocks*512 for f in p.rglob("*") if f.is_file()); assert shutil.disk_usage(p).free + owned > 280 * 1024**3, "Insufficient capacity for overlapping full-weight resume checkpoints"' "$CKPT_DIR"
 run_python -m experiments.elegance.preflight --archive data/method-elegance/dataset.zip \
-  --cache "$ELEGANCE_JUDGE_CACHE" --codex "$ELEGANCE_CODEX_BIN" \
+  --cache "$ELEGANCE_JUDGE_CACHE/preflight-${SLURM_JOB_ID}" --codex "$ELEGANCE_CODEX_BIN" \
   --receipt "$CKPT_DIR/judge-preflight-${SLURM_JOB_ID}.json"
 export BASE_MODEL=$(run_python -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["path"])' "$INITIALIZATION_ROOT/base.json")
 export POLICY_MODEL="$BASE_MODEL"
