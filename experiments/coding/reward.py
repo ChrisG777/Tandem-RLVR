@@ -119,16 +119,24 @@ def run_sandbox(request: dict, *, timeout: int) -> dict:
                 os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
                 stdout.seek(0)
-                if stdout.readline().strip() != b'{"ready": true}':
+                lines = stdout.read(1024**2).splitlines()
+                if not lines or lines[0] != b'{"ready": true}' or b'{"candidate_started": true}' not in lines[1:]:
                     raise RuntimeError("Grader startup timed out")
                 return result("timeout")
             stdout.seek(0)
             stderr.seek(0)
             raw, error = stdout.read(1024**2), stderr.read(4096).decode(errors="replace")
+            lines = raw.splitlines()
+            candidate_started = bool(lines and lines[0] == b'{"ready": true}'
+                                     and b'{"candidate_started": true}' in lines[1:])
             if proc.returncode:
+                if candidate_started:
+                    return result("runtime_error")
                 raise RuntimeError(f"Sandbox/checker exit {proc.returncode}: {error}")
+            if candidate_started and lines[-1] == b'{"candidate_started": true}':
+                # os._exit(0) can terminate a candidate without a checker result.
+                return result("runtime_error")
             try:
-                lines = raw.splitlines()
                 if json.loads(lines[0]) != {"ready": True}:
                     raise ValueError("Missing sandbox readiness marker")
                 response = json.loads(lines[-1])

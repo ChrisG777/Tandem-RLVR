@@ -38,6 +38,8 @@ def main() -> None:
     import resource
     resource.setrlimit(resource.RLIMIT_NPROC, (1, 1))
     code = request["code"]
+    # Separate checker startup from candidate-controlled compilation/execution.
+    print(json.dumps({"candidate_started": True}), flush=True)
     try:
         compile(code, "candidate.py", "exec")
     except SyntaxError:

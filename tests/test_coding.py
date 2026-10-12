@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,21 @@ class Tokenizer:
 
 
 class CodingTests(unittest.TestCase):
+    def test_checker_crash_before_candidate_is_infrastructure_failure(self):
+        from experiments.coding.reward import run_sandbox
+
+        def failed_checker(command, **kwargs):
+            kwargs["stdout"].write(b'{"ready": true}\n')
+            kwargs["stdout"].flush()
+            return SimpleNamespace(returncode=139, wait=lambda **kwargs: None)
+
+        with tempfile.TemporaryDirectory() as runtime:
+            with patch.dict(os.environ, {"APPS_GRADER_RUNTIME": runtime}), \
+                 patch('experiments.coding.reward.grader_identity', return_value={}), \
+                 patch('experiments.coding.reward.subprocess.Popen', side_effect=failed_checker):
+                with self.assertRaisesRegex(RuntimeError, 'Sandbox/checker exit 139'):
+                    run_sandbox({"code": "pass", "tests": {}}, timeout=10)
+
     def test_provisional_training_admission(self):
         from experiments.coding.campaign import training_admission
         with tempfile.TemporaryDirectory() as d:
@@ -203,6 +219,9 @@ class SandboxIntegration(unittest.TestCase):
             ("print(0)", "wrong_answer"),
             ("def broken(:", "syntax_error"),
             ("raise ValueError('candidate')", "runtime_error"),
+            ("import os, signal; os.kill(os.getpid(), signal.SIGSEGV)", "runtime_error"),
+            ("import os; os._exit(7)", "runtime_error"),
+            ("import os; os._exit(0)", "runtime_error"),
             ("while True: pass", "timeout"),
         ]
         gt = json.dumps(normalize_tests({"inputs": ["2\n"], "outputs": ["4\n"]}))
