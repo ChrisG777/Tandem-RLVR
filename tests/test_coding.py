@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,123 @@ class Tokenizer:
 
 
 class CodingTests(unittest.TestCase):
+    def test_exact_validation_pass4_and_completeness(self):
+        import hashlib
+        import pandas as pd
+        from experiments.coding.validation import validation_pass4
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            data, root = base / 'data', base / 'grpo-smoke'
+            data.mkdir()
+            (root / 'validation').mkdir(parents=True)
+            problems = [{'prompt': [{'content': f'<prompt-{i}>'}],
+                         'extra_info': {'task_id': f'train/{i}'},
+                         'reward_model': {'ground_truth': str(i)}} for i in range(200)]
+            parquet = data / 'validation.parquet'
+            pd.DataFrame(problems).to_parquet(parquet, index=False)
+            manifest = {'files': {'validation.parquet': {
+                'sha256': hashlib.sha256(parquet.read_bytes()).hexdigest(),
+                'task_ids': [f'train/{i}' for i in range(200)]}}}
+            raw = json.dumps(manifest)
+            (data / 'manifest.json').write_text(raw)
+            (root / 'data-manifest.json').write_text(raw)
+            rows = [{'input': f'user\n<prompt-{i}>\nassistant\n', 'gts': str(i),
+                     'step': 3, 'score': float(j == 0), 'acc': float(j == 0)}
+                    for i in range(8) for j in range(4)]
+            path = root / 'validation/3.jsonl'
+            write = lambda values: path.write_text(''.join(json.dumps(r)+'\n' for r in values))
+            write(rows)
+            # With n=k=4, one passing sample gives exact pass@4=1, not ~0.68.
+            self.assertEqual(validation_pass4(root, steps=3), {3: 1.0})
+            rows[0]['score'] = rows[0]['acc'] = 0.0
+            write(rows)
+            self.assertEqual(validation_pass4(root, steps=3), {3: .875})
+            write(rows[:-1])
+            with self.assertRaisesRegex(ValueError, 'Incomplete'):
+                validation_pass4(root, steps=3)
+            rows[0]['gts'] = 'foreign test problem'
+            write(rows)
+            with self.assertRaisesRegex(ValueError, 'unique validation task'):
+                validation_pass4(root, steps=3)
+            parquet.write_bytes(parquet.read_bytes() + b'changed')
+            with self.assertRaisesRegex(ValueError, 'hash differs'):
+                validation_pass4(root, steps=3)
+
+    def test_coding_selection_uses_exact_trace_scores(self):
+        import figure2_checkpoint as checkpoint
+        records = {i: {'actor/pg_loss': 0.} for i in range(1, 41)}
+        records[20]['val-core/apps/acc/best@4/mean'] = .99
+        records[40]['val-core/apps/acc/best@4/mean'] = .1
+        with tempfile.TemporaryDirectory() as temporary, \
+             patch.object(checkpoint, 'read_training_records', return_value=records), \
+             patch.object(checkpoint, 'verify_weights'), \
+             patch('experiments.coding.validation.validation_pass4', return_value={20: .5, 40: .8}) as score:
+            root = Path(temporary)
+            result = checkpoint.verify_training(root, 'grpo', 40, validation_metric='apps/validation/pass@4')
+            self.assertEqual(result['step'], 40)
+            score.return_value = {20: .8, 40: .8}
+            self.assertEqual(checkpoint.verify_training(root, 'grpo', 40,
+                             validation_metric='apps/validation/pass@4')['step'], 20)
+
+    def test_regrading_preserves_and_resumes_saved_responses(self):
+        import hashlib
+        from experiments.coding import regrade as module
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            (root / 'manifest.json').write_text('{}')
+            problems = [{'set': 'apps_introductory', 'task_id': f'train/{i}',
+                         'idx': i, 'gt': 'tests'} for i in range(2)]
+            rows = [{**p, 'texts': ['saved response'], 'correct': [0],
+                     'diagnostics': [{}], 'samples': [{'n_tokens': 3}]} for p in problems]
+            source, out = root / 'source.json', root / 'regraded.json'
+            original = {'dataset_sha256': hashlib.sha256(b'{}').hexdigest(),
+                        'benchmarks': ['apps_introductory'], 'n': 1, 'grader': {'old': 1},
+                        'gens': rows}
+            source.write_text(json.dumps(original))
+            with patch.object(module.common, 'load_problems', return_value=problems), \
+                 patch.object(module.common, 'metrics_by_set', return_value={}), \
+                 patch.object(module, 'grader_identity', return_value={'new': 2}), \
+                 patch.object(module, 'compute_score', side_effect=[{'acc': 1}, RuntimeError('infra')]):
+                with self.assertRaisesRegex(RuntimeError, 'infra'):
+                    module.regrade(source, out, data=root, workers=1)
+            with patch.object(module.common, 'load_problems', return_value=problems), \
+                 patch.object(module.common, 'metrics_by_set', return_value={}), \
+                 patch.object(module, 'grader_identity', return_value={'new': 2}), \
+                 patch.object(module, 'compute_score', return_value={'acc': 1}) as score:
+                result = module.regrade(source, out, data=root, workers=1)
+                self.assertEqual(score.call_count, 1)
+                self.assertEqual(result['regrading']['changed_rewards'], 2)
+                self.assertEqual(result['gens'][0]['original_correct'], [0])
+                self.assertEqual(result['gens'][0]['texts'], ['saved response'])
+                self.assertEqual(json.loads(source.read_text()), original)
+                source.write_text(source.read_text() + '\n')
+                with self.assertRaisesRegex(ValueError, 'differ'):
+                    module.regrade(source, out, data=root, workers=1)
+
+    def test_training_rejects_stale_calibration_grader(self):
+        from experiments.coding.campaign import training_admission
+        with tempfile.TemporaryDirectory() as root:
+            report = Path(root) / "report.json"
+            report.write_text(json.dumps({"passed": True, "grader": {"version": 1}}))
+            with self.assertRaisesRegex(ValueError, "grader identity"):
+                training_admission(report, expected_grader={"version": 2})
+            self.assertFalse(training_admission(report, expected_grader={"version": 1})["provisional"])
+
+    def test_checker_crash_before_candidate_is_infrastructure_failure(self):
+        from experiments.coding.reward import run_sandbox
+
+        def failed_checker(command, **kwargs):
+            kwargs["stdout"].write(b'{"ready": true}\n')
+            kwargs["stdout"].flush()
+            return SimpleNamespace(returncode=139, wait=lambda **kwargs: None)
+
+        with tempfile.TemporaryDirectory() as runtime:
+            with patch.dict(os.environ, {"APPS_GRADER_RUNTIME": runtime}), \
+                 patch('experiments.coding.reward.grader_identity', return_value={}), \
+                 patch('experiments.coding.reward.subprocess.Popen', side_effect=failed_checker):
+                with self.assertRaisesRegex(RuntimeError, 'Sandbox/checker exit 139'):
+                    run_sandbox({"code": "pass", "tests": {}}, timeout=10)
+
     def test_provisional_training_admission(self):
         from experiments.coding.campaign import training_admission
         with tempfile.TemporaryDirectory() as d:
@@ -92,6 +210,8 @@ class CodingTests(unittest.TestCase):
             row['samples'] = [{'n_tokens': 6000, 'finish_reason': 'length'} for _ in range(8)]
         self.assertTrue(calibration(boundary, word, **kwargs)['passed'])
         boundary['gens'][20]['samples'][0] = {'n_tokens': 6000, 'finish_reason': 'length'}
+        self.assertTrue(calibration(boundary, word, **kwargs)['passed'])
+        boundary['gens'][20]['samples'][1] = {'n_tokens': 6000, 'finish_reason': 'length'}
         self.assertFalse(calibration(boundary, word, **kwargs)['passed'])
         legacy = copy.deepcopy(solo)
         legacy['sampling']['max_tokens'] = 3000
@@ -203,6 +323,9 @@ class SandboxIntegration(unittest.TestCase):
             ("print(0)", "wrong_answer"),
             ("def broken(:", "syntax_error"),
             ("raise ValueError('candidate')", "runtime_error"),
+            ("import os, signal; os.kill(os.getpid(), signal.SIGSEGV)", "runtime_error"),
+            ("import os; os._exit(7)", "runtime_error"),
+            ("import os; os._exit(0)", "runtime_error"),
             ("while True: pass", "timeout"),
         ]
         gt = json.dumps(normalize_tests({"inputs": ["2\n"], "outputs": ["4\n"]}))

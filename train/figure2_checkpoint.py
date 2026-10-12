@@ -68,6 +68,10 @@ def verify_training(root: Path, arm: str, steps: int, *, validation_metric: str 
             fraction = finite(data.get("actor/tandem_senior_token_frac"), f"Tandem mask at {step}")
             if not 0.3 < fraction < 0.7:
                 raise ValueError(f"Tandem senior fraction is not near 0.5 at {step}: {fraction}")
+    if validation_metric == "apps/validation/pass@4":
+        from experiments.coding.validation import validation_pass4
+        for step, score in validation_pass4(root, steps=steps).items():
+            records.setdefault(step, {})[validation_metric] = score
     candidates = []
     for step, data in records.items():
         if validation_metric in data and step >= imported_step:

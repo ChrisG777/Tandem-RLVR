@@ -57,22 +57,12 @@ if [ -f "$RUN_ROOT/word-boundaries.json" ]; then
 fi
 if [ "${QWEN35_SPEED:-0}" = 1 ]; then
     test -f "$RUN_ROOT/word-boundaries.json" || { echo 'Qwen speed mode requires a pair manifest'; exit 2; }
-    test -x "${CUDA_HOME:?Qwen speed mode requires a CUDA compiler}/bin/nvcc" || {
-        echo 'TileLang requires nvcc; run env/install-qwen35-cuda.sh and set CUDA_HOME' >&2; exit 2;
-    }
-    export ENFORCE_EAGER=False OMP_NUM_THREADS=4
-    export VERL_USE_FLA_CROSS_ENTROPY=1
-    EXTRA+=(+actor_rollout_ref.actor.fsdp_config.use_no_sync_for_gradient_accumulation=True
-        actor_rollout_ref.actor.fsdp_config.use_torch_compile=False
+    source "$REPO/train/execution.sh"
+    export TRAIN_PROFILE_DIR=${TRAIN_PROFILE_DIR:-${QWEN35_PROFILE_DIR:-}}
+    configure_training_execution qwen35 optimized
+    EXTRA+=("${EXECUTION_EXTRA[@]}"
         "trainer.rollout_data_dir=$CKPT_DIR/rollouts"
-        "trainer.validation_data_dir=$CKPT_DIR/validation"
-        actor_rollout_ref.actor.fsdp_config.entropy_from_logits_with_chunking=True
-        actor_rollout_ref.actor.fsdp_config.entropy_from_logits_chunk_size=512
-        'actor_rollout_ref.actor.optim.override_optimizer_config={fused:True}'
-        '+actor_rollout_ref.rollout.engine_kwargs.vllm.compilation_config={mode:0,cudagraph_mode:FULL_DECODE_ONLY}')
-    if [ -n "${QWEN35_PROFILE_DIR:-}" ]; then
-        EXTRA+=(actor_rollout_ref.model.external_lib=train.profile_qwen35)
-    fi
+        "trainer.validation_data_dir=$CKPT_DIR/validation")
 fi
 case "$MODE" in
     smoke)

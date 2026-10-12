@@ -1,5 +1,174 @@
 # APPS pilot run: 2026-10-10
 
+## Engaging container repair: 2026-10-12
+
+Jobs 25630667 and 25632334 both failed after three seconds, before model loading
+or checkpoint creation. Calibration passed, but Bubblewrap could not bind `/usr`
+from Apptainer's unbindable overlay mount. Commit `12a27e1` runs Bubblewrap inside
+a new user/mount namespace with private propagation when the container is active.
+This changes neither the parent container/host mounts nor grading logic, limits,
+or calibration identity. The existing sandbox preflight remains mandatory.
+
+Engaging compute allocation **25639298**, node `node1609`, passed sandbox isolation,
+known-correct/failing stdin and call-based grading, and all **72 regression tests**
+inside the actual CUDA container. This CPU-only compatibility check needed no GPU;
+the earlier H200 throughput qualification is unchanged. The allocation was released.
+Receipts are `checks/engaging-sandbox.json` and `engaging-sandbox-regression.log`.
+
+Replacement jobs are **25639349 (Tandem)** and **25639351 (GRPO)**, queued for
+priority when checked. They retain the qualified one-H200 configurations, 48-hour
+allocations, automatic resume, and 44.82/27.74 GPU-hour forecasts. Failed job IDs
+are archived in `training-jobs-before-sandbox-fix.json`; no old continuation is live.
+
+Recent CSAIL history does not establish a reliable six-hour uninterrupted window:
+from October 10 through this check, eight H200 attempts were preempted before six
+hours, while eight others ran longer than six hours (some 7–14 hours). Short jobs
+and early application failures are excluded from this comparison; several attempts
+share a preemption event, so it is not an independent survival-rate estimate.
+CSAIL-wide shared jobs in this sample fared better than vision-shared jobs.
+Torralba's eight H200s remained occupied by a non-preemptible owner job. CSAIL
+project storage had only 376 GiB free and scratch was full, versus 754 GiB free
+on Engaging. Both new checkpoint histories therefore remain on Engaging.
+Engaging's six-hour limit applies to normal GPUs; these jobs use its separate
+48-hour preemptible route. Neither cluster guarantees uninterrupted shared access.
+
+## Optimized relaunch: 2026-10-12
+
+The user authorized relaunch after throughput qualification and explicitly accepted
+truncation around 10%. The recorded pilot limit is now 10.1%, not a silent override
+of the failed 10% report. Regrading all 3,200 saved calibration responses with
+`grader-v2` changed zero rewards. Solo/native accuracy is 66.9375%/65.8125%, mixed
+groups 28.5%/28%, and truncation 8.5%/10.0625%. All 72 regression tests passed on
+the interactive H200; current grader identity passes training admission.
+
+At 32 active sequences and 48 GiB KV per model, Tandem's three complete profile
+steps took 393.19, 451.25, and 592.52 seconds; generation took 250.77, 292.88, and
+390.96 seconds. Senior fractions were 0.501/0.500/0.502, with finite gradients and
+zero aborted responses. Full 200-problem/four-sample validation took 1,457.60
+seconds and the profile exited zero. A dataloader cleanup warning occurred after
+all metrics were emitted; no grading infrastructure error occurred during validation.
+
+Tandem's checkpoint smoke passed and saved weights in 156.19 seconds. Its validation
+trace contains all 32 responses for eight problems. A separate process restored
+model, optimizer, RNG, scheduler and dataloader state at step three, then completed
+step four in 494.98 seconds. Original smoke records were preserved; the restart
+receipt is `checks/tandem-resume.json`.
+
+The final Tandem forecast is **44.82 GPU-hours**, using the slowest observed time
+for each of the four measured batches: 26.93 hours for 200 steps, 4.05 for ten
+validations, 4.37 for twenty saves at the worst historical save time (787.4 seconds),
+and two hours startup/recovery, then 20% headroom. The measured checkpoint cost is
+lower than this allowance. Recovery saves are every ten steps; validation and
+retained selection exports stay every twenty. Native retry count is bounded at
+three. Checkpoint export reached the 148-GiB allocation's cache-reclaim boundary
+without an OOM; full jobs request 160 GiB host RAM for additional headroom.
+
+Tandem full job **25630667** was submitted on Engaging with one H200, six CPUs,
+160 GiB host RAM, and the route's maximum 48-hour allocation. It starts independently
+from the pinned base, uses 32 sequences/48 GiB KV per model, and was queued for
+priority at submission. GRPO full job **25632334** uses 64 sequences/96 GiB KV
+for its one model, with the same GPU/CPU/RAM/walltime request. Both jobs are
+independently queued on Engaging; neither has begun training at this report.
+
+GRPO's completed three-step smoke took 259.97, 264.13, and 315.98 seconds for
+training (checkpoint time excluded); generation took 106.62, 106.62, and 118.60
+seconds. Full validation took 426.77 seconds, and checkpoint saving took 143.39.
+All 800 validation responses matched the 200-task manifest. Its complete-run
+forecast is **27.74 GPU-hours**, using the same conservative save allowance,
+two-hour startup/recovery allowance and 20% headroom as Tandem. Both budgets
+are below the user's 48-GPU-hour cap. These are short-pilot forecasts.
+
+Code `bcb3daf` selects checkpoints by exact `apps/validation/pass@4` from saved
+four-response groups, rather than verl's with-replacement bootstrap `best@4`.
+Both saved smoke checkpoints passed the new manifest-matched audit. Tandem was
+briefly held while this was tested, then released under the same job ID. Its
+container entrypoint loads the updated script. The full jobs retain independent
+base initialization, recovery saves every ten steps and validation every twenty.
+The shared resume path passed a focused process restart. Allocation **2624911**
+was released after qualification; no duplicate APPS continuation remains.
+
+The optimized run root is `apps-optimized-20261011` under CSAIL's
+`/data/vision/torralba/u/chrisge/tandem-rlvr` and Engaging's
+`/orcd/pool/005/cge7/tandem-rlvr`. Engaging has matching dataset/grader hashes,
+identical patched vLLM/verl source trees and identical compiled vLLM libraries.
+The original failed calibration and interrupted runs are preserved.
+CSAIL scratch was full and its separate project quota had 784 GiB remaining while
+the existing Qwen/elegance runs were still growing. The new full jobs use Engaging
+pool storage. Its untyped GPU/feature request was rejected; the valid typed H200
+request includes every H200 in `mit_preemptable`, the only GPU class large enough
+for this measured configuration. No racing or duplicate continuation was submitted.
+
+## Concurrency qualification: 2026-10-11
+
+Interactive allocation **2624911** on one H200 (`isola-h200-1`, six CPUs,
+148 GiB host RAM) reuses the pinned runtime and dataset. Profile artifacts live
+under `/data/vision/torralba/u/chrisge/tandem-rlvr/apps-concurrency-20261011`.
+Code `a9acab0` adds bounded `MODE=profile` runs and explicit sequence/cache controls.
+The 33 focused coding, sandbox, senior-gate, and word-state tests passed on-node.
+
+Eight-sequence GRPO with a 20-GiB cache completed two steps: generation took
+320.85/358.84 seconds and complete steps took 466.99/506.89 seconds. The previous
+two-sequence configuration took 1,027.49/1,503.93 seconds for generation and
+1,165.43/1,661.23 seconds per step on the corresponding seed-42 batches.
+Samples change with batching, so compare response lengths as well as walltime;
+these are execution measurements, not a model-quality comparison.
+
+At 16 sequences/32 GiB per model, GRPO steps took 356.28, 444.85, and 505.05
+seconds. Its validation exposed a candidate recursion segfault being misclassified
+as infrastructure failure; the old profile was interrupted and is not a successful
+validation qualification. Fix `bc0941c` distinguishes candidate-start from checker
+readiness and classifies candidate crashes/silent exits as zero-reward runtime
+failures. An isolated `grader-v2` preserves the old runtime and calibration identity.
+The full regression suite, including stale-grader admission checks, passed 69 tests.
+
+The corrected 16-sequence Tandem screening step took 482.46 seconds (344.84 seconds
+generation), with senior-token fraction 0.498 and finite gradients. It was stopped
+after that completed step to test 32 sequences/48 GiB per model in `c32`, with three
+steps and full validation. The queued GRPO profile was interrupted during startup
+to combine its remaining timing check with a checkpoint-writing smoke. The cache calculation uses the actual
+4,096-prompt + 6,000-response cap, not the unused remainder of the 12,288-token
+model context. At this stage full training remained stopped pending calibration
+admission and a complete-run forecast below 48 GPU-hours; the relaunch section
+above supersedes that status.
+Other inspected RL configurations already use sequence limits of 1,024
+(Qwen3.5/elegance) or 32 (NLA); they do not share APPS's two-sequence restriction.
+
+## Recovery: 2026-10-11 evening
+
+Budget update: do not launch a run projected to exceed **48 GPU-hours**.
+Forecast the complete run, including validation, checkpointing, startup, and
+GPU count, from measured representative steps before submission. A 24-hour
+resumable allocation does not satisfy this total-compute limit by itself.
+APPS training is stopped following the completed calibration gate failure
+(native truncation 161/1,600 versus the 160/1,600 limit). Independently, the
+observed training-only projections exceed the new budget: about 89 GPU-hours
+for GRPO and 159 for Tandem at 200 steps using the mean observed step times.
+Do not restart this configuration merely by relaxing the truncation gate.
+
+Replacement full-training jobs were **2624591 (GRPO)** and **2624592 (Tandem)**;
+both were cancelled after the completed calibration report failed its gate.
+Native calibration **2624593** completed all 200 problems. The gate was evaluated
+on the existing CPU allocation, and redundant queued gate job **2624594** was
+cancelled. All three GPU jobs started on H200s with 24-hour limits. Training uses the
+existing 6,000-response/12,288-context protocol and now saves recovery state
+every five steps; validation and retained HF exports remain every 20 steps.
+Both arms restart from the pinned base because the cancelled attempts had not
+saved a checkpoint. Their original logs remain intact.
+
+The previous monitor cancelled 2618184/2618185 when interactive calibration
+2618086 was preempted. That was incomplete calibration, not a failed gate.
+The replacement gate runs only after calibration completes successfully and
+cancels these two training IDs only when the report explicitly says `passed=false`.
+Missing reports and interrupted allocations do not cancel provisional training.
+Calibration retains native concurrency four to match its saved evaluation identity.
+
+The training checkout remains on main; its wrapper includes the two local changes
+for configurable recovery save frequency and calibration concurrency. Runtime
+sandbox preflight passed in both replacement training allocations. Submission IDs
+are recorded remotely in `recovery-jobs-20261011.txt`; the gate script is
+`recovery-gate.sh`. Historical status and monitor descriptions below are superseded
+by this section.
+
 Status (2026-10-11): the user authorized full training while calibration continues.
 The original held jobs 2618107/2618108 were cancelled because their submitted
 scripts enforced the previous gate. Replacement full runs are **2618184 (GRPO)**

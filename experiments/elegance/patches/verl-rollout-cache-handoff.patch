@@ -1,0 +1,14 @@
+diff --git a/verl/workers/engine_workers.py b/verl/workers/engine_workers.py
+--- a/verl/workers/engine_workers.py
++++ b/verl/workers/engine_workers.py
+@@ -703,6 +703,10 @@
+             return
+ 
+         set_expandable_segments(False)
++        # The colocated rollout uses a separate CUDA allocator/process. Release
++        # unused training blocks before it remaps weights, not only afterwards.
++        # This preserves live tensors and optimizer state.
++        aggressive_empty_cache(force_sync=True)
+         log_gpu_memory_usage("Before resume weights", logger=logger)
+ 
+         # 1. resume rollout memory (weights were released during sleep)

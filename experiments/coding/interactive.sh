@@ -43,7 +43,7 @@ run_python -m experiments.coding.campaign calibration --data "$DATA_ROOT" --solo
 for arm in grpo tandem; do
     if [ -s "$RUN_ROOT/$arm-smoke/selected.json" ]; then
         run_python train/figure2_checkpoint.py --root "$RUN_ROOT/$arm-smoke" --arm "$arm" --steps 3 \
-            --mode smoke --validation-metric val-core/apps/acc/best@4/mean
+            --mode smoke --validation-metric apps/validation/pass@4
     else
         ARM="$arm" MODE=smoke bash experiments/coding/job.sbatch train > "$RUN_ROOT/$arm-smoke.log" 2>&1
     fi
