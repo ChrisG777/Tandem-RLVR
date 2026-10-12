@@ -78,7 +78,7 @@ case "$PHASE" in
         EXTRA=()
         if [ "$MODE" = smoke ]; then
             export TOTAL_STEPS=3 TEST_FREQ=3 SAVE_FREQ=3 PERSIST_HF_INTERVAL=3
-            EXTRA+=(data.val_max_samples=8)
+            EXTRA+=("data.val_max_samples=${SMOKE_VAL_MAX_SAMPLES:-8}")
         elif [ "$MODE" = profile ]; then
             export TOTAL_STEPS=${PROFILE_STEPS:-3} TEST_FREQ=${PROFILE_TEST_FREQ:--1} SAVE_FREQ=-1 PERSIST_HF_INTERVAL=20
             [[ "$TOTAL_STEPS" =~ ^[1-9][0-9]*$ ]] && [ "$TOTAL_STEPS" -le 5 ] || exit 2

@@ -13,6 +13,7 @@ See the [interactive run record](APPS_RUN.md) for current evidence and pending s
 | [`submit`](../experiments/coding/submit.py) | Explicit site resources → one dependency-gated Slurm campaign with durable job IDs |
 | [`interactive.sh`](../experiments/coding/interactive.sh) | Existing allocation and prepared inputs → regression checks, calibration gate and independent training smokes; submits no jobs |
 | [`setup_grader`](../experiments/coding/setup_grader.py) | Pinned verl checker and uv runtime → isolated CPU grader directory |
+| [`regrade`](../experiments/coding/regrade.py) | Saved validation responses → resumable isolated regrading with original scores and texts preserved |
 
 ## Protocol
 
@@ -143,6 +144,9 @@ and verify cache capacity, finite losses, executable rewards, and Tandem authors
 full launch, forecast all 200 steps plus validation, saves, and startup below
 the user's 48-GPU-hour limit. A short allocation or automatic requeue is not a
 substitute for this whole-run budget check.
+`MODE=smoke SMOKE_VAL_MAX_SAMPLES=200` combines the required three-step
+checkpoint-writing smoke with a full validation timing measurement; the default
+smoke still validates eight problems.
 
 After changing the grader, run `uv run --python "$TANDEM_ENV/bin/python" --no-project
 --offline python -m experiments.coding.regrade --input OLD.json --out NEW.json
