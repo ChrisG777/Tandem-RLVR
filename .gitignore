@@ -7,6 +7,10 @@ checkpoints/
 train/checkpoints/
 
 data/deepscaler/
+data/medcalc/
+.venv-a100/
+.cache/
+experiments/medcalc/env.sh
 
 results/
 outputs/

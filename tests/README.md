@@ -14,6 +14,7 @@ uv run python -m unittest discover -s tests
 | `test_senior_gate.py` | mask/padding behavior and backpropagation through the full `ppo_loss`: junior-token log-probabilities have zero direct loss gradient, while senior positions contribute |
 | `test_validation_mode.py` | both validation entry points preserve rollout authorship, and baseline launchers clear inherited tandem settings |
 | `test_benchmark_aggregation.py` | default evaluation covers the paper's four benchmarks, with AIME pooled before macro averages for accuracy and legibility |
+| `test_medcalc.py` | MedCalc boxed reward, calculator rules, stratified holdout, and the result table |
 
 The schedule and gate tests import functions from the installed forks. The validation test
 executes the parameter setup from both installed agent-loop methods before Ray dispatch,

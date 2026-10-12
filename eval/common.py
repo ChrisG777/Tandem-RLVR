@@ -61,6 +61,35 @@ def parse_sets(spec):
     return names
 
 
+def _jsonable_id(value):
+    if hasattr(value, "item"):
+        value = value.item()
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return int(value)
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
+def _task_fields(row):
+    source = row.get("data_source", "math")
+    if source not in ("apps", "medcalc") or "extra_info" not in row or row["extra_info"] is None:
+        return {}
+    extra = row["extra_info"]
+    if hasattr(extra, "item"):
+        extra = extra.item()
+    if not isinstance(extra, dict):
+        try:
+            extra = dict(extra)
+        except (TypeError, ValueError):
+            return {}
+    if "task_id" not in extra:
+        return {}
+    return {"task_id": _jsonable_id(extra["task_id"])}
+
+
 def load_problems(sets=DEFAULT_SETS, limit=0):
     rows = []
     for name in sets:
@@ -74,8 +103,7 @@ def load_problems(sets=DEFAULT_SETS, limit=0):
                     "content": r["prompt"][0]["content"],
                     "gt": str(r["reward_model"]["ground_truth"]),
                     "data_source": r.get("data_source", "math"),
-                    **({"task_id": r["extra_info"]["task_id"]}
-                       if r.get("data_source") == "apps" else {}),
+                    **_task_fields(r),
                 }
             )
     return rows[:limit] if limit else rows
@@ -99,7 +127,7 @@ def response_budget(prompt_len):
 
 
 def grade(text, gt, data_source="math"):
-    if data_source == "apps":
+    if data_source in ("apps", "medcalc"):
         return float(grade_details(text, gt, data_source)["acc"])
     from math_boxed_reward import compute_score
     return float(compute_score("math", text, gt)["acc"])
@@ -110,6 +138,10 @@ def grade_details(text, gt, data_source="math"):
         sys.path.insert(0, str(ROOT))
         from experiments.coding.reward import compute_score as coding_score
         return coding_score(data_source, text, gt)
+    if data_source == "medcalc":
+        sys.path.insert(0, str(ROOT))
+        from experiments.medcalc.reward import compute_score as medcalc_score
+        return medcalc_score(data_source, text, gt)
     return {"acc": grade(text, gt)}
 
 
@@ -232,6 +264,13 @@ def evaluation_identity(problems):
         from experiments.coding.reward import grader_identity
         metadata["grader"] = grader_identity()
         metadata["dataset_sha256"] = hashlib.sha256((DATA.parent / "manifest.json").read_bytes()).hexdigest()
+    if any(p.get("data_source") == "medcalc" for p in problems):
+        sys.path.insert(0, str(ROOT))
+        from experiments.medcalc.reward import grader_identity as medcalc_grader_identity
+        metadata["grader"] = medcalc_grader_identity()
+        manifest = DATA.parent / "manifest.json"
+        if manifest.exists():
+            metadata["dataset_sha256"] = hashlib.sha256(manifest.read_bytes()).hexdigest()
     return metadata
 
 

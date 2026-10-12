@@ -53,8 +53,8 @@ export VLLM_TANDEM_CONFIG="$TANDEM_JSON"
 echo "VLLM_TANDEM_CONFIG=$VLLM_TANDEM_CONFIG"
 
 train_files=${TRAIN_FILES:-$DATA_ROOT/deepscaler/train.parquet}
-val_files="[$DATA_ROOT/deepscaler/heldout.parquet]"
-reward_fn=$REPO/reward/math_boxed_reward.py
+val_files=${VAL_FILES:-"[$DATA_ROOT/deepscaler/heldout.parquet]"}
+reward_fn=${REWARD_FN:-$REPO/reward/math_boxed_reward.py}
 max_num_tokens=$(( MAX_PROMPT + MAX_RESPONSE + 1 ))
 
 uv run --python "${TANDEM_ENV_BIN:?}/python" --no-project --offline python -m verl.trainer.main_ppo \
@@ -104,7 +104,7 @@ uv run --python "${TANDEM_ENV_BIN:?}/python" --no-project --offline python -m ve
     reward.reward_manager.name=naive \
     reward.custom_reward_function.path="$reward_fn" \
     reward.custom_reward_function.name=compute_score \
-    trainer.logger='[console,wandb]' \
+    trainer.logger="${TRAIN_LOGGER:-[console,wandb]}" \
     trainer.project_name=${PROJECT_NAME} \
     trainer.experiment_name=${EXP_NAME} \
     trainer.n_gpus_per_node=${TRAIN_GPUS} \
