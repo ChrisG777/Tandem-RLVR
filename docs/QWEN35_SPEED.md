@@ -334,3 +334,10 @@ It certifies the saved update, not optimizer/RNG loading. Missing metrics and
 validation remain unavailable and are excluded from checkpoint selection.
 Existing log-based resume qualification still requires all four load messages.
 New training submissions append stdout across requeues to retain that evidence.
+
+Completion also verifies the best observed validation checkpoint and final
+checkpoint after ranking all observed scores. Pruned losing weights need not
+remain on disk; missing winning weights still fail instead of selecting a runner-up.
+For this run, the best observed score is step 200, 0.7523974 pass@4.
+Step-180 metrics were also lost; its surviving log contains all four state-load
+messages, so the existing resume-evidence recorder applies there.

@@ -88,6 +88,17 @@ class TrainingCheckpoint(unittest.TestCase):
                 verify_training(root, "tandem", 3)
             verify_training(root, "grpo", 3)
 
+    def test_pruned_losing_weights_do_not_change_selection(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            shutil.rmtree(root / "hf/global_step_1")
+            self.assertEqual(verify_training(root, "tandem", 3)["step"], 2)
+            shutil.rmtree(root / "hf/global_step_2")
+            with self.assertRaises(FileNotFoundError):
+                verify_training(root, "tandem", 3)
+
     def test_truncated_weights_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

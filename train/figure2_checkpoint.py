@@ -83,11 +83,13 @@ def verify_training(root: Path, arm: str, steps: int, *, validation_metric: str 
             if not 0 <= score <= 1:
                 raise ValueError(f"Invalid validation probability {score}")
             checkpoint = root / "hf" / f"global_step_{step}"
-            verify_weights(checkpoint)
             candidates.append((score, -step, checkpoint))
     if not candidates or validation_metric not in records[steps]:
         raise ValueError("Final held-out validation is missing")
     score, negative_step, checkpoint = max(candidates)
+    # Pruned losing checkpoints cannot win; never select a runner-up if the best is absent.
+    verify_weights(checkpoint)
+    verify_weights(root / "hf" / f"global_step_{steps}")
     return {"arm": arm, "path": str(checkpoint.resolve()), "step": -negative_step,
             "validation_metric": validation_metric, "validation_pass4": score,
             "training_steps": steps, "verified": True,
