@@ -48,7 +48,9 @@ def main() -> None:
     protocol.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "admit-training":
-        print(json.dumps(training_admission(args.report, allow_pending=args.allow_pending)))
+        from experiments.coding.reward import grader_identity
+        print(json.dumps(training_admission(args.report, allow_pending=args.allow_pending,
+                                            expected_grader=grader_identity())))
     elif args.command == "preflight":
         preflight()
     elif args.command == "calibration":
@@ -109,12 +111,15 @@ def main() -> None:
             "task_ids": data["files"][f"test/{tier}/test.parquet"]["task_ids"]} for tier in TIERS}})
 
 
-def training_admission(report: Path, *, allow_pending: bool = False) -> dict:
-    """Allow a passing gate, or explicitly authorized pending calibration; reject failures."""
+def training_admission(report: Path, *, allow_pending: bool = False,
+                       expected_grader: dict | None = None) -> dict:
+    """Reject failed/stale calibration; allow pending calibration only by explicit opt-in."""
     if report.exists():
         result = json.loads(report.read_text())
         if result.get("passed") is not True:
             raise ValueError("Calibration failed; stop provisional training before restarting")
+        if expected_grader is not None and result.get("grader") != expected_grader:
+            raise ValueError("Calibration grader identity differs; regrade saved calibration before training")
         return {"calibration": "passed", "provisional": False}
     if not allow_pending:
         raise ValueError("Calibration is incomplete")

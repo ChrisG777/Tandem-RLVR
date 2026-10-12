@@ -22,6 +22,15 @@ class Tokenizer:
 
 
 class CodingTests(unittest.TestCase):
+    def test_training_rejects_stale_calibration_grader(self):
+        from experiments.coding.campaign import training_admission
+        with tempfile.TemporaryDirectory() as root:
+            report = Path(root) / "report.json"
+            report.write_text(json.dumps({"passed": True, "grader": {"version": 1}}))
+            with self.assertRaisesRegex(ValueError, "grader identity"):
+                training_admission(report, expected_grader={"version": 2})
+            self.assertFalse(training_admission(report, expected_grader={"version": 1})["provisional"])
+
     def test_checker_crash_before_candidate_is_infrastructure_failure(self):
         from experiments.coding.reward import run_sandbox
 
