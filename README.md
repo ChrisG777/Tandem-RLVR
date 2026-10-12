@@ -1,67 +1,77 @@
-Reproduce Tandem RLVR with the authors’ training and evaluation code, alongside separate reasoning experiments.
+Reproduce Tandem RLVR: train a senior language model with a frozen junior partner and compare it with solo GRPO across reasoning tasks.
 
-## Core records
+## Data and core records
 
 | Record | Meaning |
-|---|---|
-| [Data manifest](data/build_deepscaler.py) | Dataset revision, split seed, and file hashes |
-| [Verified checkpoint](train/figure2_checkpoint.py) | Validation-selected weights and explicit gaps in observed metrics |
-| [Evaluation manifest](eval/select_figure2.py) | Pinned base, optional frozen junior, and selected GRPO/Tandem paths |
+| --- | --- |
+| [Dataset manifest](data/build_deepscaler.py) | Pinned source, disjoint splits, seed, and file hashes. |
+| [Model manifest](eval/select_figure2.py) | Initial senior, optional distinct junior, and selected GRPO/Tandem checkpoints. |
+| [Verified checkpoint](train/figure2_checkpoint.py) | Validation-selected weights, integrity checks, and explicit gaps in training evidence. |
+| [Evaluation result](eval/common.py) | Model/data identity, saved generations, scores, and resumable progress. |
 
-## Reproduction
+## Training
 
-[Prepare DeepScaleR](data/build_deepscaler.py) → [submit training](slurm/submit-training.sh)
-→ [select checkpoints](eval/select_figure2.py) → [evaluate](slurm/figure2.sbatch)
-→ [aggregate and plot](eval/figure2.py).
+[build_deepscaler.py](data/build_deepscaler.py) prepares training and held-out data.
+[submit-training.sh](slurm/submit-training.sh) composes smoke checks and full training;
+[train-figure2.sbatch](slurm/train-figure2.sbatch) runs one arm:
 
-| Entry point | Inputs → outputs |
-|---|---|
-| [Solo GRPO](train/vanilla_grpo.sh) / [Tandem](train/tandem_grpo.sh) | Base weights and data → policy checkpoints, using pinned verl/vLLM |
-| [Solo](eval/solo.py) / [paragraph handoff](eval/handoff.py) / [legibility](eval/legibility.py) | Model(s) and benchmarks → scores and traces; [original runner](eval/run_all.sh) composes these |
-| [Checkpoint verification](train/figure2_checkpoint.py) | Training logs and saved state → verified selection; [migration gate](slurm/prepare-migrated-training.sbatch) validates transferred state |
-| [Regrade](eval/regrade.py) | Saved generations → corrected scores with original grades and provenance |
-| [Figure 3 token drift](eval/figure3.py) | Figure 2 solo texts → marginal token drift, JSD and token case studies ([definitions](docs/FIGURE3.md)) |
-| [Training progress](eval/training_progress.py) | Logs or snapshots → curves and diagnostics |
-| [Trace browser](eval/comparison_browser.py) | Saved evaluations → local side-by-side browser; [UI](ui/comparison/) separate from data logic ([usage](docs/COMPARISON_BROWSER.md)) |
+```text
+base weights + training split
+→ solo GRPO: senior generates every token
+  or Tandem: senior + frozen junior alternate at word boundaries
+→ task reward → verl GRPO updates the senior's full weights
+→ validation + saved state → verified checkpoint → model manifest
+```
 
-## MedCalc-Bench
+[vanilla_grpo.sh](train/vanilla_grpo.sh) and [tandem_grpo.sh](train/tandem_grpo.sh)
+configure the pinned verl/vLLM forks. Tandem applies the policy loss only at
+senior-authored positions; junior tokens remain context and junior weights stay frozen.
+[verify_training](train/figure2_checkpoint.py) checks training evidence and weights;
+[select_figure2.py](eval/select_figure2.py) writes the evaluation manifest.
 
-Same GRPO and Tandem RLVR training, on [MedCalc-Bench-Verified](https://huggingface.co/datasets/nsk7153/MedCalc-Bench-Verified) instead of competition math. Install, data, train, and eval entry points are in [experiments/medcalc/README.md](experiments/medcalc/README.md). The A100 environment starts from [experiments/medcalc/requirements.txt](experiments/medcalc/requirements.txt).
+The [Qwen3.5 pair](docs/QWEN35_PAIR.md) uses a distinct senior and junior through
+the same interfaces, with a [native compatibility probe](train/check_pair.py).
+[Execution options](train/execution.sh) compose with existing experiment launchers.
 
-[Qwen3.5 asymmetric pair](docs/QWEN35_PAIR.md): pinned 9B senior / 2B junior →
-[native compatibility probe](train/check_pair.py) → the same training and evaluation workflow.
+## Evaluation
 
-## Shared job tools
+[figure2.sbatch](slurm/figure2.sbatch) takes a model manifest and benchmark selection:
 
-| Entry point | Inputs → outputs |
-|---|---|
-| [Setup](slurm/setup.sh) | Training/inference/grading profile and paths → pinned environment and checks |
-| [Smoke guard](slurm/watch-smoke.py) | Smoke/full job IDs and verification command → status; cancels the full job on failure |
-| [Runtime](slurm/runtime.sh) | Entrypoint and checkpoint/progress location → container execution and bounded same-job requeue |
+```text
+initial / trained weights → solo → accuracy
+trained senior + frozen junior → paragraph handoff → accuracy
+senior traces + junior → legibility → cross-entropy
+saved solo / handoff results → aggregate + bootstrap → Figure 2
+```
 
-[Current setup and job interfaces](docs/WORKFLOWS.md) · [Reproduction protocol](docs/FRESH_TRAINING.md)
-· [Evaluation protocol](docs/FIGURE2.md) · [Grading limitations and audit](docs/REPRODUCTION_AUDIT.md)
+[solo.py](eval/solo.py), [handoff.py](eval/handoff.py), and
+[legibility.py](eval/legibility.py) save scores and traces.
+[figure2.py](eval/figure2.py) aggregates the benchmark results;
+[regrade.py](eval/regrade.py) rescores saved generations while retaining provenance.
+Training uses native word-level switching; Figure 2 handoff evaluation uses paragraphs.
 
-## Additional experiments
+## Inspect results
 
-[Shorthand and concept pilots](experiments/README.md#shorthand-and-concepts),
-[correctness-only drift](experiments/README.md#natural-language-drift), and
-[native word handoff](experiments/README.md#native-word-handoff) live under `experiments/`.
-They reuse the original trainer and evaluation utilities; they are not part of the Figure 2 protocol.
+[training_progress.py](eval/training_progress.py) turns logs into curves and diagnostics.
+[comparison_browser.py](eval/comparison_browser.py) serves saved evaluations in the
+[trace UI](ui/comparison/). [figure3.py](eval/figure3.py) measures token drift and
+Jensen–Shannon divergence from saved solo outputs.
 
-[Architecture](docs/ARCHITECTURE.md) · [Fork patches](third_party/COMMIT_LOG.md) · [Tests](tests/README.md)
+## Experiment workflows
 
-[APPS coding](docs/APPS.md): [prepare data](experiments/coding/build_apps.py) →
-[sandboxed reward](experiments/coding/reward.py) →
-[calibrate, train and evaluate](experiments/coding/campaign.py).
+Each experiment reuses the trainer and supplies its own data and reward:
 
-[Method Atlas](docs/METHOD_AUDIT.md): [curate](experiments/method_audit/curate.py) →
-[mathematical review](experiments/method_audit/review.py) →
-[answer verification](experiments/method_audit/verify.py) →
-[all-path elegance labels](experiments/method_audit/elegance.py) →
-[portable dataset](experiments/method_audit/package.py) / [audit UI](experiments/method_audit/serve.py).
+| Workflow | Inputs → outputs |
+| --- | --- |
+| [APPS coding](docs/APPS.md) | Coding problems → sandboxed reward → matched GRPO/Tandem evaluation. |
+| [MedCalc](experiments/medcalc/README.md) | Verified calculation problems → numeric reward → matched training and evaluation. |
+| [Method Atlas](docs/METHOD_AUDIT.md) | Curated method pairs → reviews and executable checks → labeled dataset and audit UI. |
+| [Elegance RL](docs/ELEGANCE_RL.md) | Fixed method holdout → judged reward → matched solo/Tandem training. |
+| [Shorthand and concepts](experiments/README.md#shorthand-and-concepts) | Generated tasks → correctness/length reward → traces and blinded review. |
+| [Natural-language drift](experiments/README.md#natural-language-drift) | GSM8K → correctness-only training → selected checkpoint and traces. |
+| [Native word handoff](experiments/README.md#native-word-handoff) | Senior/junior pair → training-sampler traces and per-token authorship. |
 
-[Elegance RL](docs/ELEGANCE_RL.md): [fixed method holdout](experiments/elegance/prepare.py) →
-[Codex-judged reward](experiments/elegance/reward.py) → [Qwen3.5 training](experiments/elegance/job.sbatch).
-
-[Elegance RL](docs/ELEGANCE_RL.md): matched solo/Tandem reward and [isolated ephemeral judge](experiments/elegance/codex-runtime.py).
+See [setup and job interfaces](docs/WORKFLOWS.md), [training protocol](docs/FRESH_TRAINING.md),
+[evaluation protocol](docs/FIGURE2.md), and [grading audit](docs/REPRODUCTION_AUDIT.md)
+for operational details. [Architecture](docs/ARCHITECTURE.md),
+[fork patches](third_party/COMMIT_LOG.md), and [tests](tests/README.md) describe the implementation boundaries.

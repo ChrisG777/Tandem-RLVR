@@ -6,6 +6,22 @@ Additional experiments reuse the reproduction trainer and utilities without chan
 → [GRPO/Tandem campaign](coding/submit.py), using a [sandboxed executable reward](coding/reward.py).
 [Protocol and interfaces](../docs/APPS.md).
 
+## MedCalc
+
+[Prepare verified calculations](medcalc/build_data.py) → [train](medcalc/train.sh)
+→ [evaluate](medcalc/evaluate.sh) → [report](medcalc/report.py).
+[Protocol, environment, and interfaces](medcalc/README.md).
+
+## Method Atlas and elegance
+
+[Curate pairs](method_audit/curate.py) → [review](method_audit/review.py)
+→ [verify answers](method_audit/verify.py) → [label elegance](method_audit/elegance.py)
+→ [package](method_audit/package.py) / [inspect](method_audit/serve.py).
+[Records and protocol](../docs/METHOD_AUDIT.md).
+
+[Prepare fixed holdouts](elegance/prepare.py) → [judged reward](elegance/reward.py)
+→ [solo/Tandem training](elegance/job.sbatch). [Elegance RL protocol](../docs/ELEGANCE_RL.md).
+
 ## Shorthand and concepts
 
 [Build matrix/string splits](shorthand/build_shorthand.py) or
