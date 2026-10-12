@@ -25,6 +25,7 @@ def main() -> None:
     parser.add_argument('--cuda-graphs', action='store_true', help='Exercise decode-only CUDA graphs without torch.compile')
     parser.add_argument('--long-rollouts', action='store_true', help='Grade 3000-token diagnostic rollouts, preserving text and authorship')
     parser.add_argument('--flash-attn-version', type=int, choices=(2, 3), help='Pin upstream attention implementation for a controlled comparison')
+    parser.add_argument('--isolate-attention-metadata', action='store_true', help='Diagnostic: rebuild each attention group metadata instead of sharing it')
     args = parser.parse_args()
     models = json.loads(args.models.read_text())
     identity = {'models': models, 'boundaries': json.loads(args.boundaries.read_text())}
@@ -32,6 +33,8 @@ def main() -> None:
         identity['long_rollouts'] = True
     if args.flash_attn_version:
         identity['flash_attn_version'] = args.flash_attn_version
+    if args.isolate_attention_metadata:
+        identity['isolate_attention_metadata'] = True
     if args.cuda_graphs:
         identity['cuda_graphs'] = 'FULL_DECODE_ONLY'
         identity['torch_compile'] = False
@@ -62,6 +65,8 @@ def main() -> None:
                           enable_prefix_caching=False, enforce_eager=not args.cuda_graphs, **graph_kwargs)
     try:
         isolation = engine.collective_rpc(check_weight_isolation)
+        if args.isolate_attention_metadata:
+            engine.collective_rpc(isolate_attention_metadata)
         questions = [(question, '96')]
         if args.long_rollouts:
             questions = [
@@ -145,6 +150,13 @@ def check_weight_isolation(worker) -> dict:
         raise ValueError('Senior diagnostic weight was not restored')
     return {'senior_parameter': name, 'junior_sha256_before': before,
             'junior_sha256_after': after, 'senior_restored': True, 'attention_heads': heads}
+
+
+def isolate_attention_metadata(worker) -> None:
+    """Diagnostic only: force each builder to refresh its captured metadata buffers."""
+    for groups in worker.model_runner.attn_groups:
+        for group in groups:
+            group.get_metadata_builder().supports_update_block_table = False
 
 
 if __name__ == '__main__':
