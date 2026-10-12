@@ -42,7 +42,7 @@ if [ "${MODE:-full}" = profile ]; then
     export TOTAL_STEPS=${PROFILE_STEPS:-3} TEST_FREQ=${PROFILE_TEST_FREQ:--1} SAVE_FREQ=-1
     [[ "$TOTAL_STEPS" =~ ^[1-9][0-9]*$ ]] && [ "$TOTAL_STEPS" -le 5 ] || exit 2
 fi
-export MAX_PROMPT=1024 MAX_RESPONSE=6000
+export MAX_PROMPT=1024 MAX_RESPONSE=3000
 export BOUNDARY_IDS_PATH="${INITIALIZATION_ROOT:?}/word-boundaries.json"
 export TRAIN_FILES="${ELEGANCE_DATA:?}/train.parquet"
 export VERL_FILE_LOGGER_PATH="$CKPT_DIR/metrics-${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}.jsonl"

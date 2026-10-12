@@ -27,8 +27,7 @@ validation, then separately validate checkpoint/resume before production rollout
 The user authorized production relaunches with shared execution before the full
 profiling suite completed; production and profiling now use this checkout.
 
-Elegance's response limit is 6,000 tokens for both arms and profiling (increased
-from 3,000 on October 12 at the user's request). The rollout context limit follows
-the prompt plus response budgets. Continuations retain their earlier checkpoints;
-the submission receipt records the step where the budget changed, so earlier
-3,000-token results must not be treated as results under the new budget.
+Elegance's response limit is 3,000 tokens for both arms and profiling. A temporary
+6,000-token trial on October 12 was reverted at the user's request after slow
+first updates. The rollout context limit follows the prompt plus response budgets.
+Submission receipts record budget changes and checkpoint continuation steps.
