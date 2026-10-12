@@ -5,6 +5,44 @@ checkpoints remain intact. Target: approximately 24 GPU-hours per complete run,
 including validation/checkpoint overhead, with the original objective, batches,
 rollout count, response budget, and full-weight training retained.
 
+## Current launch and retention policy (October 11, Pacific evening)
+
+H100 retries `2624570`/`2624571` failed on their first backwards, before a new
+training step was recorded. FLA 0.5.2 rejects Triton 3.6's known Hopper gated
+backward correctness issue. TileLang was installed, but the configured system
+CUDA toolkit was absent on these nodes. The portable NVIDIA compiler/headers
+are now installed at `qwen35-9b-2b/cuda-12.8.1` using
+[`env/install-qwen35-cuda.sh`](../env/install-qwen35-cuda.sh), with SHA-256-pinned
+archives from NVIDIA's CUDA 12.8.1 redistribution manifest. Python/library pins
+remain unchanged. Set `CUDA_HOME` to that directory; the Qwen speed wrapper
+rejects missing `nvcc` before loading models. FLA automatically selects its
+existing TileLang backend on affected Hopper devices.
+
+New resume checks are GRPO `2624811` and Tandem `2624813`. Each first runs the
+small forward/backward parity tests, then resumes steps 4–6 and full validation.
+Successful load/metric/validation verification releases only that arm's fresh
+200-step campaign: GRPO `2624812`, Tandem `2624814`. Full outputs are under
+`qwen35-9b-2b/optimized-200/{grpo,tandem}-full`. The full runs start from the pinned
+base models, preserving the original 20-step checkpoint-selection schedule.
+Both arms request one H100/H200, eight CPUs, 384 GiB RAM, 24 hours, automatic
+requeue/resume, and normal priority. Invalid dependencies cancel their successors;
+there are no duplicate full-run continuations. Full jobs disable the diagnostic
+per-microbatch synchronization hook and save every 20 steps.
+
+The patched trainer now calls `commit_latest_checkpoint(root, step)` after every
+successful synchronous save. It atomically replaces the latest-step marker and
+then removes all other local actor/critic optimizer shards, including abandoned
+partial saves. Model and HF weights remain available for evaluation/selection.
+Two optimizer states can briefly coexist while the new checkpoint is being
+written; deleting the previous state earlier would make a failed save destructive.
+After commit, only the latest checkpoint retains optimizer state. Five storage
+tests cover failed commit, idempotent cleanup, multiple ranks, weight retention,
+cross-filesystem HF persistence and resumed checkpoint history. Async checkpoint
+writing is not used by these jobs.
+
+The current kernel/resume checks are still running; no completed H100 step or
+24 GPU-hour complete-run result is claimed yet.
+
 Storage cleanup authorized October 11: obsolete checkpoints from the cancelled
 Qwen campaigns and old reproduction attempts, plus old matrix/concept/length
 pilot artifacts, were removed on both clusters. Estimated released file allocation

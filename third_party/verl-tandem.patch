@@ -207,7 +207,7 @@ diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_b
  class PPOTrainer(ABC):
      """Base class for PPO trainer.
  
-@@ -694,6 +772,10 @@
+@@ -694,9 +772,15 @@
          max_actor_ckpt_to_keep = (
              self.config.trainer.get("max_actor_ckpt_to_keep", None) if not remove_previous_ckpt_in_save else 1
          )
@@ -218,7 +218,12 @@ diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_b
          max_critic_ckpt_to_keep = (
              self.config.trainer.get("max_critic_ckpt_to_keep", None) if not remove_previous_ckpt_in_save else 1
          )
-@@ -708,6 +790,14 @@
++        if max_critic_ckpt_to_keep == 1:
++            max_critic_ckpt_to_keep = 2
+ 
+         # save actor
+         actor_local_path = os.path.join(local_global_step_folder, "actor")
+@@ -708,6 +792,14 @@
          self.actor_rollout_wg.save_checkpoint(
              actor_local_path, actor_remote_path, self.global_steps, max_ckpt_to_keep=max_actor_ckpt_to_keep
          )
@@ -233,7 +238,7 @@ diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_b
  
          # save critic
          if self.use_critic:
-@@ -733,11 +823,7 @@
+@@ -733,11 +825,7 @@
          if actor_ckpt_cfg.get("async_save", False):
              logger.info("skip write latest_checkpointed_iteration.txt when async_save is True")
              return
@@ -246,7 +251,7 @@ diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_b
  
      def _validate(self) -> dict[str, float]:
          # Lists to collect samples for the table
-@@ -760,6 +846,10 @@
+@@ -760,6 +848,10 @@
                  [str(uuid.uuid4()) for _ in range(len(batch_dict["raw_prompt"]))], dtype=object
              )
              batch = tu.get_tensordict(batch_dict)
@@ -257,7 +262,7 @@ diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_b
              tu.assign_non_tensor_data(batch, "global_steps", self.global_steps)
              tu.assign_non_tensor_data(batch, "validate", True)
              # Register each prompt (GRPO group) in TransferQueue as a tag-only status marker.
-@@ -792,6 +882,14 @@
+@@ -792,6 +884,14 @@
                          session_max[session_key] = (index, pos)
                  else:
                      session_max[key] = (0, pos)
