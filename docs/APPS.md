@@ -41,10 +41,18 @@ consuming host RAM outside the process memory limit. Stdin is `/dev/null`.
 System `/usr` supplies dynamic libraries. Limits: 2 GiB address space, 1 MiB output
 files, no subprocess creation, five seconds per test, and an outer watchdog of
 `5*(test_count+1)+10` seconds. Startup/checker failures raise; they are not wrong answers.
+The worker emits separate readiness and candidate-start markers. A process crash
+or silent exit after candidate execution starts is a runtime failure with zero
+reward; a crash before that point is an infrastructure failure. Deploy the worker
+and reward wrapper together. Training admission checks the calibration report's
+grader identity against the current runtime, so a grader change requires regrading
+the saved calibration outputs before full training can be admitted.
 
 Calibration samples eight solo and eight native-word completions for every validation
 task at 0.6/1/-1 decoding. Both modes must have 5–90% accuracy, ≥10% mixed-success
-groups, and ≤10% truncation. Failure stops the dependency chain before training.
+groups, and ≤10.1% truncation. The user accepted truncation around 10% for the
+optimized relaunch; the observed native rate was 161/1,600 (10.0625%). Failure
+stops the dependency chain before training.
 
 Three-step independent smoke runs precede 200-step runs from the pinned Figure 2
 base. Batch/minibatch/group are 16/8/8, LR 1e-6, clipping .2, data/rollout seed 42,
@@ -113,8 +121,10 @@ uv run --project experiments/coding/env python -m experiments.coding.submit \
 Supply explicit account/QoS/partitions, CPUs, host RAM and walltime after applying
 the shared allocation policy. Evaluation args include one GPU; training GPU counts
 are added per arm. Coding configures both arms for one GPU, with Tandem's frozen
-junior colocated. Each model uses a bounded 10-GiB KV cache and two active sequences
-at the 12288-token context, preventing cache eviction from replaying native sampler
+junior colocated. The optimized configuration uses 32 active sequences and a
+bounded 48-GiB KV cache per model on one H200. This does not fit an 80-GiB GPU;
+choose compatible hardware explicitly. Both caches cover the maximum permitted
+4,096-prompt + 6,000-response tokens without eviction/replay of native sampler
 state. The unchanged batch/group sizes queue through those active sequences.
 The training smoke must validate fit and authorship before this placement is used
 for a full run. Do not copy historical resource defaults without checking fit.
@@ -127,12 +137,19 @@ updates and the unchanged training batch/decoding, but run at most five steps,
 save no checkpoints, and do not select a model. They may run independently of a
 failed calibration gate; that exception never admits full training.
 `ROLLOUT_MAX_SEQS` and `ROLLOUT_KV_BYTES` override the active-sequence limit and
-per-model KV cache bytes; defaults remain two and 10 GiB. Increase both together
+per-model KV cache bytes; defaults are 32 and 48 GiB. Adjust both together
 and verify cache capacity, finite losses, executable rewards, and Tandem authorship.
 `PROFILE_TEST_FREQ` optionally enables validation to measure its cost. Before any
 full launch, forecast all 200 steps plus validation, saves, and startup below
 the user's 48-GPU-hour limit. A short allocation or automatic requeue is not a
 substitute for this whole-run budget check.
+
+After changing the grader, run `uv run --python "$TANDEM_ENV/bin/python" --no-project
+--offline python -m experiments.coding.regrade --input OLD.json --out NEW.json
+--data "$DATA_ROOT" --workers 4` for each saved calibration mode. This executes
+only saved responses in the sandbox, resumes per problem, preserves original
+grades, and rejects changed inputs or grader identity on resume. Then regenerate
+the calibration report and protocol with `campaign calibration` and `campaign protocol`.
 
 `jobs.json` is created exclusively to prevent duplicate campaigns. Partial submissions
 remain recorded and require reconciliation with Slurm before further submissions.

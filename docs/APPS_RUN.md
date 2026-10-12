@@ -15,9 +15,22 @@ two-sequence configuration took 1,027.49/1,503.93 seconds for generation and
 Samples change with batching, so compare response lengths as well as walltime;
 these are execution measurements, not a model-quality comparison.
 
-The next profile uses 16 sequences and a 32-GiB per-model cache, three steps per
-arm, and full 200-problem/four-sample validation. Full training remains stopped
-pending calibration admission and a complete-run forecast below 48 GPU-hours.
+At 16 sequences/32 GiB per model, GRPO steps took 356.28, 444.85, and 505.05
+seconds. Its validation exposed a candidate recursion segfault being misclassified
+as infrastructure failure; the old profile was interrupted and is not a successful
+validation qualification. Fix `bc0941c` distinguishes candidate-start from checker
+readiness and classifies candidate crashes/silent exits as zero-reward runtime
+failures. An isolated `grader-v2` preserves the old runtime and calibration identity.
+The full regression suite, including stale-grader admission checks, passed 69 tests.
+
+The corrected 16-sequence Tandem screening step took 482.46 seconds (344.84 seconds
+generation), with senior-token fraction 0.498 and finite gradients. It was stopped
+after that completed step to test 32 sequences/48 GiB per model in `c32`, with three
+steps and full validation for each arm. The cache calculation uses the actual
+4,096-prompt + 6,000-response cap, not the unused remainder of the 12,288-token
+model context. Full training remains stopped pending calibration admission and
+a complete-run forecast below 48 GPU-hours. Existing calibration must be regraded
+before admission with the revised grader; do not silently rewrite its identity.
 Other inspected RL configurations already use sequence limits of 1,024
 (Qwen3.5/elegance) or 32 (NLA); they do not share APPS's two-sequence restriction.
 
