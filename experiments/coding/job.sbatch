@@ -104,7 +104,7 @@ case "$PHASE" in
             "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}" "${EXTRA[@]}" &
         wait $!
         if [ "$MODE" = profile ]; then exit 0; fi
-        run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" --mode "$MODE" --validation-metric val-core/apps/acc/best@4/mean
+        run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" --mode "$MODE" --validation-metric apps/validation/pass@4
         ;;
     select)
         run_python -m experiments.coding.campaign select --root "$RUN_ROOT"

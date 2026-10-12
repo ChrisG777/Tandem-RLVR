@@ -69,8 +69,8 @@ def main() -> None:
         from common import save_json
         manifest = json.loads((args.root / "base.json").read_text())
         for arm in ("grpo", "tandem"):
-            verify_training(args.root / f"{arm}-smoke", arm, 3, validation_metric="val-core/apps/acc/best@4/mean")
-            manifest[arm] = verify_training(args.root / f"{arm}-full", arm, 200, validation_metric="val-core/apps/acc/best@4/mean")
+            verify_training(args.root / f"{arm}-smoke", arm, 3, validation_metric="apps/validation/pass@4")
+            manifest[arm] = verify_training(args.root / f"{arm}-full", arm, 200, validation_metric="apps/validation/pass@4")
             if json.loads((args.root / f"{arm}-full/initialization.json").read_text()) != {"base": manifest["base"]}:
                 raise ValueError("Arm did not initialize from the pinned base")
         save_json(args.root / "models.json", manifest)
@@ -96,7 +96,7 @@ def main() -> None:
                          "save_validate_every": 20, "validation_samples": 4, "smoke_steps": 3},
             "tandem": {"boundaries": "train/assets/qwen3_word_boundary_ids.json",
                        "senior_probability": 0.5, "gap_cap": 32, "junior_token_loss_weight": 0},
-            "selection": {"metric": "val-core/apps/acc/best@4/mean", "tie_break": "earliest_step",
+            "selection": {"metric": "apps/validation/pass@4", "tie_break": "earliest_step",
                           "rollout_mode": "own_arm", "split": "validation"},
             "evaluation": {"sampling": {**config.record(), "max_tokens": 6000}, "solo_samples": 32,
                            "paragraph_samples": 8, "native_word_samples": 8,

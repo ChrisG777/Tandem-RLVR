@@ -22,6 +22,64 @@ class Tokenizer:
 
 
 class CodingTests(unittest.TestCase):
+    def test_exact_validation_pass4_and_completeness(self):
+        import hashlib
+        import pandas as pd
+        from experiments.coding.validation import validation_pass4
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            data, root = base / 'data', base / 'grpo-smoke'
+            data.mkdir()
+            (root / 'validation').mkdir(parents=True)
+            problems = [{'prompt': [{'content': f'<prompt-{i}>'}],
+                         'extra_info': {'task_id': f'train/{i}'},
+                         'reward_model': {'ground_truth': str(i)}} for i in range(200)]
+            parquet = data / 'validation.parquet'
+            pd.DataFrame(problems).to_parquet(parquet, index=False)
+            manifest = {'files': {'validation.parquet': {
+                'sha256': hashlib.sha256(parquet.read_bytes()).hexdigest(),
+                'task_ids': [f'train/{i}' for i in range(200)]}}}
+            raw = json.dumps(manifest)
+            (data / 'manifest.json').write_text(raw)
+            (root / 'data-manifest.json').write_text(raw)
+            rows = [{'input': f'user\n<prompt-{i}>\nassistant\n', 'gts': str(i),
+                     'step': 3, 'score': float(j == 0), 'acc': float(j == 0)}
+                    for i in range(8) for j in range(4)]
+            path = root / 'validation/3.jsonl'
+            write = lambda values: path.write_text(''.join(json.dumps(r)+'\n' for r in values))
+            write(rows)
+            # With n=k=4, one passing sample gives exact pass@4=1, not ~0.68.
+            self.assertEqual(validation_pass4(root, steps=3), {3: 1.0})
+            rows[0]['score'] = rows[0]['acc'] = 0.0
+            write(rows)
+            self.assertEqual(validation_pass4(root, steps=3), {3: .875})
+            write(rows[:-1])
+            with self.assertRaisesRegex(ValueError, 'Incomplete'):
+                validation_pass4(root, steps=3)
+            rows[0]['gts'] = 'foreign test problem'
+            write(rows)
+            with self.assertRaisesRegex(ValueError, 'unique validation task'):
+                validation_pass4(root, steps=3)
+            parquet.write_bytes(parquet.read_bytes() + b'changed')
+            with self.assertRaisesRegex(ValueError, 'hash differs'):
+                validation_pass4(root, steps=3)
+
+    def test_coding_selection_uses_exact_trace_scores(self):
+        import figure2_checkpoint as checkpoint
+        records = {i: {'actor/pg_loss': 0.} for i in range(1, 41)}
+        records[20]['val-core/apps/acc/best@4/mean'] = .99
+        records[40]['val-core/apps/acc/best@4/mean'] = .1
+        with tempfile.TemporaryDirectory() as temporary, \
+             patch.object(checkpoint, 'read_training_records', return_value=records), \
+             patch.object(checkpoint, 'verify_weights'), \
+             patch('experiments.coding.validation.validation_pass4', return_value={20: .5, 40: .8}) as score:
+            root = Path(temporary)
+            result = checkpoint.verify_training(root, 'grpo', 40, validation_metric='apps/validation/pass@4')
+            self.assertEqual(result['step'], 40)
+            score.return_value = {20: .8, 40: .8}
+            self.assertEqual(checkpoint.verify_training(root, 'grpo', 40,
+                             validation_metric='apps/validation/pass@4')['step'], 20)
+
     def test_regrading_preserves_and_resumes_saved_responses(self):
         import hashlib
         from experiments.coding import regrade as module
