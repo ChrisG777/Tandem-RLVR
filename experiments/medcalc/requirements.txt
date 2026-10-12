@@ -1,0 +1,17 @@
+# A100 install layer for experiments/medcalc/install_a100.sh.
+#
+# Install this file first. The script then overlays the patched vLLM and verl
+# trees from third_party/. Do not pip-install this file on macOS: the vLLM
+# wheel is a Linux CUDA build.
+#
+# vllm==0.19.1 brings torch 2.10.0+cu128. transformers is pinned because that
+# vLLM release would otherwise resolve a newer, incompatible transformers.
+
+vllm==0.19.1
+transformers==5.5.4
+datasets>=3.2
+pandas>=2.2
+pyarrow>=15
+matplotlib>=3.8
+numpy>=1.26
+uv>=0.5

@@ -24,6 +24,10 @@ Reproduce Tandem RLVR with the authors’ training and evaluation code, alongsid
 | [Training progress](eval/training_progress.py) | Logs or snapshots → curves and diagnostics |
 | [Trace browser](eval/comparison_browser.py) | Saved evaluations → local side-by-side browser; [UI](ui/comparison/) separate from data logic ([usage](docs/COMPARISON_BROWSER.md)) |
 
+## MedCalc-Bench
+
+Same GRPO and Tandem RLVR training, on [MedCalc-Bench-Verified](https://huggingface.co/datasets/nsk7153/MedCalc-Bench-Verified) instead of competition math. Install, data, train, and eval entry points are in [experiments/medcalc/README.md](experiments/medcalc/README.md). The A100 environment starts from [experiments/medcalc/requirements.txt](experiments/medcalc/requirements.txt).
+
 [Qwen3.5 asymmetric pair](docs/QWEN35_PAIR.md): pinned 9B senior / 2B junior →
 [native compatibility probe](train/check_pair.py) → the same training and evaluation workflow.
 

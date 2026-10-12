@@ -1,0 +1,3 @@
+# Keep verl from replacing the vLLM wheel and its transformers pin.
+vllm==0.19.1
+transformers==5.5.4
