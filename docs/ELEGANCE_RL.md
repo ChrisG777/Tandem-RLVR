@@ -131,3 +131,12 @@ and its four-slot concurrency pool. The running Tandem checkout is unchanged.
 The job wrapper accepts `ELEGANCE_CODEX_BIN` to select this runtime.
 
 The submission receipt is `solo-submission-20261012.json` under the campaign root.
+
+Job **2629665** started on `beery-a100-1` (A100 80 GB), one GPU, eight CPUs,
+384 GiB RAM, 24-hour vision-shared allocation with automatic requeue and saved
+state resumption. Code `22b55a4`; all four reward tests and focused runtime
+isolation checks passed. Cached preflight passed; startup was verified before
+its first optimizer update. Tandem **2624597** continues independently.
+At this audit Qwen3.5 solo/Tandem **2624812/2625164** and APPS coding
+solo/Tandem **25639351/25639349** were all running. APPS is the coding campaign,
+not a separate missing fourth pair. Both original reproduction arms completed.
