@@ -73,6 +73,7 @@ bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
   "reward.custom_reward_function.path=$REPO/experiments/elegance/reward.py" \
   data.filter_overlong_prompts=False \
   +trainer.require_complete_validation=True \
+  +trainer.require_complete_training=True \
   data.dataloader_num_workers=2 \
   "trainer.rollout_data_dir=$CKPT_DIR/rollouts" \
   "trainer.validation_data_dir=$CKPT_DIR/validation" \

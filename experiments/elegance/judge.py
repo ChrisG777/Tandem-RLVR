@@ -6,6 +6,7 @@ import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
+from functools import lru_cache
 import hashlib
 import json
 import os
@@ -164,13 +165,7 @@ def validate_grade(value: dict) -> dict:
 
 def invoke_codex(identity: dict, executable: str, timeout: int) -> tuple[dict, str]:
     """Run a fresh read-only, tool-disabled CLI session and validate its output."""
-    version = subprocess.run(
-        [executable, "--version"],
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=30,
-    ).stdout.strip()
+    version = codex_version(executable, timeout)
     with tempfile.TemporaryDirectory(prefix="elegance-judge-") as tmp:
         root = Path(tmp)
         schema, output = root / "schema.json", root / "grade.json"
@@ -208,28 +203,45 @@ def invoke_codex(identity: dict, executable: str, timeout: int) -> tuple[dict, s
             + "\nINPUT JSON:\n"
             + json.dumps(identity["request"], ensure_ascii=False)
         )
-        proc = subprocess.Popen(
-            command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            start_new_session=True,
-        )
-        try:
-            stdout, stderr = proc.communicate(prompt, timeout=timeout)
-        except subprocess.TimeoutExpired as exc:
-            os.killpg(proc.pid, signal.SIGKILL)
-            proc.communicate()
-            raise RuntimeError("Codex grading timed out") from exc
-        if proc.returncode or not output.exists():
-            raise RuntimeError(
-                f"Codex grading failed ({proc.returncode}): {stderr[-3000:]}"
-            )
+        run_codex(command, prompt, timeout)
+        if not output.exists():
+            raise RuntimeError("Codex grading produced no output")
         try:
             return validate_grade(json.loads(output.read_text())), version
         except (ValueError, OSError) as exc:
             raise RuntimeError("Unreadable Codex grade") from exc
+
+
+@lru_cache(maxsize=8)
+def codex_version(executable: str, timeout: int) -> str:
+    """Probe once per worker; failed probes are retried, never cached."""
+    return run_codex([executable, "--version"], None, timeout).strip()
+
+
+def run_codex(command: list[str], prompt: str | None, timeout: int) -> str:
+    """Run the CLI with bounded lifetime; kill its process group on timeout.
+
+    Launcher, timeout and exit failures become RuntimeError for judge retries.
+    """
+    try:
+        proc = subprocess.Popen(
+            command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, start_new_session=True,
+        )
+    except OSError as exc:
+        raise RuntimeError("Could not launch Codex") from exc
+    try:
+        stdout, stderr = proc.communicate(prompt, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.communicate()
+        raise RuntimeError("Codex timed out") from exc
+    if proc.returncode:
+        raise RuntimeError(f"Codex failed ({proc.returncode}): {stderr[-3000:]}")
+    return stdout
 
 
 if __name__ == "__main__":
