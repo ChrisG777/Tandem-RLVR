@@ -41,6 +41,11 @@ fi
 # runtime.sh relaunches this file inside the container, so preserve phase in env.
 export CODING_PHASE="$PHASE"
 source "$REPO/slurm/runtime.sh"
+# Apptainer's root is unbindable. A private mount namespace makes its runtime
+# bindable for Bubblewrap without modifying the parent container or host mounts.
+if [ "${TANDEM_CONTAINER_ACTIVE:-0}" = 1 ]; then
+    export APPS_BWRAP="unshare --user --map-root-user --mount --propagation private $APPS_BWRAP"
+fi
 run_python() { uv run --no-project --offline --python "${TANDEM_ENV:?}/bin/python" python "$@"; }
 export HF_HUB_OFFLINE=1 TOKENIZERS_PARALLELISM=false VLLM_WORKER_MULTIPROC_METHOD=spawn
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
