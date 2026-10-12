@@ -1,0 +1,541 @@
+[
+  [
+    "complement",
+    "Complement counting",
+    "Counting",
+    "train",
+    "complement(?:ary)? counting|count(?:ing)? the complement"
+  ],
+  [
+    "inclusion_exclusion",
+    "Inclusion–exclusion",
+    "Counting",
+    "train",
+    "inclusion.{0,5}exclusion|\\bPIE\\b"
+  ],
+  [
+    "bijection",
+    "Bijections",
+    "Counting",
+    "validation",
+    "bijection|bijective|one.to.one correspondence"
+  ],
+  [
+    "double_counting",
+    "Double counting",
+    "Counting",
+    "test",
+    "double.counting|count(?:ing)? .* two ways"
+  ],
+  [
+    "pigeonhole",
+    "Pigeonhole principle",
+    "Counting",
+    "train",
+    "pigeonhole"
+  ],
+  [
+    "stars_bars",
+    "Stars and bars",
+    "Counting",
+    "train",
+    "stars.{0,8}bars"
+  ],
+  [
+    "generating_functions",
+    "Generating functions",
+    "Counting",
+    "test",
+    "generating function"
+  ],
+  [
+    "symmetry",
+    "Symmetry arguments",
+    "Structure",
+    "test",
+    "symmetry|symmetri(?:c|cal)"
+  ],
+  [
+    "invariants",
+    "Invariants / monovariants",
+    "Structure",
+    "validation",
+    "invariant|monovariant"
+  ],
+  [
+    "extremal",
+    "Extremal arguments",
+    "Structure",
+    "train",
+    "extremal|extremum"
+  ],
+  [
+    "induction",
+    "Mathematical induction",
+    "Structure",
+    "train",
+    "induct(?:ion|ive)"
+  ],
+  [
+    "recurrence",
+    "Recurrence relations",
+    "Sequences",
+    "train",
+    "recurren(?:ce|t)|recursive"
+  ],
+  [
+    "dynamic_programming",
+    "Dynamic programming",
+    "Sequences",
+    "train",
+    "dynamic programming|memoiz|memois"
+  ],
+  [
+    "enumeration",
+    "Explicit enumeration",
+    "Elementary",
+    "train",
+    "brute.force|exhaustive|enumerat|systematically (?:list|check)|list all"
+  ],
+  [
+    "casework",
+    "Case analysis",
+    "Elementary",
+    "train",
+    "casework|case 1|case i:|split.*cases|consider.*cases"
+  ],
+  [
+    "linearity",
+    "Linearity of expectation",
+    "Probability",
+    "test",
+    "linearity of expectation|indicator (?:variable|random)"
+  ],
+  [
+    "conditioning",
+    "Conditioning / Bayes",
+    "Probability",
+    "train",
+    "condition(?:al probability|ing on)|bayes|law of total probability"
+  ],
+  [
+    "geometric_series",
+    "Geometric series",
+    "Sequences",
+    "train",
+    "geometric (?:series|progression|sequence)|sum of.*geometric"
+  ],
+  [
+    "telescoping",
+    "Telescoping",
+    "Sequences",
+    "test",
+    "telescop"
+  ],
+  [
+    "vieta",
+    "Vieta’s formulas",
+    "Algebra",
+    "test",
+    "vi[eè]ta"
+  ],
+  [
+    "newton_sums",
+    "Newton sums",
+    "Algebra",
+    "test",
+    "newton.{0,8}(?:sum|identit)"
+  ],
+  [
+    "factorization",
+    "Algebraic factorization",
+    "Algebra",
+    "train",
+    "factor(?:ing|ization|isation|ize|ise)|difference of (?:squares|cubes)"
+  ],
+  [
+    "completing_square",
+    "Completing the square",
+    "Algebra",
+    "train",
+    "complet(?:e|ing).*square"
+  ],
+  [
+    "substitution",
+    "Change of variables",
+    "Algebra",
+    "train",
+    "substitut|change of variable"
+  ],
+  [
+    "polynomial_remainder",
+    "Polynomial remainder / factor theorem",
+    "Algebra",
+    "validation",
+    "remainder theorem|factor theorem|polynomial division|synthetic division"
+  ],
+  [
+    "interpolation",
+    "Polynomial interpolation",
+    "Algebra",
+    "test",
+    "interpolat"
+  ],
+  [
+    "roots_unity",
+    "Roots of unity",
+    "Algebra",
+    "test",
+    "roots? of unity"
+  ],
+  [
+    "modular",
+    "Modular arithmetic",
+    "Number theory",
+    "train",
+    "congruen|modulo|\\\\pmod|\\\\bmod"
+  ],
+  [
+    "crt",
+    "Chinese remainder theorem",
+    "Number theory",
+    "test",
+    "chinese remainder|\\bCRT\\b"
+  ],
+  [
+    "valuations",
+    "Prime valuations / LTE",
+    "Number theory",
+    "validation",
+    "valuation|lifting.the.exponent|\\bLTE\\b|legendre.{0,5}formula"
+  ],
+  [
+    "euclidean",
+    "Euclidean algorithm / Bézout",
+    "Number theory",
+    "train",
+    "euclidean algorithm|b[eé]zout"
+  ],
+  [
+    "fermat_euler",
+    "Fermat / Euler number theory",
+    "Number theory",
+    "validation",
+    "fermat.{0,8}(?:little|theorem)|euler.{0,8}(?:theorem|totient)|totient"
+  ],
+  [
+    "prime_factors",
+    "Prime factorization / divisor counting",
+    "Number theory",
+    "train",
+    "prime factori|number of divisors|divisor counting"
+  ],
+  [
+    "am_gm",
+    "AM–GM",
+    "Inequalities",
+    "train",
+    "AM.{0,3}GM|arithmetic.geometric mean"
+  ],
+  [
+    "cauchy",
+    "Cauchy–Schwarz",
+    "Inequalities",
+    "validation",
+    "cauchy|schwarz"
+  ],
+  [
+    "rearrangement",
+    "Rearrangement inequality",
+    "Inequalities",
+    "test",
+    "rearrangement inequality"
+  ],
+  [
+    "calculus",
+    "Differentiation / integration",
+    "Analysis",
+    "train",
+    "\\bderivative\\b|\\bintegration\\b|\\bintegrating\\b|(?:definite|indefinite) integral|integral of|\\\\int\\b|differentiat.{0,20}(?:respect|equation|function)"
+  ],
+  [
+    "coordinates",
+    "Coordinate geometry",
+    "Geometry",
+    "train",
+    "coordinate|cartesian|analytic geometry"
+  ],
+  [
+    "vectors",
+    "Vectors / dot products",
+    "Geometry",
+    "train",
+    "vector|dot product|cross product"
+  ],
+  [
+    "complex_geometry",
+    "Complex-number geometry",
+    "Geometry",
+    "test",
+    "complex plane|complex coordinates|complex.number (?:approach|solution|geometry)"
+  ],
+  [
+    "trigonometry",
+    "Trigonometric identities / laws",
+    "Geometry",
+    "train",
+    "law of (?:cosines|sines)|sine rule|cosine rule|trigonometric identit|double.angle"
+  ],
+  [
+    "similarity",
+    "Similar triangles",
+    "Geometry",
+    "train",
+    "similar triangles|triangles.*similar|similarity"
+  ],
+  [
+    "power_point",
+    "Power of a point",
+    "Geometry",
+    "validation",
+    "power of (?:a|the) point|power.of.a.point|tangent.secant"
+  ],
+  [
+    "inversion",
+    "Geometric inversion",
+    "Geometry",
+    "test",
+    "inversion|invert.*circle"
+  ],
+  [
+    "area",
+    "Area decomposition / ratios",
+    "Geometry",
+    "train",
+    "area ratio|ratio of.*areas|area.*ratio|sum of.*areas|areas.*sum"
+  ],
+  [
+    "cyclic",
+    "Cyclic quadrilaterals / angle chasing",
+    "Geometry",
+    "train",
+    "cyclic quadrilateral|angle.chas|inscribed angle"
+  ],
+  [
+    "bounds",
+    "Bounding / squeezing",
+    "Structure",
+    "train",
+    "upper bound|lower bound|squeez|bound(?:ing|ed)"
+  ],
+  [
+    "functional",
+    "Functional equations",
+    "Algebra",
+    "train",
+    "functional equation"
+  ],
+  [
+    "matrices",
+    "Matrix methods",
+    "Algebra",
+    "test",
+    "eigenvalue|eigenvector|matrix|matrices|determinant"
+  ],
+  [
+    "graph",
+    "Graph-theoretic arguments",
+    "Discrete",
+    "train",
+    "graph theory|graph.theoretic|bipartite|hamiltonian|eulerian|spanning tree"
+  ],
+  [
+    "finite_differences",
+    "Finite differences",
+    "Sequences",
+    "validation",
+    "finite differences|difference table|successive differences"
+  ],
+  [
+    "quadratic_formula",
+    "Quadratic formula",
+    "Elementary",
+    "train",
+    "quadratic formula"
+  ],
+  [
+    "direct_calculation",
+    "Direct expansion / calculation",
+    "Elementary",
+    "train",
+    "expand(?:ing)?|direct computation|direct calculation|repeated substitution"
+  ],
+  [
+    "trig_substitution",
+    "Trigonometric substitution",
+    "Algebra",
+    "test",
+    "trigonometric substitution|substitut.{0,100}(?:\\\\sin\\b|\\\\cos\\b|\\\\tan\\b|\\bsine\\b|\\bcosine\\b|\\btangent\\b)"
+  ],
+  [
+    "projective",
+    "Projective / Menelaus / Ceva",
+    "Geometry",
+    "validation",
+    "menelaus|ceva|projective|cross.ratio"
+  ],
+  [
+    "binomial",
+    "Binomial identities",
+    "Counting",
+    "train",
+    "binomial theorem|binomial identity|pascal.{0,5}identity|vandermonde"
+  ],
+  [
+    "gap_placement",
+    "Gap placement / separators",
+    "Counting",
+    "train",
+    "\\bgaps\\b|\\bslots\\b|places to put"
+  ],
+  [
+    "mass_points",
+    "Mass points / barycentric balance",
+    "Geometry",
+    "validation",
+    "(?!)"
+  ],
+  [
+    "hook_length",
+    "Hook-length formula",
+    "Counting",
+    "test",
+    "(?!)"
+  ],
+  [
+    "homothety",
+    "Homothety / dilation",
+    "Geometry",
+    "train",
+    "(?!)"
+  ],
+  [
+    "apollonius_circle",
+    "Apollonius distance-ratio circle",
+    "Geometry",
+    "validation",
+    "(?!)"
+  ],
+  [
+    "symmetric_reciprocal",
+    "Symmetric reciprocal-power identities",
+    "Algebra",
+    "train",
+    "(?!)"
+  ],
+  [
+    "mobius_inversion",
+    "Möbius inversion / divisor convolution",
+    "Number theory",
+    "test",
+    "(?!)"
+  ],
+  [
+    "isogonal_cevians",
+    "Isogonal-cevian ratio product",
+    "Geometry",
+    "validation",
+    "(?!)"
+  ],
+  [
+    "farey_neighbors",
+    "Farey neighbors / mediant denominator bound",
+    "Number theory",
+    "test",
+    "(?!)"
+  ],
+  [
+    "burnside",
+    "Burnside fixed-point averaging",
+    "Counting",
+    "test",
+    "(?!)"
+  ],
+  [
+    "urn_exchangeability",
+    "Reinforced-urn exchangeability",
+    "Probability",
+    "train",
+    "(?!)"
+  ],
+  [
+    "pick_theorem",
+    "Pick’s theorem",
+    "Geometry",
+    "test",
+    "(?!)"
+  ],
+  [
+    "ptolemy",
+    "Ptolemy’s theorem",
+    "Geometry",
+    "validation",
+    "(?!)"
+  ],
+  [
+    "simson",
+    "Simson line and converse",
+    "Geometry",
+    "test",
+    "(?!)"
+  ],
+  [
+    "heron",
+    "Heron’s area formula",
+    "Geometry",
+    "train",
+    "(?!)"
+  ],
+  [
+    "shoelace",
+    "Shoelace area formula",
+    "Geometry",
+    "train",
+    "(?!)"
+  ],
+  [
+    "pythagorean",
+    "Pythagorean theorem",
+    "Geometry",
+    "train",
+    "(?!)"
+  ],
+  [
+    "discriminant",
+    "Quadratic discriminant constraints",
+    "Algebra",
+    "train",
+    "(?!)"
+  ],
+  [
+    "angle_bisector",
+    "Angle-bisector ratio theorem",
+    "Geometry",
+    "train",
+    "(?!)"
+  ],
+  [
+    "stewart",
+    "Stewart’s cevian theorem",
+    "Geometry",
+    "train",
+    "(?!)"
+  ],
+  [
+    "lte",
+    "Lifting the exponent (LTE)",
+    "Number theory",
+    "test",
+    "(?!)"
+  ]
+]

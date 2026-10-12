@@ -50,3 +50,14 @@ They reuse the original trainer and evaluation utilities; they are not part of t
 [APPS coding](docs/APPS.md): [prepare data](experiments/coding/build_apps.py) →
 [sandboxed reward](experiments/coding/reward.py) →
 [calibrate, train and evaluate](experiments/coding/campaign.py).
+
+[Method Atlas](docs/METHOD_AUDIT.md): [curate](experiments/method_audit/curate.py) →
+[mathematical review](experiments/method_audit/review.py) →
+[answer verification](experiments/method_audit/verify.py) →
+[all-path elegance labels](experiments/method_audit/elegance.py) →
+[portable dataset](experiments/method_audit/package.py) / [audit UI](experiments/method_audit/serve.py).
+
+[Elegance RL](docs/ELEGANCE_RL.md): [fixed method holdout](experiments/elegance/prepare.py) →
+[Codex-judged reward](experiments/elegance/reward.py) → [Qwen3.5 training](experiments/elegance/job.sbatch).
+
+[Elegance RL](docs/ELEGANCE_RL.md): matched solo/Tandem reward and [isolated ephemeral judge](experiments/elegance/codex-runtime.py).

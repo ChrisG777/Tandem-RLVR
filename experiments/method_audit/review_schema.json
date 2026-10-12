@@ -1,0 +1,202 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "problem_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "rejected",
+        "needs_work"
+      ]
+    },
+    "elegant_route_id": {
+      "type": "string"
+    },
+    "elementary_route_id": {
+      "type": "string"
+    },
+    "route_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "route_id": {
+            "type": "string"
+          },
+          "correctness": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "invalid",
+              "uncertain"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "original_correctness": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "invalid",
+              "uncertain"
+            ]
+          }
+        },
+        "required": [
+          "route_id",
+          "correctness",
+          "reason",
+          "methods"
+        ]
+      }
+    },
+    "elegant_method": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description"
+      ]
+    },
+    "elementary_method": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description"
+      ]
+    },
+    "contrast_reason": {
+      "type": "string"
+    },
+    "naturalness_reason": {
+      "type": "string"
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_answer": {
+          "type": "string"
+        },
+        "reasoning": {
+          "type": "string"
+        },
+        "checker_code": {
+          "type": "string"
+        },
+        "execution_status": {
+          "type": "string",
+          "description": "Legacy reviewer annotation; never trusted as execution evidence. The loader replaces execution status using a separate hash-matched verifier sidecar."
+        },
+        "execution_output": {
+          "type": "string",
+          "description": "Legacy reviewer annotation; never trusted as execution evidence. The loader replaces execution status using a separate hash-matched verifier sidecar."
+        }
+      },
+      "required": [
+        "expected_answer",
+        "reasoning",
+        "checker_code"
+      ]
+    },
+    "concerns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_fingerprint": {
+      "type": "string"
+    },
+    "reviewer_model": {
+      "type": "string"
+    },
+    "reviewer": {
+      "type": "string"
+    },
+    "review_kind": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string"
+    },
+    "correction_note": {
+      "type": "string"
+    },
+    "route_text": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "correction_notes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "coordinator_followup": {
+      "type": "object"
+    },
+    "original_correctness": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "problem_id",
+    "status",
+    "elegant_route_id",
+    "elementary_route_id",
+    "route_assessments",
+    "elegant_method",
+    "elementary_method",
+    "contrast_reason",
+    "naturalness_reason",
+    "verification",
+    "concerns",
+    "source_fingerprint"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Durable individual method-pair review",
+  "description": "One native reviewer record. Source fingerprints and execution sidecars are checked separately by review.py; schema validation alone does not certify correctness."
+}

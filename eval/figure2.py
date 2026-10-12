@@ -46,7 +46,7 @@ def main() -> None:
         LABELS.update(base="Initial senior", junior="Frozen junior")
     curves = {}
     protocol_identity = None
-    for phase, arms in (("solo", COLORS), ("handoff", ("base", "grpo", "tandem") if args.paired_baselines else ("grpo", "tandem"))):
+    for phase, arms in (("solo", COLORS), ("handoff", ("grpo", "tandem"))):
         curves[phase] = {}
         for arm in arms:
             result = common.load_json(args.results / arm / f"{phase}.json")

@@ -170,3 +170,31 @@ job **2632052**, source **6f153bf**, uses isolated source at
 response limit, and one eligible 80-GB-or-larger GPU. Automatic requeue and resume
 remain enabled. `judge-fix-relaunch-20261012.json` records the submission.
 The other running arms retain their existing source versions.
+
+## Parallel senior-only RL: 2026-10-12
+
+
+The user authorized the missing 9B solo arm in parallel with Tandem. Both use
+full weights, the same base, split, reward, 3,000-token limit and 200 updates.
+Solo clears native Tandem variables; only the senior generates and trains.
+Raw rollout and validation records are saved for truncation diagnosis.
+
+[`codex-runtime.py`](../experiments/elegance/codex-runtime.py) accepts only ephemeral
+judge calls through the installed CSAIL allocation/storage launcher. Set
+`ELEGANCE_CODEX_HOME` to an initialized private independent archive. This runtime
+skips personal transcript imports, while retaining Slurm ownership exclusion,
+node-local SQLite, snapshot recovery and same-job requeue checks. Credentials
+and executable links stay outside git. Both arms share the original judge cache
+and its four-slot concurrency pool. The running Tandem checkout is unchanged.
+The job wrapper accepts `ELEGANCE_CODEX_BIN` to select this runtime.
+
+The submission receipt is `solo-submission-20261012.json` under the campaign root.
+
+Job **2629665** started on `beery-a100-1` (A100 80 GB), one GPU, eight CPUs,
+384 GiB RAM, 24-hour vision-shared allocation with automatic requeue and saved
+state resumption. Code `22b55a4`; all four reward tests and focused runtime
+isolation checks passed. Cached preflight passed; startup was verified before
+its first optimizer update. Tandem **2624597** continues independently.
+At this audit Qwen3.5 solo/Tandem **2624812/2625164** and APPS coding
+solo/Tandem **25639351/25639349** were all running. APPS is the coding campaign,
+not a separate missing fourth pair. Both original reproduction arms completed.
