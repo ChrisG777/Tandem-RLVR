@@ -24,7 +24,8 @@ judge archive, sharing the production result cache and four-slot judging limit.
 Qualification is pending: compare timed stages and generated tokens, check finite
 updates and native authorship, inspect cap hits/raw outputs, require complete
 validation, then separately validate checkpoint/resume before production rollout.
-The current production jobs still use their original source checkouts.
+The user authorized production relaunches with shared execution before the full
+profiling suite completed; production and profiling now use this checkout.
 
 Elegance's response limit is 6,000 tokens for both arms and profiling (increased
 from 3,000 on October 12 at the user's request). The rollout context limit follows
