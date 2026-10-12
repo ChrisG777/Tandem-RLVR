@@ -19,6 +19,9 @@ fi
 source "$ENV_FILE"
 cd "$ROOT"
 PY=${TANDEM_ENV_BIN:?}/python
+# shellcheck disable=SC1091
+source "$ROOT/experiments/medcalc/ensure_python_dev.sh"
+ensure_python_dev "$PY"
 
 KIND=${1:-full}
 case "$KIND" in

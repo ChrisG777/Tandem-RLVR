@@ -14,6 +14,8 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo "missing $ENV_FILE. Run bash experiments/medcalc/install_a100.sh first." >&2
   exit 1
 fi
+# The launchers in train/ default to train/env.sh unless this is set.
+export TANDEM_ENV_FILE="$ENV_FILE"
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 cd "$ROOT"
@@ -38,6 +40,9 @@ if [[ ! -f "$BASE_JSON" || ! -f "$DATA/train.parquet" || ! -f "$BOUNDARY" ]]; th
 fi
 
 PY=${TANDEM_ENV_BIN:?}/python
+# shellcheck disable=SC1091
+source "$ROOT/experiments/medcalc/ensure_python_dev.sh"
+ensure_python_dev "$PY"
 eval "$("$PY" - <<'PY'
 import shlex
 from experiments.medcalc.protocol import shell_defaults
@@ -61,7 +66,19 @@ mkdir -p "$CKPT_DIR"
 export VERL_FILE_LOGGER_PATH=$CKPT_DIR/metrics-$(date +%s)-0.jsonl
 export HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-1}
 export TRANSFORMERS_OFFLINE=${TRANSFORMERS_OFFLINE:-1}
-export PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
+# vLLM's CuMemAllocator refuses PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True.
+if [[ "${PYTORCH_CUDA_ALLOC_CONF:-}" == *expandable_segments:True* ]]; then
+  echo "removing expandable_segments:True from PYTORCH_CUDA_ALLOC_CONF; vLLM's memory pool rejects it" >&2
+  PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF//expandable_segments:True/}
+  PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF//,,/,}
+  PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF#,}
+  PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF%,}
+  if [[ -z "$PYTORCH_CUDA_ALLOC_CONF" ]]; then
+    unset PYTORCH_CUDA_ALLOC_CONF
+  else
+    export PYTORCH_CUDA_ALLOC_CONF
+  fi
+fi
 
 if [[ "$MODE" == "smoke" ]]; then
   export TOTAL_STEPS=${MEDCALC_STEPS:-$SMOKE_STEPS}
@@ -82,25 +99,30 @@ if (( TOTAL_STEPS % TEST_FREQ != 0 )); then
 fi
 
 if ! command -v nvidia-smi >/dev/null 2>&1; then
-  echo "nvidia-smi not found. Train on the A100, not this machine." >&2
+  echo "nvidia-smi not found. Train on the A100s, not this machine." >&2
   exit 1
 fi
-NGPU=$(nvidia-smi -L | wc -l | tr -d ' ')
-MEM=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | awk 'NR==1{print $1}')
-echo "visible GPUs: $NGPU, first GPU memory: ${MEM} MiB"
+mapfile -t MEMS < <(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | awk '{print $1}')
+NGPU=${#MEMS[@]}
+MEM=${MEMS[0]:-0}
+echo "visible GPUs: $NGPU, memory: ${MEMS[*]} MiB"
 
-if [[ "$MEM" -lt 70000 && "$ARM" == "tandem" && "$NGPU" -lt 2 ]]; then
-  echo "Tandem on one GPU needs an 80 GB A100. This card has ${MEM} MiB." >&2
-  echo "Rent an 80 GB A100, or two GPUs, and rerun." >&2
-  exit 1
-fi
-if [[ "$MEM" -lt 70000 && -z "${MEDCALC_PAPER_BATCH:-}" ]]; then
-  echo "warning: this card is under 70 GiB. Using a smaller batch than the paper."
-  echo "Set MEDCALC_PAPER_BATCH=1 to keep batch 16, group 8, and 3,000 response tokens."
-  TRAIN_BATCH=${TRAIN_BATCH:-8}
-  MINI_BATCH=${MINI_BATCH:-4}
-  ROLLOUT_N=${ROLLOUT_N:-4}
-  MAX_RESPONSE=2048
+if [[ "$ARM" == "tandem" ]]; then
+  if [[ "$NGPU" -lt 2 ]]; then
+    echo "Tandem needs two 80 GB A100s: senior on GPU 0, frozen junior on GPU 1." >&2
+    echo "This machine has $NGPU visible GPU(s)." >&2
+    exit 1
+  fi
+  for gpu_mem in "${MEMS[@]:0:2}"; do
+    if [[ "$gpu_mem" -lt 70000 ]]; then
+      echo "Tandem needs two 80 GB A100s. A visible GPU has ${gpu_mem} MiB." >&2
+      exit 1
+    fi
+  done
+  RAM_GIB=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
+  if [[ "$RAM_GIB" -lt 120 ]]; then
+    echo "warning: host RAM is ${RAM_GIB} GiB. FSDP offloads the optimizer; use at least 128 GiB." >&2
+  fi
 fi
 export TRAIN_BATCH=${TRAIN_BATCH:-16}
 export MINI_BATCH=${MINI_BATCH:-8}
@@ -114,19 +136,11 @@ if [[ "$ARM" == "grpo" ]]; then
   export ROLLOUT_GPU_UTIL=${ROLLOUT_GPU_UTIL:-0.50}
   LAUNCHER=$ROOT/train/vanilla_grpo.sh
 else
+  export GPUS=${GPUS:-0,1}
+  export FROZEN_GPU=${FROZEN_GPU:-1}
   export TRAIN_GPUS=${TRAIN_GPUS:-1}
-  if [[ "$NGPU" -ge 2 ]]; then
-    export GPUS=${GPUS:-0,1}
-    export FROZEN_GPU=${FROZEN_GPU:-1}
-    export ROLLOUT_GPU_UTIL=${ROLLOUT_GPU_UTIL:-0.50}
-    echo "tandem layout: senior on GPU 0, frozen junior on GPU 1 (paper layout)"
-  else
-    export GPUS=${GPUS:-0}
-    export FROZEN_GPU=${FROZEN_GPU:-0}
-    export ROLLOUT_GPU_UTIL=${ROLLOUT_GPU_UTIL:-0.30}
-    echo "tandem layout: one 80 GB GPU, junior colocated on GPU 0"
-    echo "if vLLM OOMs, rerun with ROLLOUT_GPU_UTIL=0.22 TRAIN_BATCH=8 ROLLOUT_N=4"
-  fi
+  export ROLLOUT_GPU_UTIL=${ROLLOUT_GPU_UTIL:-0.50}
+  echo "tandem layout: senior on GPU 0, frozen junior on GPU 1"
   LAUNCHER=$ROOT/train/tandem_grpo.sh
 fi
 

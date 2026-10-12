@@ -15,9 +15,9 @@ Hyperparameters that stay with the paper: learning rate `1e-6`, clip 0.2, batch 
 
 ## Hardware
 
-The paper trained Tandem on two A100 80 GB GPUs: the senior on GPU 0, the frozen junior on GPU 1. GRPO uses one GPU.
+Tandem needs two A100 80 GB GPUs. The senior trains on GPU 0. The frozen junior stays on GPU 1. The senior update alone holds about 71 GiB, so the junior cannot share that card. GRPO uses GPU 0 only.
 
-One A100 80 GB also works. GRPO runs as usual. Tandem colocates the junior on that same GPU and lowers vLLM's memory fraction so both KV caches fit. A 40 GB card is too small for single-GPU Tandem. Host RAM should be at least 128 GB because FSDP offloads the optimizer, and free disk should be at least 150 GB (model, dataset, and saved checkpoints).
+Host RAM should be at least 128 GB because FSDP offloads the optimizer, and free disk should be at least 150 GB (model, dataset, and saved checkpoints).
 
 `/dev/shm` should be at least 32 GB. Ray uses it. If you are in Docker, start the container with `--shm-size=32g`.
 
@@ -45,17 +45,11 @@ bash experiments/medcalc/train.sh grpo full
 bash experiments/medcalc/train.sh tandem full
 ```
 
-The same command resumes that arm. Full GRPO is one GPU. Full Tandem uses two GPUs when they are visible, and one 80 GB GPU otherwise.
+The same command resumes that arm. GRPO uses GPU 0. Tandem uses both GPUs, with the paper batch of 16, group 8, and vLLM memory fraction 0.50.
 
 After the tandem smoke, open the metrics JSONL under `checkpoints/medcalc/tandem-smoke/` and check `actor/tandem_senior_token_frac`. It should sit near 0.5. If the field is missing, the junior mask never reached the loss and the run is ordinary GRPO.
 
 Selected weights are `checkpoints/medcalc/<arm>-<mode>/selected.json`. Selection is the best held-out pass@4 under that arm's own rollout (earliest step wins ties). The metric name is `val-core/medcalc/acc/best@4/mean`. If selection says the metric is missing, the JSONL key differed; rerun `train/figure2_checkpoint.py` with `--validation-metric` set to the key you see.
-
-If a single 80 GB GPU runs out of memory on Tandem:
-
-```bash
-ROLLOUT_GPU_UTIL=0.22 TRAIN_BATCH=8 ROLLOUT_N=4 bash experiments/medcalc/train.sh tandem full
-```
 
 A shorter horizon is `MEDCALC_STEPS=50`. That is no longer the paper's 200-step run.
 
@@ -70,7 +64,7 @@ bash experiments/medcalc/evaluate.sh         # full protocol
 
 Results land in `results/medcalc/full/`. The script prints a table and, when the runs are complete, a figure next to `summary.json`. Handoff retention is handoff pass@4 divided by that senior's solo pass@4. The paper's math result was about 94% retained for GRPO and about 100% for Tandem; MedCalc will not match those percentages, but the same comparison is the result.
 
-`MEDCALC_SKIP_LEGIBILITY=1` skips the cross-entropy pass. Full solo evaluation is 32 samples on 1,100 notes, so leave several hours per model. Handoff on one GPU keeps both models resident; if that runs out of memory, rerun with `MEDCALC_GPU_UTIL=0.30`.
+`MEDCALC_SKIP_LEGIBILITY=1` skips the cross-entropy pass. Full solo evaluation is 32 samples on 1,100 notes, so leave several hours per model. Handoff puts the senior and the frozen junior on separate GPUs when two are visible.
 
 ## Tests that do not need a GPU
 

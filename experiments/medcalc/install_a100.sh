@@ -32,8 +32,13 @@ pick_python() {
 
 PY=$(pick_python)
 echo "using $PY ($("$PY" -V))"
+# shellcheck disable=SC1091
+source "$HERE/ensure_python_dev.sh"
+ensure_python_dev "$PY"
 "$PY" -m venv "$ENV"
-"$ENV/bin/python" -m pip install -U pip setuptools wheel
+# setuptools-scm is imported by third_party/vllm/setup.py. --no-build-isolation
+# below does not install vLLM's build dependencies.
+"$ENV/bin/python" -m pip install -U pip setuptools wheel 'setuptools-scm>=8'
 "$ENV/bin/python" -m pip install -r "$HERE/requirements.txt"
 
 # Clone the pinned forks and apply the tandem patches. --install is not used:
