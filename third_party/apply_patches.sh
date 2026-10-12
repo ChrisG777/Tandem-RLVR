@@ -79,6 +79,9 @@ if [ "$INSTALL" = "0" ]; then
 fi
 
 command -v "$PYTHON" >/dev/null || die "PYTHON=$PYTHON not found"
+log "installing vllm build dependency setuptools-scm"
+"$PYTHON" -m pip install 'setuptools-scm>=8' \
+    || die "setuptools-scm install failed. The editable vLLM install uses --no-build-isolation and imports it from setup.py."
 log "installing vllm from $VLLM_SRC"
 VLLM_USE_PRECOMPILED=1 "$PYTHON" -m pip install -e "$VLLM_SRC" --no-build-isolation \
     || die "vllm install failed. See the section on compiled extensions in docs/INSTALL.md."

@@ -17,7 +17,9 @@ conda create -p "$PREFIX" python=3.11 -y
 
 PY="$PREFIX/bin/python"
 
-"$PY" -m pip install --upgrade pip setuptools wheel
+# setuptools-scm is required later, when the patched vLLM tree is installed
+# editable with --no-build-isolation (see docs/INSTALL.md).
+"$PY" -m pip install --upgrade pip setuptools wheel 'setuptools-scm>=8'
 
 "$PY" -m pip install "vllm==0.19.1"
 
