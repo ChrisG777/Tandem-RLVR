@@ -44,7 +44,9 @@ BASE_MODEL=$(run_python -c 'import json,os; print(json.load(open(os.environ["RUN
 case "$PHASE" in
     calibration)
         mkdir -p "$RUN_ROOT/calibration"
-        run_python -m experiments.coding.campaign evaluate --phase "${EVAL_PHASE:?}" --model "$BASE_MODEL" --junior "$BASE_MODEL" --data "$DATA_ROOT" --split validation --out "$RUN_ROOT/calibration/$EVAL_PHASE.json" --decoding training --n 8 &
+        CALIBRATION_EXTRA=()
+        if [ -n "${NATIVE_CONCURRENCY:-}" ]; then CALIBRATION_EXTRA+=(--native-concurrency "$NATIVE_CONCURRENCY"); fi
+        run_python -m experiments.coding.campaign evaluate --phase "${EVAL_PHASE:?}" --model "$BASE_MODEL" --junior "$BASE_MODEL" --data "$DATA_ROOT" --split validation --out "$RUN_ROOT/calibration/$EVAL_PHASE.json" --decoding training --n 8 "${CALIBRATION_EXTRA[@]}" &
         wait $!
         ;;
     gate)
@@ -53,13 +55,16 @@ case "$PHASE" in
     train)
         ADMISSION=()
         if [ "${ALLOW_PENDING_CALIBRATION:-0}" = 1 ]; then ADMISSION+=(--allow-pending); fi
-        run_python -m experiments.coding.campaign admit-training --report "$RUN_ROOT/calibration/report.json" "${ADMISSION[@]}"
+        # Profiling is a bounded, disposable experiment, never production admission.
+        if [ "$MODE" != profile ]; then
+            run_python -m experiments.coding.campaign admit-training --report "$RUN_ROOT/calibration/report.json" "${ADMISSION[@]}"
+        fi
         run_python -m experiments.coding.campaign preflight
         export TANDEM_ENV_BIN="$TANDEM_ENV/bin" TANDEM_ENV_FILE="$REPO/slurm/training-env.sh"
         export BASE_MODEL POLICY_MODEL="$BASE_MODEL" JUNIOR_MODEL="$BASE_MODEL"
         export CKPT_ROOT="$RUN_ROOT" PROJECT_NAME=tandem-apps EXP_NAME="$ARM-$MODE"
         export TRAIN_FILES="$DATA_ROOT/train.parquet" MAX_PROMPT=4096 MAX_RESPONSE=6000
-        export TOTAL_STEPS=200 TOTAL_EPOCHS=2 TEST_FREQ=20 SAVE_FREQ=20 PERSIST_HF_INTERVAL=20
+        export TOTAL_STEPS=200 TOTAL_EPOCHS=2 TEST_FREQ=20 SAVE_FREQ=${SAVE_FREQ:-20} PERSIST_HF_INTERVAL=20
         export TRAIN_BATCH=16 MINI_BATCH=8 ROLLOUT_N=8 LR=1e-6 CLIP_RATIO=0.2 TRAIN_GPUS=1
         export ROLLOUT_TEMP=0.6 VAL_N=4 VAL_TEMP=0.7 VAL_TOP_P=0.8 VAL_TOP_K=20 VAL_DO_SAMPLE=True
         export PROB_PRIMARY=0.5 SELECTION=word MAX_GAP_TOKENS=32 JR_TKN_WEIGHT=0
@@ -74,6 +79,9 @@ case "$PHASE" in
         if [ "$MODE" = smoke ]; then
             export TOTAL_STEPS=3 TEST_FREQ=3 SAVE_FREQ=3 PERSIST_HF_INTERVAL=3
             EXTRA+=(data.val_max_samples=8)
+        elif [ "$MODE" = profile ]; then
+            export TOTAL_STEPS=${PROFILE_STEPS:-3} TEST_FREQ=${PROFILE_TEST_FREQ:--1} SAVE_FREQ=-1 PERSIST_HF_INTERVAL=20
+            [[ "$TOTAL_STEPS" =~ ^[1-9][0-9]*$ ]] && [ "$TOTAL_STEPS" -le 5 ] || exit 2
         elif [ "$MODE" != full ]; then exit 2; fi
         cp "$RUN_ROOT/base.json" "$CKPT_DIR/initialization.json"
         cp "$DATA_ROOT/manifest.json" "$CKPT_DIR/data-manifest.json"
@@ -86,10 +94,11 @@ case "$PHASE" in
             actor_rollout_ref.rollout.seed=42 actor_rollout_ref.rollout.top_p=1 actor_rollout_ref.rollout.top_k=-1 \
             actor_rollout_ref.model.lora_rank=0 \
             actor_rollout_ref.rollout.max_model_len=12288 trainer.resume_mode=auto \
-            actor_rollout_ref.rollout.max_num_seqs=2 \
-            +actor_rollout_ref.rollout.engine_kwargs.vllm.kv_cache_memory_bytes=10737418240 \
+            "actor_rollout_ref.rollout.max_num_seqs=${ROLLOUT_MAX_SEQS:-2}" \
+            "+actor_rollout_ref.rollout.engine_kwargs.vllm.kv_cache_memory_bytes=${ROLLOUT_KV_BYTES:-10737418240}" \
             "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}" "${EXTRA[@]}" &
         wait $!
+        if [ "$MODE" = profile ]; then exit 0; fi
         run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" --mode "$MODE" --validation-metric val-core/apps/acc/best@4/mean
         ;;
     select)

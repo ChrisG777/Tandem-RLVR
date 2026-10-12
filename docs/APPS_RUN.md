@@ -1,5 +1,39 @@
 # APPS pilot run: 2026-10-10
 
+## Recovery: 2026-10-11 evening
+
+Budget update: do not launch a run projected to exceed **48 GPU-hours**.
+Forecast the complete run, including validation, checkpointing, startup, and
+GPU count, from measured representative steps before submission. A 24-hour
+resumable allocation does not satisfy this total-compute limit by itself.
+APPS training is stopped following the completed calibration gate failure
+(native truncation 161/1,600 versus the 160/1,600 limit). Independently, the
+observed training-only projections exceed the new budget: about 89 GPU-hours
+for GRPO and 159 for Tandem at 200 steps using the mean observed step times.
+Do not restart this configuration merely by relaxing the truncation gate.
+
+Current full-training jobs are **2624591 (GRPO)** and **2624592 (Tandem)**;
+native calibration resumes as **2624593**, with report/gate job **2624594**.
+All three GPU jobs started on H200s with 24-hour limits. Training uses the
+existing 6,000-response/12,288-context protocol and now saves recovery state
+every five steps; validation and retained HF exports remain every 20 steps.
+Both arms restart from the pinned base because the cancelled attempts had not
+saved a checkpoint. Their original logs remain intact.
+
+The previous monitor cancelled 2618184/2618185 when interactive calibration
+2618086 was preempted. That was incomplete calibration, not a failed gate.
+The replacement gate runs only after calibration completes successfully and
+cancels these two training IDs only when the report explicitly says `passed=false`.
+Missing reports and interrupted allocations do not cancel provisional training.
+Calibration retains native concurrency four to match its saved evaluation identity.
+
+The training checkout remains on main; its wrapper includes the two local changes
+for configurable recovery save frequency and calibration concurrency. Runtime
+sandbox preflight passed in both replacement training allocations. Submission IDs
+are recorded remotely in `recovery-jobs-20261011.txt`; the gate script is
+`recovery-gate.sh`. Historical status and monitor descriptions below are superseded
+by this section.
+
 Status (2026-10-11): the user authorized full training while calibration continues.
 The original held jobs 2618107/2618108 were cancelled because their submitted
 scripts enforced the previous gate. Replacement full runs are **2618184 (GRPO)**
