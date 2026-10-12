@@ -1,5 +1,26 @@
 # APPS pilot run: 2026-10-10
 
+## Concurrency qualification: 2026-10-11
+
+Interactive allocation **2624911** on one H200 (`isola-h200-1`, six CPUs,
+148 GiB host RAM) reuses the pinned runtime and dataset. Profile artifacts live
+under `/data/vision/torralba/u/chrisge/tandem-rlvr/apps-concurrency-20261011`.
+Code `a9acab0` adds bounded `MODE=profile` runs and explicit sequence/cache controls.
+The 33 focused coding, sandbox, senior-gate, and word-state tests passed on-node.
+
+Eight-sequence GRPO with a 20-GiB cache completed two steps: generation took
+320.85/358.84 seconds and complete steps took 466.99/506.89 seconds. The previous
+two-sequence configuration took 1,027.49/1,503.93 seconds for generation and
+1,165.43/1,661.23 seconds per step on the corresponding seed-42 batches.
+Samples change with batching, so compare response lengths as well as walltime;
+these are execution measurements, not a model-quality comparison.
+
+The next profile uses 16 sequences and a 32-GiB per-model cache, three steps per
+arm, and full 200-problem/four-sample validation. Full training remains stopped
+pending calibration admission and a complete-run forecast below 48 GPU-hours.
+Other inspected RL configurations already use sequence limits of 1,024
+(Qwen3.5/elegance) or 32 (NLA); they do not share APPS's two-sequence restriction.
+
 ## Recovery: 2026-10-11 evening
 
 Budget update: do not launch a run projected to exceed **48 GPU-hours**.
@@ -12,9 +33,11 @@ observed training-only projections exceed the new budget: about 89 GPU-hours
 for GRPO and 159 for Tandem at 200 steps using the mean observed step times.
 Do not restart this configuration merely by relaxing the truncation gate.
 
-Current full-training jobs are **2624591 (GRPO)** and **2624592 (Tandem)**;
-native calibration resumes as **2624593**, with report/gate job **2624594**.
-All three GPU jobs started on H200s with 24-hour limits. Training uses the
+Replacement full-training jobs were **2624591 (GRPO)** and **2624592 (Tandem)**;
+both were cancelled after the completed calibration report failed its gate.
+Native calibration **2624593** completed all 200 problems. The gate was evaluated
+on the existing CPU allocation, and redundant queued gate job **2624594** was
+cancelled. All three GPU jobs started on H200s with 24-hour limits. Training uses the
 existing 6,000-response/12,288-context protocol and now saves recovery state
 every five steps; validation and retained HF exports remain every 20 steps.
 Both arms restart from the pinned base because the cancelled attempts had not
