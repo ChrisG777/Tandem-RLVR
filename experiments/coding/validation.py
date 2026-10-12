@@ -14,7 +14,7 @@ def validation_pass4(root: Path, *, steps: int) -> dict[int, float]:
     """Validate every expected checkpoint's four-response groups and return pass@4.
 
     Read only validation data and saved traces. Full runs require all 200 tasks;
-    three-step smokes permit the first eight or all 200. Missing/foreign tasks,
+    three-step smokes permit eight manifest tasks or all 200. Missing/foreign tasks,
     partial groups, changed data, and nonbinary rewards raise. No logs are rewritten.
     """
     data = root.parent / "data"
@@ -52,7 +52,7 @@ def validation_pass4(root: Path, *, steps: int) -> dict[int, float]:
             if task in observed:
                 raise ValueError("Duplicate validation task")
             observed[task] = pass_at_k(4, int(sum(r["score"] for r in rows)), 4)
-        if set(observed) != set(ids[:len(groups)]):
+        if not set(observed) <= set(ids) or (len(groups) == 200 and set(observed) != set(ids)):
             raise ValueError("Validation task membership differs")
         scores[step] = sum(observed.values()) / len(observed)
     return scores
