@@ -140,3 +140,32 @@ its first optimizer update. Tandem **2624597** continues independently.
 At this audit Qwen3.5 solo/Tandem **2624812/2625164** and APPS coding
 solo/Tandem **25639351/25639349** were all running. APPS is the coding campaign,
 not a separate missing fourth pair. Both original reproduction arms completed.
+
+## Judge failure recovery: 2026-10-12
+
+Tandem job 2631898 hit a 30-second timeout in the launcher's `--version`
+probe, before the actual judge call. That exception bypassed judge retries;
+upstream verl accepted failed prompts and padded the incomplete batch. Step 66
+contained 126 real responses and two empty padding rows. Updates 66–69 were
+rejected and their saved rollouts and job metrics archived under
+`tandem/rejected-after-step65-job2631898/`. The committed checkpoint remained 65.
+
+[`judge.py`](../experiments/elegance/judge.py) now uses `run_codex(command,
+prompt, timeout)` for both version probes and grading: it bounds process lifetime,
+kills the process group on timeout, and normalizes launcher/exit failures into
+retryable errors. `codex_version(executable, timeout)` caches successful probes
+per worker. Failed judgments still never become cached or negative rewards.
+The existing three-attempt retry budget and 300-second per-call timeout apply.
+
+The [job wrapper](../experiments/elegance/job.sbatch) enables
+`trainer.require_complete_training`: the [verl patch](../third_party/verl-tandem.patch)
+rejects failed prompts, missing prompt groups, or missing/unexpected sessions
+before padding and policy updates. Each new job runs four fresh preflight cases;
+same-job requeues may reuse those verified grades. No reward or decoding change.
+
+Nine focused failure/reward tests passed in the cluster environment. Replacement
+job **2632052**, source **6f153bf**, uses isolated source at
+`/data/scratch/chrisge/Tandem-RLVR-judge-fix`, full checkpoint 65, a 3,000-token
+response limit, and one eligible 80-GB-or-larger GPU. Automatic requeue and resume
+remain enabled. `judge-fix-relaunch-20261012.json` records the submission.
+The other running arms retain their existing source versions.
