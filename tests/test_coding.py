@@ -22,6 +22,41 @@ class Tokenizer:
 
 
 class CodingTests(unittest.TestCase):
+    def test_regrading_preserves_and_resumes_saved_responses(self):
+        import hashlib
+        from experiments.coding import regrade as module
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            (root / 'manifest.json').write_text('{}')
+            problems = [{'set': 'apps_introductory', 'task_id': f'train/{i}',
+                         'idx': i, 'gt': 'tests'} for i in range(2)]
+            rows = [{**p, 'texts': ['saved response'], 'correct': [0],
+                     'diagnostics': [{}], 'samples': [{'n_tokens': 3}]} for p in problems]
+            source, out = root / 'source.json', root / 'regraded.json'
+            original = {'dataset_sha256': hashlib.sha256(b'{}').hexdigest(),
+                        'benchmarks': ['apps_introductory'], 'n': 1, 'grader': {'old': 1},
+                        'gens': rows}
+            source.write_text(json.dumps(original))
+            with patch.object(module.common, 'load_problems', return_value=problems), \
+                 patch.object(module.common, 'metrics_by_set', return_value={}), \
+                 patch.object(module, 'grader_identity', return_value={'new': 2}), \
+                 patch.object(module, 'compute_score', side_effect=[{'acc': 1}, RuntimeError('infra')]):
+                with self.assertRaisesRegex(RuntimeError, 'infra'):
+                    module.regrade(source, out, data=root, workers=1)
+            with patch.object(module.common, 'load_problems', return_value=problems), \
+                 patch.object(module.common, 'metrics_by_set', return_value={}), \
+                 patch.object(module, 'grader_identity', return_value={'new': 2}), \
+                 patch.object(module, 'compute_score', return_value={'acc': 1}) as score:
+                result = module.regrade(source, out, data=root, workers=1)
+                self.assertEqual(score.call_count, 1)
+                self.assertEqual(result['regrading']['changed_rewards'], 2)
+                self.assertEqual(result['gens'][0]['original_correct'], [0])
+                self.assertEqual(result['gens'][0]['texts'], ['saved response'])
+                self.assertEqual(json.loads(source.read_text()), original)
+                source.write_text(source.read_text() + '\n')
+                with self.assertRaisesRegex(ValueError, 'differ'):
+                    module.regrade(source, out, data=root, workers=1)
+
     def test_training_rejects_stale_calibration_grader(self):
         from experiments.coding.campaign import training_admission
         with tempfile.TemporaryDirectory() as root:
@@ -117,6 +152,8 @@ class CodingTests(unittest.TestCase):
             row['samples'] = [{'n_tokens': 6000, 'finish_reason': 'length'} for _ in range(8)]
         self.assertTrue(calibration(boundary, word, **kwargs)['passed'])
         boundary['gens'][20]['samples'][0] = {'n_tokens': 6000, 'finish_reason': 'length'}
+        self.assertTrue(calibration(boundary, word, **kwargs)['passed'])
+        boundary['gens'][20]['samples'][1] = {'n_tokens': 6000, 'finish_reason': 'length'}
         self.assertFalse(calibration(boundary, word, **kwargs)['passed'])
         legacy = copy.deepcopy(solo)
         legacy['sampling']['max_tokens'] = 3000

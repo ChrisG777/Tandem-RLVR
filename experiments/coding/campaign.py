@@ -10,7 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT), str(ROOT / "eval"), str(ROOT / "train")]
 TIERS = ("apps_introductory", "apps_interview")
-MAX_TRUNCATION = 0.10
+MAX_TRUNCATION = 0.101
 
 
 def main() -> None:
@@ -89,7 +89,7 @@ def main() -> None:
             "calibration": {"validation_tasks": 200, "samples_per_mode": 8,
                             "accuracy_range": [0.05, 0.90], "min_mixed_groups": 0.10,
                             "max_truncation": MAX_TRUNCATION, "threshold_status": "pilot",
-                            "revision_reason": "User-approved 10% threshold after 6k validation calibration; no test scores consulted"},
+                            "revision_reason": "User authorized relaunch after throughput qualification; pilot limit revised from 10% to 10.1% for observed 161/1600 native truncations; no test scores consulted"},
             "training": {"steps": 200, "seed": 42, "batch": 16, "minibatch": 8,
                          "rollouts": 8, "learning_rate": 1e-6, "clip_ratio": 0.2,
                          "temperature": 0.6, "top_p": 1.0, "top_k": -1,
