@@ -61,6 +61,17 @@ class TrainingCheckpoint(unittest.TestCase):
             self.fixture(root)
             self.assertEqual(verify_training(root, "tandem", 3)["step"], 2)
 
+    def test_retired_exports_do_not_change_selection(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            shutil.rmtree(root / "hf/global_step_1")
+            self.assertEqual(verify_training(root, "tandem", 3)["step"], 2)
+            shutil.rmtree(root / "hf/global_step_2")
+            with self.assertRaises((ValueError, FileNotFoundError)):
+                verify_training(root, "tandem", 3)
+
     def test_qwen35_checkpoints_preserve_selection_and_integrity_checks(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
