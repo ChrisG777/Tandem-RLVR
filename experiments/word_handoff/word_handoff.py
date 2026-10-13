@@ -25,18 +25,20 @@ def main() -> None:
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--decoding', choices=('training', 'evaluation'), default='training')
     parser.add_argument('--concurrency', type=int, help='Active sequences; increases both KV caches to fit full contexts')
+    parser.add_argument('--decode-graphs', action='store_true', help='Use vLLM decode-only CUDA graphs')
     common.add_data_arguments(parser)
     parser.add_argument("--benchmarks", default=",".join(common.DEFAULT_SETS))
     args = parser.parse_args()
     common.configure(args)
     evaluate(args.senior, args.junior, args.out, n=args.n, limit=args.limit,
              decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks), concurrency=args.concurrency,
-             boundary_path=args.boundaries)
+             boundary_path=args.boundaries, decode_graphs=args.decode_graphs)
 
 
 def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
              limit: int = 0, decoding: str = 'training', benchmarks=common.DEFAULT_SETS,
-             concurrency: int | None = None, boundary_path: Path | None = None) -> dict:
+             concurrency: int | None = None, boundary_path: Path | None = None,
+             decode_graphs: bool = False) -> dict:
     """Run GPU inference and atomically save complete batches plus a final JSON.
 
     Reuses only matching saved inputs. Word-boundary Bernoulli(0.5) redraws and
@@ -44,6 +46,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     Requires one >=40-GiB compatible GPU and matching tokenizers. Reject missing
     authorship, illegal switches, incomplete batches, and mismatched restart inputs.
     Training decoding is 0.6/1/-1; evaluation uses the Figure 2 decoding constants.
+    decode_graphs selects vLLM's full decode-only graph mode; sampling is unchanged.
     """
     from transformers import AutoTokenizer
     from vllm import SamplingParams
@@ -90,8 +93,10 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     budgets = [common.response_budget(length) for length in lengths]
     if min(budgets) < 1 and common.MAX_PROMPT is None:
         raise ValueError('A prompt exceeds the model context')
+    execution = ({'enforce_eager': False, 'compilation_config': {
+        'mode': 0, 'cudagraph_mode': 'FULL_DECODE_ONLY'}} if decode_graphs else {})
     engine = build_engine(senior, junior, boundary_path, max_num_seqs=active_sequences,
-                          kv_cache_memory_bytes=cache_bytes)
+                          kv_cache_memory_bytes=cache_bytes, **execution)
     gens = progress['gens']
     try:
         while len(gens) < len(problems):
@@ -141,6 +146,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         if not token_count or not 0.3 < senior_count/token_count < 0.7:
             raise ValueError('Authorship participation check failed')
         result = {**identity, 'identity': identity, 'benchmarks': list(benchmarks),
+                  'execution': {'decode_graphs': decode_graphs},
                   'coverage': common.coverage(gens),
                   'limit': limit, 'batch_size': batch_size,
                   'senior_token_fraction': senior_count/token_count,
