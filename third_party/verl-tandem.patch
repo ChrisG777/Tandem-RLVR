@@ -610,3 +610,43 @@ diff --git a/verl/workers/engine_workers.py b/verl/workers/engine_workers.py
          log_gpu_memory_usage("Before resume weights", logger=logger)
  
          # 1. resume rollout memory (weights were released during sleep)
+diff --git a/verl/trainer/config/config.py b/verl/trainer/config/config.py
+--- a/verl/trainer/config/config.py
++++ b/verl/trainer/config/config.py
+@@ -35,12 +35,15 @@
+             Options: 'model', 'optimizer', 'extra', 'hf_model'.
+         load_contents (list[str]): Contents to load from checkpoint. Defaults to same as save_contents.
+         async_save (bool): Whether to save checkpoints asynchronously. Only implemented for Megatron as of now.
++        hf_model_interval (int): Export HF weights every N optimizer steps when requested;
++            recovery tensors are still saved at every checkpoint. Defaults to 1.
+         strict (bool): Whether to perform strict validation during weight export
+     """
+ 
+     save_contents: list[str] = field(default_factory=lambda: ["model", "optimizer", "extra"])
+     load_contents: list[str] = field(default_factory=lambda: ["model", "optimizer", "extra"])
+     async_save: bool = False
++    hf_model_interval: int = 1
+     strict: bool = True
+ 
+ 
+diff --git a/verl/utils/checkpoint/checkpoint_manager.py b/verl/utils/checkpoint/checkpoint_manager.py
+--- a/verl/utils/checkpoint/checkpoint_manager.py
++++ b/verl/utils/checkpoint/checkpoint_manager.py
+@@ -95,7 +95,16 @@
+         Returns True if 'hf_model' is in checkpoint_save_contents, indicating the model should be converted to hf
+         model and saved.
+         """
+-        return "hf_model" in self.checkpoint_save_contents
++        interval = self.checkpoint_config.get("hf_model_interval", 1) if self.checkpoint_config else 1
++        if isinstance(interval, bool) or not isinstance(interval, int) or interval < 1:
++            raise ValueError("hf_model_interval must be a positive integer")
++        if "hf_model" not in self.checkpoint_save_contents:
++            return False
++        if interval == 1:
++            return True
++        if self.previous_global_step is None:
++            raise RuntimeError("Set the checkpoint step before testing the HF export interval")
++        return self.previous_global_step % interval == 0
+ 
+     @property
+     def should_load_model(self) -> bool:

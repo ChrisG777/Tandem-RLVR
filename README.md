@@ -32,6 +32,8 @@ senior-authored positions; junior tokens remain context and junior weights stay 
 The [Qwen3.5 pair](docs/QWEN35_PAIR.md) uses a distinct senior and junior through
 the same interfaces, with a [native compatibility probe](train/check_pair.py).
 [Execution options](train/execution.sh) compose with existing experiment launchers.
+[Checkpoint storage](docs/ARCHITECTURE.md#other-fork-changes) separates
+recovery saves from evaluation exports through `PERSIST_HF_INTERVAL`.
 
 ## Evaluation
 

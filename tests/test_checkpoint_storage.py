@@ -21,6 +21,42 @@ def patched_function(name="persist_hf_checkpoint"):
 
 
 class CheckpointStorage(unittest.TestCase):
+    def test_hf_export_interval_keeps_recovery_saves_independent(self):
+        text = (Path(__file__).resolve().parents[1] / "third_party/verl-tandem.patch").read_text()
+        section = text.split("diff --git a/verl/utils/checkpoint/checkpoint_manager.py", 1)[1]
+        body = textwrap.dedent("\n".join(line[1:] for line in section.splitlines()
+                                        if line.startswith("+") and not line.startswith("+++")))
+        scope = {}
+        exec("def should_export(self):\n" + textwrap.indent(body, "    "), scope)
+        should_export = scope["should_export"]
+        state = SimpleNamespace(checkpoint_config={"hf_model_interval": 20},
+                                checkpoint_save_contents=["model", "optimizer", "extra", "hf_model"],
+                                previous_global_step=0)
+        exported = []
+        for step in range(5, 201, 5):
+            state.previous_global_step = step
+            if should_export(state):
+                exported.append(step)
+            self.assertEqual(state.checkpoint_save_contents[:3], ["model", "optimizer", "extra"])
+        self.assertEqual(exported, list(range(20, 201, 20)))
+        state.checkpoint_config = {"hf_model_interval": 200}
+        state.previous_global_step = 195
+        self.assertFalse(should_export(state))
+        state.previous_global_step = 200
+        self.assertTrue(should_export(state))
+        state.checkpoint_config = {}
+        state.previous_global_step = None
+        self.assertTrue(should_export(state))  # backward-compatible default
+        state.checkpoint_config = {"hf_model_interval": 20}
+        with self.assertRaises(RuntimeError):
+            should_export(state)
+        state.checkpoint_save_contents.remove("hf_model")
+        self.assertFalse(should_export(state))
+        for invalid in (0, -1, 1.5, True):
+            state.checkpoint_config = {"hf_model_interval": invalid}
+            with self.assertRaises(ValueError):
+                should_export(state)
+
     def test_commit_keeps_only_latest_optimizer_and_preserves_weights(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

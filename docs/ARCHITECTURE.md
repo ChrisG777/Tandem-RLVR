@@ -174,6 +174,16 @@ Three changes in the patches sit outside the mask path:
   `huggingface/` directory to a separate tree, so intermediate weights survive
   `max_actor_ckpt_to_keep` pruning. Enabled with `+trainer.persist_hf_model=True` and
   `actor.checkpoint.save_contents` including `hf_model`.
+  The GRPO and Tandem launchers pass `PERSIST_HF_INTERVAL` (default 1, in optimizer
+  steps) to both retention and `actor.checkpoint.hf_model_interval`. Recovery saves
+  still include native model, optimizer, RNG/scheduler and dataloader state; full
+  HF weights are generated only on export steps. Tokenizer/config metadata remains
+  in every recovery checkpoint. The interval must be a positive integer and divide
+  every checkpoint step needed for evaluation, including the final step. For
+  Elegance, saves every five steps with interval 200 export weights only at 200;
+  APPS uses interval 20 to retain every validation candidate. This also avoids the
+  temporary full-model allocation during skipped exports. Already-running workers
+  retain their loaded code until restarted.
 - **Cross GPU device widening**, described under `VLLM_TANDEM_ALL_GPUS` above.
 - **Per user ZeroMQ socket directory** for colocated weight transfer, `/tmp/verl-zmq-$UID`. Upstream
   puts the socket directly in `/tmp` under a Ray job id that is identical for every fresh local
