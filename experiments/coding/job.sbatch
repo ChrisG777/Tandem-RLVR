@@ -95,6 +95,12 @@ case "$PHASE" in
         source "$REPO/train/execution.sh"
         configure_training_execution qwen3 "${TRAIN_EXECUTION:-baseline}"
         EXTRA+=("${EXECUTION_EXTRA[@]}" "trainer.rollout_data_dir=$CKPT_DIR/rollouts" +trainer.require_complete_validation=True)
+        # Recover an interrupted validation from the latest full checkpoint.
+        # Console-only logging keeps validation-only rows out of training metrics.
+        if [ "${VALIDATION_ONLY:-0}" = 1 ]; then
+            [ "$MODE" = full ] && test -s "$CKPT_DIR/latest_checkpointed_iteration.txt"
+            EXTRA+=(trainer.val_before_train=True trainer.val_only=True 'trainer.logger=[console]')
+        fi
         cp "$RUN_ROOT/base.json" "$CKPT_DIR/initialization.json"
         cp "$DATA_ROOT/manifest.json" "$CKPT_DIR/data-manifest.json"
         printf '%s\n' "$CODE_COMMIT" > "$CKPT_DIR/code-${SLURM_JOB_ID}.txt"
@@ -111,7 +117,7 @@ case "$PHASE" in
             "+actor_rollout_ref.rollout.engine_kwargs.vllm.kv_cache_memory_bytes=${ROLLOUT_KV_BYTES:-51539607552}" \
             "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}" "${EXTRA[@]}" &
         wait $!
-        if [ "$MODE" = profile ]; then exit 0; fi
+        if [ "$MODE" = profile ] || [ "${VALIDATION_ONLY:-0}" = 1 ]; then exit 0; fi
         run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" --mode "$MODE" --validation-metric apps/validation/pass@4
         ;;
     select)
