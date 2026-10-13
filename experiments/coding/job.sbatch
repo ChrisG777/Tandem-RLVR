@@ -118,6 +118,10 @@ case "$PHASE" in
             "hydra.run.dir=$CKPT_DIR/hydra-${SLURM_JOB_ID}" "${EXTRA[@]}" &
         wait $!
         if [ "$MODE" = profile ] || [ "${VALIDATION_ONLY:-0}" = 1 ]; then exit 0; fi
+        if [ -n "${RESUME_GAP_STEP:-}" ] && [ ! -f "$CKPT_DIR/resume-evidence/step-$RESUME_GAP_STEP.json" ]; then
+            run_python train/figure2_checkpoint.py --root "$CKPT_DIR" \
+                --record-resume-step "$RESUME_GAP_STEP" --resume-log "${RESUME_GAP_LOG:?}"
+        fi
         run_python train/figure2_checkpoint.py --root "$CKPT_DIR" --arm "$ARM" --steps "$TOTAL_STEPS" --mode "$MODE" --validation-metric apps/validation/pass@4
         ;;
     select)

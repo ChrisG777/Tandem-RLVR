@@ -7,6 +7,11 @@ writes normal validation traces, logs to the console, and exits without training
 saving a checkpoint, or selecting a final model. Training metrics are untouched.
 Normal training is unchanged when this variable is unset.
 
+`RESUME_GAP_STEP` and `RESUME_GAP_LOG` optionally record an interrupted training
+metric before final verification, using the existing strict resume-evidence
+checker. Preserve the supplied log across requeues. An existing evidence receipt
+is retained; missing or invalid load/boundary evidence fails verification.
+
 The October 12 GRPO migration retains checkpoint 160, the best prior validation
 export (step 60), and all metric/validation history. Other exports remain on
 Engaging. Step 160 was saved before preemption interrupted validation and metric
