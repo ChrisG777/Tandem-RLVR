@@ -68,5 +68,7 @@ rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
 [APPS coding](docs/APPS.md): [prepare data](experiments/coding/build_apps.py) →
 [sandboxed reward](experiments/coding/reward.py) →
 [calibrate, train and evaluate](experiments/coding/campaign.py).
+The [batch wrapper](experiments/coding/job.sbatch) also supports
+[checkpoint validation and migration recovery](docs/APPS_MIGRATION.md).
 
 [Shared execution](docs/SHARED_EXECUTION.md): [execution options](train/execution.sh) compose with existing experiment launchers; [bounded profiling](train/profile-experiment.sh) uses an existing allocation.
