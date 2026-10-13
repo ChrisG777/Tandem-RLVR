@@ -58,11 +58,6 @@ LIMIT=${LIMIT:-0}
 SOLO_N=${SOLO_N:-32}
 HANDOFF_N=${HANDOFF_N:-8}
 
-# Optional dataset override for held-out validation or other explicit eval sets.
-DATA_ARGS=()
-if [ -n "${EVAL_DATA_ROOT:-}" ]; then DATA_ARGS+=(--data-root "$EVAL_DATA_ROOT"); fi
-if [ -n "${EVAL_BENCHMARKS:-}" ]; then DATA_ARGS+=(--benchmarks "$EVAL_BENCHMARKS"); fi
-
 # Individual phases write atomically; a retry reuses only finished phases.
 ARMS=(base grpo tandem)
 HANDOFF_ARMS=(grpo tandem)
@@ -78,7 +73,7 @@ for ARM in "${ARMS[@]}"; do
     OUT="$ROOT/$ARM/solo.json"
     if [ ! -f "$OUT" ]; then
         echo "START $ARM solo $(date -u +%FT%TZ)"
-        run_python eval/solo.py --model "$MODEL" --out "$OUT" --n "$SOLO_N" --limit "$LIMIT" "${DATA_ARGS[@]}"
+        run_python eval/solo.py --model "$MODEL" --out "$OUT" --n "$SOLO_N" --limit "$LIMIT"
     fi
 done
 for ARM in "${HANDOFF_ARMS[@]}"; do
@@ -88,7 +83,7 @@ for ARM in "${HANDOFF_ARMS[@]}"; do
     if [ ! -f "$OUT" ]; then
         echo "START $ARM handoff $(date -u +%FT%TZ)"
         run_python eval/handoff.py --senior "$MODEL" --junior "$JUNIOR" \
-            --out "$OUT" --n "$HANDOFF_N" --limit "$LIMIT" "${DATA_ARGS[@]}"
+            --out "$OUT" --n "$HANDOFF_N" --limit "$LIMIT"
     fi
 done
 if [ "$MODE" = full ] && [ "$LIMIT" = 0 ] && [ "$SOLO_N" -ge 32 ] && [ "$HANDOFF_N" -ge 8 ]; then
