@@ -70,3 +70,5 @@ rollouts and optimization. See [architecture](docs/ARCHITECTURE.md),
 [calibrate, train and evaluate](experiments/coding/campaign.py).
 
 [Shared execution](docs/SHARED_EXECUTION.md): [execution options](train/execution.sh) compose with existing experiment launchers; [bounded profiling](train/profile-experiment.sh) uses an existing allocation.
+
+Checkpoint export cadence is documented in [Architecture](docs/ARCHITECTURE.md#other-fork-changes).
