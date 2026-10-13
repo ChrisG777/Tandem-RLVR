@@ -1,6 +1,7 @@
 """Exercise training integrity and validation-only checkpoint selection."""
 import json
 import hashlib
+import importlib.util
 import os
 from pathlib import Path
 import struct
@@ -135,6 +136,7 @@ class TrainingCheckpoint(unittest.TestCase):
             self.assertEqual(selected["step"], 3)
             self.assertNotIn(2, read_training_records(root))
 
+    @unittest.skipUnless(importlib.util.find_spec("torch"), "Saved-state tests require the training environment")
     def test_saved_gap_keeps_metrics_missing_and_checks_exact_snapshot(self):
         import torch
         with tempfile.TemporaryDirectory() as directory:
@@ -156,6 +158,7 @@ class TrainingCheckpoint(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "snapshot does not match"):
                 record_saved_checkpoint_gap(root, 2)
 
+    @unittest.skipUnless(importlib.util.find_spec("torch"), "Saved-state tests require the training environment")
     def test_saved_gap_requires_boundary_and_intact_weights(self):
         import torch
         with tempfile.TemporaryDirectory() as directory:

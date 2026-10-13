@@ -341,3 +341,8 @@ remain on disk; missing winning weights still fail instead of selecting a runner
 For this run, the best observed score is step 200, 0.7523974 pass@4.
 Step-180 metrics were also lost; its surviving log contains all four state-load
 messages, so the existing resume-evidence recorder applies there.
+
+The repaired completion check passed: `selected.json` selects step 200 with
+pass@4 0.7523974 and explicitly records unobserved metric steps `[160, 180]`.
+Sixteen checkpoint tests passed in the cluster training environment. No optimizer
+updates were rerun for this repair.
