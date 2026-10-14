@@ -42,6 +42,20 @@ verified grader/data mirror (`apps-eval-mirror-20261013`), but it lacks the
 step-200 checkpoints and its preemptible queue forecast was about a day, so no
 Engaging shards were submitted.
 
+Grader fix (2026-10-14): two shards (Tandem handoff 1000:1600 and solo 2857:3429)
+stopped on `TimeoutError: APPS test timeout` reported as an infrastructure error.
+The pinned checker returns call-based wrong answers without cancelling its 5 s
+alarm, so a candidate that used nearly its whole limit could trigger the alarm
+in the worker after the checker returned. Commit `dc66bdd` disarms the alarm when
+the checker returns and grades an escaped alarm as a candidate timeout; both
+outcomes have zero reward, and recorded rewards are unchanged. The new runtime
+`grader-timeout-fix` differs from `grader-output-fix` only in `worker.py` and
+passed the sandbox integration tests. `migrate_shard_grader` (`5877caa`) re-keys
+old-grader shards after checking the reconstructed old identity, backing up
+originals as `*.before-timeout-fix`; it was validated on one completed shard per
+phase. The failed and not-yet-started shards were resubmitted on the new grader,
+which migrates each job's own range; every merge job migrates its arm/phase first.
+
 ## Engaging container repair: 2026-10-12
 
 Jobs 25630667 and 25632334 both failed after three seconds, before model loading
