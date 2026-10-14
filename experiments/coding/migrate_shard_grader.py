@@ -30,6 +30,7 @@ def main() -> None:
     parser.add_argument("--junior", required=True)
     parser.add_argument("--old-runtime", type=Path, required=True)
     parser.add_argument("--new-runtime", type=Path, required=True)
+    parser.add_argument("--range", help="Only this START:END shard (others may belong to running jobs)")
     args = parser.parse_args()
     graders = {}
     for name, runtime in (("old", args.old_runtime), ("new", args.new_runtime)):
@@ -43,7 +44,8 @@ def main() -> None:
     bases = {name: common.shard_base(identity(args, problems, grader), problems)
              for name, grader in graders.items()}
     out = args.root / "results" / args.arm / f"{args.phase}.json"
-    for path in sorted(out.parent.glob(out.name + ".shard-*-*.progress.json")):
+    pattern = f".shard-{args.range.replace(':', '-')}" if args.range else ".shard-*-*"
+    for path in sorted(out.parent.glob(out.name + pattern + ".progress.json")):
         raw = path.read_bytes()
         shard = json.loads(raw)
         if shard["base"] == bases["new"]:
