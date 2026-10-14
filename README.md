@@ -71,7 +71,7 @@ Each experiment reuses the trainer and supplies its own data and reward:
 | [Elegance RL](docs/ELEGANCE_RL.md) | Fixed method holdout → judged reward → matched solo/Tandem training. |
 | [Shorthand and concepts](experiments/README.md#shorthand-and-concepts) | Generated tasks → correctness/length reward → traces and blinded review. |
 | [Natural-language drift](experiments/README.md#natural-language-drift) | GSM8K → correctness-only training → selected checkpoint and traces. |
-| [Native word handoff](experiments/README.md#native-word-handoff) | Senior/junior pair → training-sampler traces and per-token authorship. |
+| [Native word handoff](experiments/README.md#native-word-handoff) | Senior/junior pair → training-sampler traces and per-token authorship; [execution options](docs/WORD_HANDOFF_EXECUTION.md). |
 
 See [setup and job interfaces](docs/WORKFLOWS.md), [training protocol](docs/FRESH_TRAINING.md),
 [evaluation protocol](docs/FIGURE2.md), and [grading audit](docs/REPRODUCTION_AUDIT.md)
