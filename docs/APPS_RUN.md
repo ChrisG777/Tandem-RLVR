@@ -1,5 +1,31 @@
 # APPS pilot run: 2026-10-10
 
+## Solo gap investigation: 2026-10-14
+
+[Training curves](figures/apps-training-progress.png) (logged metrics only):
+training reward is flat for both arms at about 65% over 200 steps, and
+own-mode validation pass@1 moves little (GRPO 68.0→70.5%, Tandem team mode
+67.4→67.5%). These single-seed runs changed the base policy only slightly.
+Tandem's rollouts became about 300 tokens shorter than GRPO's from roughly
+step 100; both arms' truncation fell from about 10% to 4–7%.
+
+Step-200 solo diagnostics ([JSON](figures/apps-solo-diagnostics.json)):
+
+| Tier | Arm | pass@1 | Mean tokens | Truncated | Format error | Wrong answer |
+|---|---|---|---|---|---|---|
+| Introductory | GRPO | 69.0% | 1,745 | 3.7% | 1.9% | 23.7% |
+| Introductory | Tandem | 67.1% | 1,341 | 2.0% | 0.9% | 26.1% |
+| Interview | GRPO | 44.5% | 2,686 | 8.0% | 3.9% | 42.6% |
+| Interview | Tandem | 40.8% | 2,092 | 5.0% | 1.8% | 47.6% |
+
+Tandem's solo deficit is entirely in wrong answers: it truncates and misformats
+less, yet writes 23% fewer tokens and solves fewer problems. Per problem, GRPO
+is better by more than 0.1 pass@1 on 774 problems and Tandem on 367; GRPO solves
+225 problems Tandem never solves in 32 samples (113 the other way). Against the
+archived early checkpoints on the same introductory problems, Tandem went
+67.9% (step 40) → 67.1% (step 200) while GRPO went 68.6% (step 60) → 69.0%.
+Whether Tandem fell below the base senior awaits the base solo evaluation.
+
 ## Step-200 final evaluation, sharded: 2026-10-13
 
 The user corrected the final-evaluation checkpoints: both arms use

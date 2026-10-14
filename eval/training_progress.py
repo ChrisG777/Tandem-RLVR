@@ -22,14 +22,24 @@ def main() -> None:
     source.add_argument("--snapshot", type=Path)
     source.add_argument("--root", type=Path, help="live campaign containing grpo-full and tandem-full")
     parser.add_argument("--out", type=Path, required=True, help="PNG/SVG/JSON filename stem")
+    parser.add_argument("--title", default="Figure 2 reproduction — training progress")
+    parser.add_argument("--validation-metric", default=VALIDATION, help="Logged per-arm validation key")
+    parser.add_argument("--validation-label", default="Held-out DeepScaleR accuracy|Pass@4 (%)",
+                        help="Panel title and y label, separated by |")
+    parser.add_argument("--max-response", type=int, default=3000, help="Response token limit drawn on the length panel")
     args = parser.parse_args()
     if args.root is not None:
         args.snapshot = args.out.with_suffix(".snapshot.json")
         capture_training_snapshot(args.root, args.snapshot)
-    print(json.dumps(plot_training_progress(args.snapshot, args.out), indent=2))
+    print(json.dumps(plot_training_progress(
+        args.snapshot, args.out, title=args.title, validation_metric=args.validation_metric,
+        validation_label=args.validation_label, max_response=args.max_response), indent=2))
 
 
-def plot_training_progress(snapshot: Path, out: Path) -> dict:
+def plot_training_progress(snapshot: Path, out: Path, *, title: str = "Figure 2 reproduction — training progress",
+                           validation_metric: str = VALIDATION,
+                           validation_label: str = "Held-out DeepScaleR accuracy|Pass@4 (%)",
+                           max_response: int = 3000) -> dict:
     """Write reward, validation, length and truncation curves plus health statistics.
 
     Inputs contain chronological per-attempt rows and capture time. Missing
@@ -49,7 +59,7 @@ def plot_training_progress(snapshot: Path, out: Path) -> dict:
     plt.rcParams.update({"font.size": 11, "svg.fonttype": "none"})
     fig, axes = plt.subplots(2, 2, figsize=(12, 7.6))
     fig.subplots_adjust(top=0.84, bottom=0.21, hspace=0.46, wspace=0.28)
-    fig.suptitle("Figure 2 reproduction — training progress", fontsize=17, x=0.075, ha="left")
+    fig.suptitle(title, fontsize=17, x=0.075, ha="left")
     fig.text(0.075, 0.915, f"Snapshot: {captured:%b %d, %Y · %I:%M %p %Z}  |  Target: 200 optimizer steps", color="#555555")
     panels = ((axes[0, 0], "critic/score/mean", "Training reward", "Correct rollouts (%)", 100),
               (axes[1, 0], "response_length/mean", "Response length", "Generated tokens", 1),
@@ -67,7 +77,8 @@ def plot_training_progress(snapshot: Path, out: Path) -> dict:
             ax.plot(x, smooth, color=color, lw=2.3, label=LABELS[arm])
             ax.set_title(title, loc="left", fontsize=12)
             ax.set_ylabel(ylabel)
-        validation = [(step, row[VALIDATION] * 100) for step, row in sorted(records.items()) if VALIDATION in row]
+        validation = [(step, row[validation_metric] * 100) for step, row in sorted(records.items())
+                      if validation_metric in row]
         if validation:
             vx, vy = zip(*validation)
             # This campaign validates every 20 steps; leave missing checkpoints blank.
@@ -95,11 +106,13 @@ def plot_training_progress(snapshot: Path, out: Path) -> dict:
             "senior_token_fraction": mean_metric(steps[-10:], "actor/tandem_senior_token_frac")}
     axes[0, 0].legend(frameon=False, loc="lower right", fontsize=10)
     axes[0, 0].set_ylim(0, 100)
-    axes[0, 1].set_title("Held-out DeepScaleR accuracy", loc="left", fontsize=12)
-    axes[0, 1].set_ylabel("Pass@4 (%)")
-    axes[0, 1].set_ylim(50, 75)
-    axes[1, 0].axhline(3000, color="#999999", lw=1, ls=":")
-    axes[1, 0].set_ylim(0, 3200)
+    validation_title, validation_ylabel = validation_label.split("|")
+    axes[0, 1].set_title(validation_title, loc="left", fontsize=12)
+    axes[0, 1].set_ylabel(validation_ylabel)
+    if validation_metric == VALIDATION:
+        axes[0, 1].set_ylim(50, 75)
+    axes[1, 0].axhline(max_response, color="#999999", lw=1, ls=":")
+    axes[1, 0].set_ylim(0, max_response * 16 // 15)
     axes[1, 1].set_ylim(0, 100)
     xmax = max(max(records) for records in arms.values()) + 7
     for ax in axes.flat:

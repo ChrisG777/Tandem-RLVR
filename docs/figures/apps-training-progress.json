@@ -1,0 +1,117 @@
+{
+  "captured_at": "2026-10-14T17:31:34.237854+00:00",
+  "arms": {
+    "grpo": {
+      "last_logged_step": 200,
+      "logged_steps": 199,
+      "missing_steps": [
+        160
+      ],
+      "first10_reward": 0.65859375,
+      "last10_reward": 0.64765625,
+      "last10_mean_length": 2002.91875,
+      "last10_at_limit": 0.0453125,
+      "gradient_range": [
+        0.18618203699588776,
+        1.6871423721313477
+      ],
+      "nonfinite_observed_metrics": [],
+      "validation": [
+        [
+          20,
+          68.0
+        ],
+        [
+          40,
+          69.125
+        ],
+        [
+          60,
+          69.75
+        ],
+        [
+          80,
+          69.375
+        ],
+        [
+          100,
+          68.5
+        ],
+        [
+          120,
+          68.0
+        ],
+        [
+          140,
+          69.25
+        ],
+        [
+          180,
+          70.5
+        ],
+        [
+          200,
+          70.5
+        ]
+      ],
+      "senior_token_fraction": null
+    },
+    "tandem": {
+      "last_logged_step": 200,
+      "logged_steps": 200,
+      "missing_steps": [],
+      "first10_reward": 0.64453125,
+      "last10_reward": 0.6234375,
+      "last10_mean_length": 1653.971875,
+      "last10_at_limit": 0.06875,
+      "gradient_range": [
+        0.0,
+        10.755212530493736
+      ],
+      "nonfinite_observed_metrics": [],
+      "validation": [
+        [
+          20,
+          67.375
+        ],
+        [
+          40,
+          67.5
+        ],
+        [
+          60,
+          67.375
+        ],
+        [
+          80,
+          67.5
+        ],
+        [
+          100,
+          67.125
+        ],
+        [
+          120,
+          68.125
+        ],
+        [
+          140,
+          68.625
+        ],
+        [
+          160,
+          68.125
+        ],
+        [
+          180,
+          67.625
+        ],
+        [
+          200,
+          67.5
+        ]
+      ],
+      "senior_token_fraction": 0.5013082343337758
+    }
+  }
+}
