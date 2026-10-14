@@ -4,6 +4,22 @@ This campaign tests an initially asymmetric pair using the existing native
 Tandem backend. It is an extension of Figure 2, not an exact reproduction of
 the paper's self-paired initialization. Both models use non-thinking mode.
 
+## Completed benchmark comparison
+
+Both step-200 policies are released. The complete evaluation covers all 1,064
+problems with 32 solo samples and eight paragraph-handoff chains per problem.
+
+![Figure 2: Qwen3.5-9B seniors with a frozen Qwen3.5-2B handoff partner.](figures/figure2-qwen35-9b-2b.png)
+
+Top: paragraph handoff. Bottom: solo, including the initial 9B and frozen 2B.
+Bands: ±1 bootstrap standard error, using 2,000 problem-bootstrap replicates.
+
+The plotted comparison shows higher macro handoff scores for Tandem with broadly
+similar solo scores. Handoff gains appear in AMC, AIME and Olympiad; Minerva is
+slightly lower. See the [results summary](RESULTS.md#asymmetric-benchmark-figure-qwen35-9b--2b)
+and [figure provenance](figures/README.md#benchmark-exports).
+The dated launch and recovery updates below are historical.
+
 ## Interfaces and provenance
 
 - `eval/qwen35-models.json` pins official senior (`base`) and frozen `junior`

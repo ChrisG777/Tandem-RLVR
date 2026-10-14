@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "description": "Aggregate values transcribed from repository experiment records. These are summary plots, not reconstructions of the original pass@k curves or per-response evaluations.",
+  "evidence_revision": "a6c51794c4b4e44c2513bbcf7d27bb56778d6aad",
+  "sources": {
+    "corrected_figure2": {
+      "path": "docs/REPRODUCTION_AUDIT.md",
+      "anchor": "completion-update--2026-10-09-pacific",
+      "lines": [89, 106],
+      "description": "Complete, corrected evaluations on all 1,064 problems; reported macro scores."
+    },
+    "token_drift": {
+      "path": "docs/FIGURE3.md",
+      "anchor": "results-from-the-completed-figure-2-evaluations",
+      "lines": [104, 119],
+      "description": "Marginal token-distribution statistics from 34,048 saved solo responses per arm; no bootstrap intervals."
+    },
+    "matrix_control": {
+      "path": "docs/ENGAGING_PILOT.md",
+      "lines": [229, 242],
+      "description": "Standard test / 3,072-token evaluation row: base and the policy trained at 3,072 tokens. The 2,048-trained policy is a different condition and is not plotted."
+    },
+    "length_protocol": {
+      "path": "docs/LENGTH_PENALTY_PILOTS.md",
+      "anchor": "intervention-and-controls",
+      "lines": [6, 24],
+      "description": "Independent 100-update runs from the same base, seed 42, with matched data and optimizer settings; token cost 0.2 times generated tokens divided by response ceiling."
+    },
+    "length_results": {
+      "path": "docs/LENGTH_PENALTY_PILOTS.md",
+      "anchor": "collapse-investigation-2026-10-10",
+      "lines": [115, 122],
+      "description": "Final-step matrix and RuleTaker test accuracy at matched evaluation budgets, including RuleTaker base accuracy."
+    }
+  },
+  "qwen3_4b": {
+    "model": "Qwen3-4B-Instruct-2507",
+    "training_runs_per_arm": 1,
+    "selected_steps": {"grpo": 160, "tandem": 180},
+    "uncertainty": "No uncertainty estimates are available for these transcribed summary values. No error bars are inferred.",
+    "accuracy": {
+      "unit": "percent",
+      "aggregation": "Equal-weight macro average over AMC, AIME, Minerva and OlympiadBench",
+      "problems": 1064,
+      "solo_samples_per_problem": 32,
+      "paragraph_samples_per_problem": 8,
+      "source": "corrected_figure2",
+      "metrics": [
+        {"id": "solo_pass4", "label": "Solo\npass@4", "grpo": 59.46, "tandem": 59.97},
+        {"id": "paragraph_pass4", "label": "Paragraph handoff\npass@4", "grpo": 58.25, "tandem": 57.55},
+        {"id": "paragraph_pass8", "label": "Paragraph handoff\npass@8", "grpo": 61.79, "tandem": 60.48}
+      ]
+    },
+    "drift": {
+      "metric": "Jensen-Shannon divergence of the marginal token distribution from base",
+      "unit": "nats",
+      "direction": "lower",
+      "grpo": 0.00355272,
+      "tandem": 0.00301511,
+      "reported_reduction_percent": 15.13,
+      "solo_responses_per_arm": 34048,
+      "source": "token_drift"
+    }
+  },
+  "pilots": {
+    "model": "Qwen3-4B-Instruct-2507",
+    "training_runs_per_condition": 1,
+    "seed": 42,
+    "trained_checkpoint_step": 100,
+    "token_cost": {"coefficient": 0.2, "formula": "correctness - 0.2 * generated_tokens / response_ceiling"},
+    "unit": "percent",
+    "uncertainty": "No uncertainty estimates are available for these transcribed summary values. No error bars are inferred.",
+    "protocol_source": "length_protocol",
+    "tasks": [
+      {
+        "id": "matrix",
+        "title": "Matrix transformations",
+        "metric": "Exact final-matrix accuracy",
+        "split": "standard test",
+        "training_response_ceiling": 3072,
+        "evaluation_response_ceiling": 3072,
+        "values": {"base": 68.46, "no_penalty": 92.38, "length_penalty": 15.63},
+        "sources": ["matrix_control", "length_results"]
+      },
+      {
+        "id": "ruletaker",
+        "title": "RuleTaker shared deductions",
+        "metric": "All four answers correct",
+        "split": "standard test",
+        "training_response_ceiling": 4096,
+        "evaluation_response_ceiling": 4096,
+        "values": {"base": 43.55, "no_penalty": 79.49, "length_penalty": 62.11},
+        "sources": ["length_results"]
+      }
+    ]
+  }
+}

@@ -53,7 +53,7 @@ the separate-engine reasoning-step handoff evaluator.
 | [`figure2.py`](../eval/figure2.py) | `--results` directory → `--out` stem with `.png`, `.svg`, `.json` |
 | [`summarize`](../eval/figure2.py) | full evaluation JSON → per-benchmark and macro pass@k means/SEs in percent |
 | [`plot`](../eval/figure2.py) | curve statistics → handoff k=1,2,4,8 and solo k=1,2,4,8,16,32 PNG/SVG in separate rows; optional `note` labels partial results |
-| [`watch_figure2.py`](../slurm/watch_figure2.py) | smoke/full job IDs and smoke outputs → verified status JSON; cancel full job on failure |
+| [`watch-smoke.py`](../slurm/watch-smoke.py) | smoke/full job IDs and an explicit verification command → status JSON; cancel full job on failure; [current arguments](WORKFLOWS.md#generic-speculative-smoke-guard) |
 
 ## Handoff audit (2026-10-08)
 
@@ -166,10 +166,11 @@ provenance, then transfer the completed artifact. A queued independent base job
 does not automatically populate the CSAIL campaign.
 
 All commands run from the repository root. Use uv for Python and dependencies.
-Set `REPO`, `TANDEM_ENV`, `HF_HOME`, and `UV_CACHE_DIR` for the cluster. Create
-`logs/`, then run `bash slurm/figure2-setup.sh` on a CPU allocation. This installs
-the evaluation pins, records the resolved environment, and downloads immutable
-model snapshots to `HF_HOME`.
+For current runs, follow [setup inputs](WORKFLOWS.md#environment-setup):
+run `slurm/setup.sh` with `PROFILE=inference` on a CPU allocation, then download
+the pinned models separately with `eval/download_figure2.py`. Setup records the
+resolved environment; model/data preparation is a separate step. The historical
+`slurm/figure2-setup.sh` combined these operations.
 
 Submit `slurm/figure2.sbatch` with `MODELS_JSON` pointing at the locally selected
 manifest, and the site's account, partition and QoS options.
@@ -196,9 +197,10 @@ execution is not assumed. Plotting rejects incomplete benchmark panels,
 insufficient sample counts, wrong decoding, and handoff round-cap truncation.
 
 Queue the full run alongside the smoke job without an `afterok` dependency.
-Start `slurm/watch_figure2.py --smoke-job ID --full-job ID --results SMOKE_DIR
---status STATUS_JSON` in an independent CPU allocation. It checks the smoke exit
-and all five result artifacts and cancels the full job on failure. Results are
+Use the [generic smoke guard](WORKFLOWS.md#generic-speculative-smoke-guard) in an
+independent CPU allocation, with `eval/check_figure2.py --results SMOKE_DIR` as
+its explicit verification command. It checks the smoke exit and all five result
+artifacts and cancels the full job on failure. Results are
 provisional until the status JSON has `passed: true`. A short initial hold on the
 full job can protect the interval before the CPU monitor starts; release it as
 soon as monitoring is active, without waiting for the smoke job to finish.

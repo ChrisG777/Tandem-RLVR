@@ -24,10 +24,10 @@ advantages within each prompt group; the coefficient is not a guarantee of a
 small policy change, particularly in groups with identical correctness.
 
 The existing correctness verifier and verl reward manager handle grading and
-decoding. [LengthPenaltyRewardManager](../reward/length_penalty.py) subclasses
+decoding. [LengthPenaltyRewardManager](../experiments/shorthand/length_penalty.py) subclasses
 the manager to subtract the token cost, preserving `acc`, query accuracy and
 format diagnostics. `PILOT_LENGTH_PENALTY=0.2` enables it in the existing
-[training entry point](../slurm/shorthand-train.sbatch); omission preserves the
+[training entry point](../experiments/shorthand/slurm/shorthand-train.sbatch); omission preserves the
 original reward. The adapter rejects invalid coefficients and response lengths.
 Hydra records the coefficient, budget, manager and verifier paths per attempt.
 Validation logs separately expose correctness reward, length cost, and response
