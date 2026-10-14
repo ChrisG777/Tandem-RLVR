@@ -50,6 +50,8 @@ def main() -> None:
         # the parent already bounds that file with RLIMIT_FSIZE.
         with contextlib.redirect_stdout(BoundedIO()):
             results, metadata = testing_util.run_test(request["tests"], test=code, timeout=5)
+        # The pinned checker can return a call-based wrong answer with its alarm armed.
+        signal.alarm(0)
         if len(results) == len(request["tests"]["inputs"]) and all(v == True for v in results):
             status = "pass"
         elif "timeout" in str(metadata).lower() or "timed out" in str(metadata).lower():
@@ -61,6 +63,11 @@ def main() -> None:
         print(json.dumps({"status": status}))
     except (SystemExit, KeyboardInterrupt, MemoryError, OutputLimitExceeded):
         print(json.dumps({"status": "runtime_error"}))
+    except TimeoutError:
+        # The per-test alarm is armed only for candidate execution. If it fires outside
+        # the checker's handler (e.g. on its wrong-answer return path), the candidate
+        # used its time limit; both possible outcomes have zero reward.
+        print(json.dumps({"status": "timeout"}))
     except BaseException as exc:
         print(json.dumps({"infrastructure_error": f"{type(exc).__name__}: {exc}"}))
 
