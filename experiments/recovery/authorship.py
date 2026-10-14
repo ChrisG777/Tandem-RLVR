@@ -63,7 +63,10 @@ def analyze(result: dict, domain: str, tokenizer, bootstrap: int = 500, seed: in
 
 def token_bytes(tokenizer) -> dict[int, bytes]:
     """Map every token id to its exact byte string (GPT-2 byte-level vocabularies)."""
-    from transformers.models.gpt2.tokenization_gpt2 import bytes_to_unicode
+    try:
+        from transformers.convert_slow_tokenizer import bytes_to_unicode
+    except ImportError:  # older transformers
+        from transformers.models.gpt2.tokenization_gpt2 import bytes_to_unicode
     decode = {c: b for b, c in bytes_to_unicode().items()}
     out = {}
     for token, index in tokenizer.get_vocab().items():
