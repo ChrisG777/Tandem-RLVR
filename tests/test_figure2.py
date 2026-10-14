@@ -32,6 +32,11 @@ class Figure2Statistics(unittest.TestCase):
             with self.assertRaises(ValueError):
                 figure2.summarize(result, bootstrap=20)
 
+    def test_round_capped_chains_are_accepted_only_on_request(self):
+        result = {**self.result(), "unfinished_chains": 1}
+        curves = figure2.summarize(result, bootstrap=20, allow_round_capped=True)
+        self.assertEqual(curves["macro"]["mean"], [25.] * 6)
+
 
 if __name__ == "__main__":
     unittest.main()

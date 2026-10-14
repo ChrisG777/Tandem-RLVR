@@ -38,6 +38,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20261004)
     parser.add_argument("--checkpoints", default="validation-selected checkpoints",
                         help="Checkpoint description recorded in the score JSON")
+    parser.add_argument("--allow-round-capped", action="store_true",
+                        help="Accept handoff chains stopped by the round cap; counts are reported")
     parser.add_argument("--omit-base", action="store_true",
                         help="Provisional plot without the base solo curve; labelled on the figure")
     args = parser.parse_args()
@@ -48,7 +50,7 @@ def main() -> None:
     if args.paired_baselines:
         COLORS["junior"] = "#2798a5"
         LABELS.update(base="Initial senior", junior="Frozen junior")
-    curves = {}
+    curves, capped = {}, {}
     protocol_identity = None
     solo_arms = [arm for arm in COLORS if not (args.omit_base and arm == "base")]
     for phase, arms in (("solo", solo_arms), ("handoff", ("grpo", "tandem"))):
@@ -66,22 +68,35 @@ def main() -> None:
                 expected["max_tokens"] = identity["max_tokens"]
             if result["phase"] != phase or result["sampling"] != expected:
                 raise ValueError(f"{arm}/{phase}: phase or decoding differs from the protocol")
-            curves[phase][arm] = summarize(result, args.bootstrap, args.seed)
+            curves[phase][arm] = summarize(result, args.bootstrap, args.seed,
+                                           allow_round_capped=args.allow_round_capped)
+            if result.get("unfinished_chains", 0):
+                capped[f"{arm} {phase}"] = (result["unfinished_chains"], len(result["gens"]) * result["n"])
     args.out.parent.mkdir(parents=True, exist_ok=True)
     common.save_json(args.out.with_suffix(".json"), {
         "protocol": f"independently trained {args.checkpoints}; problem bootstrap within benchmark; bands = 1 SE",
         "omitted": ["base solo"] if args.omit_base else [],
+        "round_capped_chains": {k: {"chains": c, "total": t} for k, (c, t) in capped.items()},
         "bootstrap_replicates": args.bootstrap, "bootstrap_seed": args.seed,
         "curves": curves,
     })
-    plot(curves, args.out, note="Provisional: base-model solo curve pending" if args.omit_base else None)
+    notes = ["Provisional: base-model solo curve pending"] if args.omit_base else []
+    if capped:
+        notes.append("Round-capped handoff chains (graded as-is): " +
+                     "; ".join(f"{k} {c:,}/{t:,}" for k, (c, t) in capped.items()))
+    plot(curves, args.out, note="\n".join(notes) or None)
 
 
-def summarize(result: dict, bootstrap: int = 2000, seed: int = 20261004) -> dict:
-    """Return unbiased pass@k means and bootstrap SEs, in percent; reject partial runs."""
+def summarize(result: dict, bootstrap: int = 2000, seed: int = 20261004, *,
+              allow_round_capped: bool = False) -> dict:
+    """Return unbiased pass@k means and bootstrap SEs, in percent; reject partial runs.
+
+    allow_round_capped accepts handoff chains stopped by the round cap (graded as-is);
+    main() then reports their counts in the score JSON and on the figure.
+    """
     n = result["n"]
     ks = (1, 2, 4, 8, 16, 32) if result["phase"] == "solo" else (1, 2, 4, 8)
-    if n < max(ks) or result.get("limit", 0) or result.get("unfinished_chains", 0):
+    if n < max(ks) or result.get("limit", 0) or (result.get("unfinished_chains", 0) and not allow_round_capped):
         raise ValueError("Figure 2 requires complete runs, n>=32 solo, n>=8 handoff")
     per_set = {}
     actual_ids = set()
