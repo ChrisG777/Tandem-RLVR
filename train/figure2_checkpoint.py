@@ -186,7 +186,7 @@ def record_resume_gap(root: Path, step: int, log: Path) -> dict:
     evidence = {"step": step, "root": str(root.resolve()), "before": boundary[0], "after": boundary[1],
                 "source_log": str(log.resolve()), "source_sha256": hashlib.sha256(raw).hexdigest(),
                 "load_messages": lines,
-                "limitation": "Metrics and validation for this step were not observed and remain unavailable"}
+                "limitation": "Training metrics for this step were not observed and remain unavailable; any separately recovered validation is checked independently"}
     _verify_resume_evidence(root, step, evidence)
     directory = root / "resume-evidence"
     directory.mkdir(exist_ok=True)

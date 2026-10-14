@@ -65,7 +65,7 @@ Each experiment reuses the trainer and supplies its own data and reward:
 
 | Workflow | Inputs → outputs |
 | --- | --- |
-| [APPS coding](docs/APPS.md) | Coding problems → sandboxed reward → matched GRPO/Tandem evaluation. |
+| [APPS coding](docs/APPS.md) | Coding problems → sandboxed reward → matched GRPO/Tandem evaluation; [migration recovery](docs/APPS_MIGRATION.md). |
 | [MedCalc](experiments/medcalc/README.md) | Verified calculation problems → numeric reward → matched training and evaluation. |
 | [Method Atlas](docs/METHOD_AUDIT.md) | Curated method pairs → reviews and executable checks → labeled dataset and audit UI. |
 | [Elegance RL](docs/ELEGANCE_RL.md) | Fixed method holdout → judged reward → matched solo/Tandem training. |
