@@ -5,55 +5,27 @@ These variations reuse the reproduction trainer and utilities. Start with the
 and [workflow interfaces](../docs/WORKFLOWS.md).
 Statuses summarize repository records through October 14, 2026, not live jobs.
 
-## Coding
-
-APPS tests whether Tandem's handoff behavior extends to executable Python solutions.
-Both 200-step policies are released; the latest record describes sharded final
-evaluation and grader recovery, without a final aggregate comparison.
-
-```mermaid
-flowchart LR
-    A["APPS introductory / interview"] --> B["Calibrate sandboxed reward"]
-    B --> C["Solo GRPO / word-level Tandem"]
-    C --> D["Solo, paragraph and word handoff<br/>Junior cross-entropy"]
-    D --> E["Both step-200 policies released<br/>Final comparison not reported"]
-```
-
-[Prepare](coding/build_apps.py) → [calibrate and evaluate](coding/campaign.py) →
-[submit campaign](coding/submit.py), using the [executable reward](coding/reward.py).
-[Protocol](../docs/APPS.md) · [Run evidence](../docs/APPS_RUN.md) · [Checkpoint migration](../docs/APPS_MIGRATION.md).
-
-## MedCalc
-
-MedCalc transfers the comparison to verified clinical calculations with numeric,
-date and duration checks; the pipeline is implemented, but no empirical comparison
-is reported. The official test split is reserved for evaluation.
-
-```mermaid
-flowchart LR
-    A["Verified calculation notes"] --> B["Calculator reward"]
-    B --> C["Solo GRPO / word-level Tandem"]
-    C --> D["Accuracy, handoff and junior CE pipeline<br/>Implemented; no results reported"]
-```
-
-[Prepare](medcalc/build_data.py) → [train](medcalc/train.sh) →
-[evaluate](medcalc/evaluate.sh) → [report](medcalc/report.py).
-[Protocol, environment and interfaces](medcalc/README.md).
+The two featured extensions are the [asymmetric 9B/2B pair](#asymmetric-qwen35-pair)
+and the [shorthand/length-pressure pilots](#shorthand-and-concepts).
 
 ## Asymmetric Qwen3.5 pair
 
-This extension trains a 9B senior with a frozen 2B junior to test an initially
-unequal pair. Both step-200 policies are released; validation scores use each
-arm's own rollout mode, and a final matched benchmark comparison is not reported.
-A [benchmark figure slot](../docs/RESULTS.md#asymmetric-benchmark-figure-qwen35-9b--2b)
-is reserved for the original plot and scores.
+This main extension trains a 9B senior with a frozen 2B junior to test an initially
+unequal pair. The complete 1,064-problem evaluation shows higher macro paragraph-
+handoff scores for Tandem and broadly similar solo scores; handoff gains appear
+in AMC, AIME and Olympiad, while Minerva is slightly lower.
+
+![Complete Qwen3.5-9B/2B Figure 2 benchmark comparison.](../docs/figures/figure2-qwen35-9b-2b.png)
+
+Top: paragraph handoff. Bottom: solo. Bands: ±1 bootstrap standard error.
+[Results](../docs/RESULTS.md#asymmetric-benchmark-figure-qwen35-9b--2b) · [Source](../docs/figures/README.md#benchmark-exports).
 
 ```mermaid
 flowchart LR
     A["Qwen3.5-9B senior + 2B junior"] --> B["Compatibility and training smokes"]
     B --> C["Solo GRPO / word-level Tandem"]
     C --> D["Four solo evaluations<br/>Two paragraph handoffs"]
-    D --> E["Both step-200 policies released<br/>Final comparison not reported"]
+    D --> E["Complete 1,064-problem evaluation<br/>Higher macro handoff; similar solo"]
 ```
 
 [Pinned models](../eval/qwen35-models.json) → [pair probe](../train/check_pair.py) →
@@ -61,44 +33,11 @@ flowchart LR
 [evaluate](../slurm/figure2.sbatch). [Protocol and evidence](../docs/QWEN35_PAIR.md) ·
 [Rollout defect investigation](../docs/QWEN35_COLLAPSE.md) · [Training performance](../docs/QWEN35_SPEED.md).
 
-## Method Atlas and elegance
-
-### Audited method dataset
-
-Method Atlas collects structural shortcuts and elementary alternatives for method
-holdouts. The release has 374 answer-checked problems and 1,840 labeled paths;
-elegance labels are model judgments, not measured weaker-model accessibility.
-
-```mermaid
-flowchart LR
-    A["Source problems and all routes"] --> B["Review mathematics and check answers"]
-    B --> C["Label elegance on every supplied path"]
-    C --> D["Released: 374 problems / 1,840 paths<br/>38 conservative method holdouts"]
-```
-
-[Curate](method_audit/curate.py) → [review](method_audit/review.py) →
-[verify answers](method_audit/verify.py) → [label elegance](method_audit/elegance.py) →
-[package](method_audit/package.py) / [inspect](method_audit/serve.py).
-[Audit protocol](../docs/METHOD_AUDIT.md) · [Method-family boundaries](../docs/METHOD_FAMILIES_AUDIT.md) ·
-[Dataset and limitations](../data/method-elegance/README.md).
-
-### Elegance RL
-
-This tests correctness plus a bonus for valid, elegant derivations using the
-9B/2B pair, with complement counting, Vieta and power of a point held out.
-The recorded runs reached recovery checkpoints; no final comparison is reported.
-
-```mermaid
-flowchart LR
-    A["152 train / 20 validation / 17 test"] --> B["Math correctness + judged elegance bonus"]
-    B --> C["Solo GRPO / word-level Tandem"]
-    C --> D["Held-out-method evaluation planned<br/>No final comparison reported"]
-```
-
-[Prepare fixed holdouts](elegance/prepare.py) → [judged reward](elegance/reward.py) →
-[solo/Tandem training](elegance/job.sbatch). [Protocol and run evidence](../docs/ELEGANCE_RL.md).
-
 ## Shorthand and concepts
+
+This main extension uses solo-RL pilots to look for useful shorthand, then tests
+whether explicit length pressure changes that behavior. Matrix and RuleTaker
+training and evaluation are complete; strings and Re-ARC did not pass calibration.
 
 ### Matrix and string shorthand
 
@@ -171,6 +110,89 @@ Shared interfaces distinguish correctness, compression and semantic evidence:
 
 [Submission interface and calibration probes](../docs/WORKFLOWS.md#pilot-submission).
 Dataset artifacts remain in `data/shorthand/` and `data/concept-pilot/`; moving code does not change their hashes.
+
+## Other studies and pipelines
+
+| Study | Type | Recorded status |
+| --- | --- | --- |
+| [APPS coding](#coding) | Domain-transfer experiment | Step-200 policies released; final aggregate evaluation pending. |
+| [MedCalc](#medcalc) | Implemented pipeline | No empirical comparison reported. |
+| [Method Atlas](#method-atlas-and-elegance) | Dataset and audit | 374 answer-checked problems and 1,840 labeled paths released. |
+| [Elegance RL](#elegance-rl) | Reward/generalization experiment | Training and recovery recorded; final comparison pending. |
+| [Natural-language drift](#natural-language-drift) | Exploratory pilot | Submissions/access limits recorded; no final results reported. |
+| [Native word handoff](#native-word-handoff) | Interim evaluation and case study | Partial matched results; controlled recovery experiment proposed. |
+
+## Coding
+
+APPS tests whether Tandem's handoff behavior extends to executable Python solutions.
+Both 200-step policies are released; the latest record describes sharded final
+evaluation and grader recovery, without a final aggregate comparison.
+
+```mermaid
+flowchart LR
+    A["APPS introductory / interview"] --> B["Calibrate sandboxed reward"]
+    B --> C["Solo GRPO / word-level Tandem"]
+    C --> D["Solo, paragraph and word handoff<br/>Junior cross-entropy"]
+    D --> E["Both step-200 policies released<br/>Final comparison not reported"]
+```
+
+[Prepare](coding/build_apps.py) → [calibrate and evaluate](coding/campaign.py) →
+[submit campaign](coding/submit.py), using the [executable reward](coding/reward.py).
+[Protocol](../docs/APPS.md) · [Run evidence](../docs/APPS_RUN.md) · [Checkpoint migration](../docs/APPS_MIGRATION.md).
+
+## MedCalc
+
+MedCalc transfers the comparison to verified clinical calculations with numeric,
+date and duration checks; the pipeline is implemented, but no empirical comparison
+is reported. The official test split is reserved for evaluation.
+
+```mermaid
+flowchart LR
+    A["Verified calculation notes"] --> B["Calculator reward"]
+    B --> C["Solo GRPO / word-level Tandem"]
+    C --> D["Accuracy, handoff and junior CE pipeline<br/>Implemented; no results reported"]
+```
+
+[Prepare](medcalc/build_data.py) → [train](medcalc/train.sh) →
+[evaluate](medcalc/evaluate.sh) → [report](medcalc/report.py).
+[Protocol, environment and interfaces](medcalc/README.md).
+
+## Method Atlas and elegance
+
+### Audited method dataset
+
+Method Atlas collects structural shortcuts and elementary alternatives for method
+holdouts. The release has 374 answer-checked problems and 1,840 labeled paths;
+elegance labels are model judgments, not measured weaker-model accessibility.
+
+```mermaid
+flowchart LR
+    A["Source problems and all routes"] --> B["Review mathematics and check answers"]
+    B --> C["Label elegance on every supplied path"]
+    C --> D["Released: 374 problems / 1,840 paths<br/>38 conservative method holdouts"]
+```
+
+[Curate](method_audit/curate.py) → [review](method_audit/review.py) →
+[verify answers](method_audit/verify.py) → [label elegance](method_audit/elegance.py) →
+[package](method_audit/package.py) / [inspect](method_audit/serve.py).
+[Audit protocol](../docs/METHOD_AUDIT.md) · [Method-family boundaries](../docs/METHOD_FAMILIES_AUDIT.md) ·
+[Dataset and limitations](../data/method-elegance/README.md).
+
+### Elegance RL
+
+This tests correctness plus a bonus for valid, elegant derivations using the
+9B/2B pair, with complement counting, Vieta and power of a point held out.
+The recorded runs reached recovery checkpoints; no final comparison is reported.
+
+```mermaid
+flowchart LR
+    A["152 train / 20 validation / 17 test"] --> B["Math correctness + judged elegance bonus"]
+    B --> C["Solo GRPO / word-level Tandem"]
+    C --> D["Held-out-method evaluation planned<br/>No final comparison reported"]
+```
+
+[Prepare fixed holdouts](elegance/prepare.py) → [judged reward](elegance/reward.py) →
+[solo/Tandem training](elegance/job.sbatch). [Protocol and run evidence](../docs/ELEGANCE_RL.md).
 
 ## Natural-language drift
 
