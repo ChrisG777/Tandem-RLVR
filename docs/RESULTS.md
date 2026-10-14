@@ -6,7 +6,8 @@ Our Qwen3-4B runs report comparable solo scores and less token drift, but **do n
 reproduce the paper's clear paragraph-handoff advantage**.
 
 This guide summarizes the experiment records available on October 14, 2026.
-For other tasks and model pairs, see the [experiment map](../experiments/README.md).
+See the
+[plot index and source files](figures/README.md) and [experiment map](../experiments/README.md).
 
 ## Headline comparison: Figure 2
 
@@ -15,15 +16,10 @@ on DeepScaleR. Validation selects GRPO step 160 and Tandem step 180. Tandem trai
 with a frozen copy of the base, switching at word boundaries; only senior-authored
 tokens receive policy loss. See the [training protocol](FRESH_TRAINING.md).
 
-```mermaid
-flowchart LR
-    B["Same Qwen3-4B base"] --> G["Solo GRPO training<br/>Selected step 160"]
-    B --> T["Tandem training with frozen base<br/>Selected step 180"]
-    G --> GS["Solo pass@4<br/>59.46%"]
-    G --> GH["Paragraph handoff with frozen base<br/>pass@4: 58.25%"]
-    T --> TS["Solo pass@4<br/>59.97%"]
-    T --> TH["Paragraph handoff with frozen base<br/>pass@4: 57.55%"]
-```
+![Documented Qwen3-4B macro accuracy and token-drift summary.](figures/qwen3-4b-summary.png)
+
+This summary plot uses the numerical records below; it does not reconstruct the
+missing full pass@k curves or their error bands. [Values and plotting script](figures/README.md#reproducible-summary-plots).
 
 The [completed, corrected evaluation](REPRODUCTION_AUDIT.md#completion-update--2026-10-09-pacific)
 covers 1,064 problems: AMC 121, AIME 90, Minerva 272, and OlympiadBench 581.
@@ -59,13 +55,6 @@ See the [grading audit and limitations](REPRODUCTION_AUDIT.md#confirmed-grading-
 Across 34,048 solo responses per arm, Tandem's marginal token distribution stays
 closer to the base on several diagnostics:
 
-```mermaid
-flowchart LR
-    B["Base model's token distribution"] --> G["GRPO divergence<br/>0.00355272 nats"]
-    B --> T["Tandem divergence<br/>0.00301511 nats"]
-    T --> R["15.13% less drift than GRPO<br/>Paper reports 37%"]
-```
-
 | Diagnostic | Reported result |
 |---|---|
 | Jensen–Shannon divergence from base | GRPO 0.00355272; Tandem 0.00301511 nats |
@@ -95,13 +84,32 @@ senior-authored first substantive errors. Across the 737 matched problems,
 62.6% of GRPO failures and 63.6% of Tandem failures ended at the token limit.
 The proposed matched-prefix recovery experiment remains a proposal.
 
+## Asymmetric benchmark figure: Qwen3.5-9B / 2B
+
+> **Figure pending:** add the original benchmark PNG/SVG and machine-readable
+> scores here, with the model/checkpoint identity, coverage and uncertainty definition.
+
+Both step-200 policies are released. A reference screenshot was supplied during
+review, but the original export and score JSON are not in this checkout, so this
+section reserves the figure without transcribing approximate scores.
+[Protocol](QWEN35_PAIR.md) · [Figure checklist](figures/README.md#pending-9b2b-benchmark-figure).
+
+## Pilot results: accuracy versus length pressure
+
+![Matrix and RuleTaker accuracy for the base, correctness-only RL and length-penalized RL.](figures/pilot-summary.png)
+
+Correctness-only RL improves these tasks; adding the tested length cost lowers
+accuracy, especially on matrix transformations. These are solo-RL pilots.
+[Controls and diagnosis](LENGTH_PENALTY_PILOTS.md) · [All variation workflows](../experiments/README.md).
+
 ## What is available to verify
 
 This checkout includes the evaluation code, benchmark data, experiment records,
 and [training-summary artifacts](../results/training-progress/completed-20261008.json).
-The Figure 2 generations, corrected score JSONs, Figure 3 token counts, and word
+Reproducible summary plots are now in
+[`docs/figures/`](figures/README.md). Original Figure 2 generations, corrected score JSONs, Figure 3 token counts, and word
 case-study evidence referenced by the records are **local or cluster artifacts
 that are not committed**. Their links may require the original results directory.
-The numbers above summarize documented results; regenerating the figures requires
-those saved outputs. Follow the [current workflows](WORKFLOWS.md) to run the
+The summary charts use committed numerical transcriptions; regenerating the full
+original Figure 2/3 plots requires those saved outputs. Follow the [current workflows](WORKFLOWS.md) to run the
 pipeline, or the [trace-browser guide](COMPARISON_BROWSER.md) to inspect available traces.

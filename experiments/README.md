@@ -45,6 +45,8 @@ flowchart LR
 This extension trains a 9B senior with a frozen 2B junior to test an initially
 unequal pair. Both step-200 policies are released; validation scores use each
 arm's own rollout mode, and a final matched benchmark comparison is not reported.
+A [benchmark figure slot](../docs/RESULTS.md#asymmetric-benchmark-figure-qwen35-9b--2b)
+is reserved for the original plot and scores.
 
 ```mermaid
 flowchart LR
@@ -150,6 +152,11 @@ flowchart LR
 ```
 
 [Length adapter](shorthand/length_penalty.py) · [Intervention, controls and diagnosis](../docs/LENGTH_PENALTY_PILOTS.md).
+
+![Measured matrix and RuleTaker accuracy: base, correctness-only RL and length-penalized RL.](../docs/figures/pilot-summary.png)
+
+Matrix uses 3K training/evaluation budgets; RuleTaker uses 4K and all-four accuracy.
+[Exact values, sources and regeneration](../docs/figures/README.md#reproducible-summary-plots).
 
 Shared interfaces distinguish correctness, compression and semantic evidence:
 

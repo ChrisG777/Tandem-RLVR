@@ -4,6 +4,9 @@ This campaign tests an initially asymmetric pair using the existing native
 Tandem backend. It is an extension of Figure 2, not an exact reproduction of
 the paper's self-paired initialization. Both models use non-thinking mode.
 
+**Plot:** a [benchmark figure slot](RESULTS.md#asymmetric-benchmark-figure-qwen35-9b--2b)
+is reserved for the original export and score JSON, which are not in the checkout.
+
 ## Interfaces and provenance
 
 - `eval/qwen35-models.json` pins official senior (`base`) and frozen `junior`
