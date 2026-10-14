@@ -55,12 +55,16 @@ def main() -> None:
         curves[phase] = {}
         for arm in arms:
             result = common.load_json(args.results / arm / f"{phase}.json")
+            expected = config.record()
             if args.panel_manifest:
                 identity = {key: result[key] for key in ("dataset_sha256", "grader", "context", "max_prompt")}
+                identity["max_tokens"] = result["sampling"]["max_tokens"]
                 if protocol_identity is not None and identity != protocol_identity:
                     raise ValueError("Coding comparison uses different datasets, graders or budgets")
                 protocol_identity = identity
-            if result["phase"] != phase or result["sampling"] != config.record():
+                # Panels set their own response budget; decoding constants must still match.
+                expected["max_tokens"] = identity["max_tokens"]
+            if result["phase"] != phase or result["sampling"] != expected:
                 raise ValueError(f"{arm}/{phase}: phase or decoding differs from the protocol")
             curves[phase][arm] = summarize(result, args.bootstrap, args.seed)
     args.out.parent.mkdir(parents=True, exist_ok=True)
