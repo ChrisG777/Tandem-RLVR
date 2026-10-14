@@ -106,6 +106,10 @@ Within the existing allocation, run both calibration modes with
 validation IDs, matching dataset/grader identities, and the pinned base snapshot.
 Do not run training when that command fails.
 
+Final evaluators accept `--shard START:END` to save one problem range separately;
+rerunning without it merges complete shards in order. APPS grading runs one
+sandbox per available CPU (`--grade-workers` overrides). See the run record.
+
 Native-word inference optionally accepts `--native-concurrency N` through the
 coding campaign (`--concurrency N` on the native evaluator). It scales both KV
 caches so all active full contexts fit without eviction, and records this execution

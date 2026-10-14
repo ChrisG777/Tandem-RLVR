@@ -1,5 +1,47 @@
 # APPS pilot run: 2026-10-10
 
+## Step-200 final evaluation, sharded: 2026-10-13
+
+The user corrected the final-evaluation checkpoints: both arms use
+`hf/global_step_200` (verified weights; both runs completed 200 steps), not the
+validation-selected GRPO step 60 / Tandem step 40. All earlier final-evaluation
+jobs were cancelled and their partial results (175 MB) moved, not deleted, to
+`results-selected-step60-step40-20261013/`. `results/final-models-step200.json`
+records the decision, checkpoint paths, junior snapshot and code commit `a56b541`.
+
+Diagnosis of the previous jobs on one shared H100 node (4 CPUs each): solo and
+paragraph handoff GPUs idled at 0% while every response was graded serially in a
+fresh sandbox. Grading one saved 512-response solo batch took 341 s serially and
+30 s with 16 concurrent sandboxes, with identical grades; generation of a batch
+takes about 210 s. Each batch also rewrote the whole growing progress JSON
+(230 MB for solo). Native word handoff is capped at eight active sequences on
+80 GB GPUs: the frozen junior holds an equal-sized KV cache, and twelve OOMed.
+
+Interactive H100 measurements (allocation 2653769, problems 2000+): decode CUDA
+graphs did not speed up solo (455 s versus 462 s generation for 32 problems at
+512 sequences), so solo stays eager; handoff and word use decode graphs. A
+16-problem handoff shard took 502 s and an eight-problem word shard 525 s,
+both including model loading; word authorship checks passed.
+
+Commit `a56b541` adds `--shard START:END` (contiguous problem ranges with
+global-index seeds; resumable `OUT.shard-START-END.progress.json`) and
+concurrent APPS grading to solo, paragraph and word evaluators. Rerunning the
+unsharded command absorbs complete shards in order; result JSONs list each
+shard's file hash and execution settings. Word shards record their concurrency
+(8 on 80 GB GPUs, 14 on H200s) and queue four problems per saved batch.
+
+The job wrapper is `apps-shard.sbatch` in the CSAIL run root, submitted with
+`--export=NIL`; `--export=ALL` submissions were held by CSAIL user-environment
+retrieval failures and resubmitted. At the user's request the work runs as 55
+shards (solo ~570–600, handoff ~540–600, word ~360–400 problems each),
+alternating Torralba owner priority and vision-shared routes; word shards
+require 80 GB-class GPUs. Receipts: `shard-jobs-step200.tsv` (shards) and
+`final-jobs-step200.tsv`: one CPU merge per arm/phase after all its shards
+succeed, then legibility on GPU after each solo merge. Engaging received a
+verified grader/data mirror (`apps-eval-mirror-20261013`), but it lacks the
+step-200 checkpoints and its preemptible queue forecast was about a day, so no
+Engaging shards were submitted.
+
 ## Engaging container repair: 2026-10-12
 
 Jobs 25630667 and 25632334 both failed after three seconds, before model loading
