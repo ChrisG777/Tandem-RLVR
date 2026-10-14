@@ -25,20 +25,22 @@ def main() -> None:
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--decoding', choices=('training', 'evaluation'), default='training')
     parser.add_argument('--concurrency', type=int, help='Active sequences; increases both KV caches to fit full contexts')
-    parser.add_argument('--decode-graphs', action='store_true', help='Use vLLM decode-only CUDA graphs')
+    parser.add_argument('--batch-problems', type=int, help='Problems queued per saved batch (shards only)')
     common.add_data_arguments(parser)
     parser.add_argument("--benchmarks", default=",".join(common.DEFAULT_SETS))
     args = parser.parse_args()
     common.configure(args)
     evaluate(args.senior, args.junior, args.out, n=args.n, limit=args.limit,
              decoding=args.decoding, benchmarks=common.parse_sets(args.benchmarks), concurrency=args.concurrency,
-             boundary_path=args.boundaries, decode_graphs=args.decode_graphs)
+             boundary_path=args.boundaries, decode_graphs=args.decode_graphs,
+             shard=args.shard, batch_problems=args.batch_problems)
 
 
 def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
              limit: int = 0, decoding: str = 'training', benchmarks=common.DEFAULT_SETS,
              concurrency: int | None = None, boundary_path: Path | None = None,
-             decode_graphs: bool = False) -> dict:
+             decode_graphs: bool = False, shard: str | None = None,
+             batch_problems: int | None = None) -> dict | None:
     """Run GPU inference and atomically save complete batches plus a final JSON.
 
     Reuses only matching saved inputs. Word-boundary Bernoulli(0.5) redraws and
@@ -47,6 +49,8 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     authorship, illegal switches, incomplete batches, and mismatched restart inputs.
     Training decoding is 0.6/1/-1; evaluation uses the Figure 2 decoding constants.
     decode_graphs selects vLLM's full decode-only graph mode; sampling is unchanged.
+    shard="START:END" saves only that problem range (see common.open_progress) and
+    returns None; batch_problems then sets how many problems queue per saved batch.
     """
     from transformers import AutoTokenizer
     from vllm import SamplingParams
@@ -75,9 +79,16 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
     # Eight coding samples already saturate the two active sequences. Commit
     # each problem rather than risking a long 128-sample batch on preemption.
     batch_size = 1 if any(p.get('data_source') == 'apps' for p in problems) else common.EVAL_BATCH_SIZE
+    if batch_problems is not None:
+        if shard is None or batch_problems < 1:
+            raise ValueError('batch_problems requires a shard and must be positive')
+        batch_size = batch_problems
     identity.update(common.evaluation_identity(problems))
-    progress_path, progress = common.load_progress(str(out), identity, problems, batch_size=batch_size)
-    if out.exists():
+    progress_path, progress, todo = common.open_progress(
+        str(out), identity, problems, batch_size=batch_size, shard=shard,
+        execution={'decode_graphs': decode_graphs, 'max_num_seqs': active_sequences,
+                   'kv_cache_memory_bytes_per_model': cache_bytes})
+    if out.exists() and shard is None:
         result = common.load_json(out)
         if result.get('identity') != identity or len(result['gens']) != len(problems):
             raise ValueError('Existing result differs from requested evaluation')
@@ -95,15 +106,17 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
         raise ValueError('A prompt exceeds the model context')
     execution = ({'enforce_eager': False, 'compilation_config': {
         'mode': 0, 'cudagraph_mode': 'FULL_DECODE_ONLY'}} if decode_graphs else {})
-    engine = build_engine(senior, junior, boundary_path, max_num_seqs=active_sequences,
-                          kv_cache_memory_bytes=cache_bytes, **execution)
     gens = progress['gens']
+    offset = todo[0]['idx']
+    engine = None
     try:
-        while len(gens) < len(problems):
-            start = len(gens)
+        while len(gens) < len(todo):
+            engine = engine or build_engine(senior, junior, boundary_path, max_num_seqs=active_sequences,
+                                            kv_cache_memory_bytes=cache_bytes, **execution)
+            start = offset + len(gens)
             # Validate the first complete problem before spending a full batch.
             size = 1 if start == 0 else batch_size
-            batch = problems[start:start + size]
+            batch = problems[start:min(start + size, offset + len(todo))]
             repeated = [prompts[start+i] for i in range(len(batch)) for _ in range(n)]
             params = [SamplingParams(**{**sampling, 'max_tokens': max(1, budgets[start+i])},
                                      seed=1000*p['idx']+s)
@@ -113,7 +126,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
             outputs = [next(generated) if ok else None for ok in eligible]
             if len(outputs) != len(batch)*n:
                 raise ValueError('Incomplete generation batch')
-            records = []
+            records, pending = [], []
             for i, problem in enumerate(batch):
                 if outputs[i*n] is None:
                     records.append({'set': problem['set'], 'idx': problem['idx'], 'task_id': problem.get('task_id'),
@@ -132,14 +145,23 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                                     for o in outputs[i*n:(i+1)*n]]})
                     raise
                 texts = [s.pop('text') for s in samples]
-                details = [common.grade_details(t, problem['gt'], problem.get('data_source', 'math')) for t in texts]
+                pending += [(t, problem['gt'], problem.get('data_source', 'math')) for t in texts]
                 records.append({'set': problem['set'], 'idx': problem['idx'],
                                 'response_budget': budgets[start+i],
-                                'texts': texts, 'task_id': problem.get('task_id'), 'correct': [d['acc'] for d in details], 'diagnostics': details,
+                                'texts': texts, 'task_id': problem.get('task_id'),
                                 'samples': samples})
+            graded = iter(common.grade_many(pending))
+            for record in records:
+                if 'correct' not in record:
+                    record['diagnostics'] = [next(graded) for _ in record['texts']]
+                    record['correct'] = [d['acc'] for d in record['diagnostics']]
             gens.extend(records)
             common.save_json(progress_path, progress)
-            print(f'WORD HANDOFF saved {len(gens)}/{len(problems)} problems', flush=True)
+            print(f'WORD HANDOFF saved {len(gens)}/{len(todo)} problems', flush=True)
+        if shard is not None:
+            return None
+        if len(gens) != len(problems):
+            raise ValueError('Incomplete word-handoff evaluation')
         samples = [s for row in gens for s in row['samples']]
         token_count = sum(len(s['token_ids']) for s in samples)
         senior_count = sum(sum(s['model_mask']) for s in samples)
@@ -147,7 +169,7 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
             raise ValueError('Authorship participation check failed')
         result = {**identity, 'identity': identity, 'benchmarks': list(benchmarks),
                   'execution': {'decode_graphs': decode_graphs},
-                  'coverage': common.coverage(gens),
+                  'coverage': common.coverage(gens), 'shards': progress.get('shards', []),
                   'limit': limit, 'batch_size': batch_size,
                   'senior_token_fraction': senior_count/token_count,
                   'truncated_fraction': sum(s['finish_reason']=='length' for s in samples)/len(samples),
@@ -158,7 +180,8 @@ def evaluate(senior: str, junior: str, out: Path, *, n: int = 8,
                           'senior_token_fraction': result['senior_token_fraction']}), flush=True)
         return result
     finally:
-        engine.llm_engine.engine_core.shutdown()
+        if engine is not None:
+            engine.llm_engine.engine_core.shutdown()
 
 
 def build_engine(senior: str, junior: str, boundaries: Path, *, max_num_seqs: int | None = None,

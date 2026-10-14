@@ -71,10 +71,10 @@ def run_all_rounds(engines, chains):
             return
 
 
-def build_engines(senior, junior, util, single_gpu):
+def build_engines(senior, junior, util, single_gpu, decode_graphs=False):
     devices = common.visible_devices()
     if single_gpu:
-        return [common.build_engine(m, util) for m in (senior, junior)]
+        return [common.build_engine(m, util, decode_graphs=decode_graphs) for m in (senior, junior)]
     if len(devices) < 2:
         raise SystemExit(
             "handoff needs two visible GPUs so the senior and the junior are on "
@@ -83,7 +83,7 @@ def build_engines(senior, junior, util, single_gpu):
             f"memory fraction (default {UTIL_SHARED_CARD})."
         )
     return [
-        common.build_engine(m, util, device=d)
+        common.build_engine(m, util, device=d, decode_graphs=decode_graphs)
         for m, d in ((senior, devices[0]), (junior, devices[1]))
     ]
 
@@ -137,31 +137,40 @@ def main():
         for pr in prompts
     ]
 
-    progress_path, progress = common.load_progress(args.out, {
+    progress_path, progress, todo = common.open_progress(args.out, {
         **common.evaluation_identity(problems),
         "phase": "handoff", "senior": args.senior, "junior": args.junior,
         "n": args.n, "sampling": config.record(), "max_rounds": MAX_ROUNDS,
         "same_vocab": same_vocab, **common.evaluation_identity(problems),
-    }, problems)
-    engines = build_engines(args.senior, args.junior, util, args.single_gpu)
+    }, problems, shard=args.shard, execution={"decode_graphs": args.decode_graphs})
+    offset = todo[0]["idx"] - problems[0]["idx"]
+    engines = None
     gens = progress["gens"]
-    for start in range(len(gens), len(problems), common.EVAL_BATCH_SIZE):
+    for start in range(len(gens), len(todo), common.EVAL_BATCH_SIZE):
+        engines = engines or build_engines(args.senior, args.junior, util, args.single_gpu, args.decode_graphs)
         end = start + common.EVAL_BATCH_SIZE
-        batch = problems[start:end]
-        chains = make_chains(batch, prompts[start:end], budgets[start:end], args.n)
+        batch = todo[start:end]
+        chains = make_chains(batch, prompts[offset + start:offset + end], budgets[offset + start:offset + end], args.n)
         for c in chains:
             if common.overlength(tok, c["base"]):
                 c["done"] = True
                 c["overlength"] = True
         run_all_rounds(engines, chains)
         progress["unfinished_chains"] += sum(not c["done"] for c in chains)
+        graded = iter(common.grade_many([(c["text"], c["p"]["gt"], c["p"].get("data_source", "math"))
+                                         for c in chains if not c.get("overlength")]))
         for i, p in enumerate(batch):
             sample = chains[i * args.n:(i + 1) * args.n]
-            details = [({"acc": 0.0, "overlength": 1.0} if c.get("overlength") else common.grade_details(c["text"], p["gt"], p.get("data_source", "math"))) for c in sample]
+            details = [({"acc": 0.0, "overlength": 1.0} if c.get("overlength") else next(graded)) for c in sample]
             gens.append({"set": p["set"], "idx": p["idx"], "task_id": p.get("task_id"), "diagnostics": details,
                          "texts": [c["text"] for c in sample],
                          "correct": [d["acc"] for d in details]})
         common.save_json(progress_path, progress)
+    if args.shard:
+        print(f"HANDOFF shard {args.shard} complete: {len(gens)} problems", flush=True)
+        return
+    if len(gens) != len(problems):
+        raise ValueError("Incomplete handoff evaluation")
 
     unfinished = progress["unfinished_chains"]
     if unfinished:
@@ -184,6 +193,7 @@ def main():
         "sampling": config.record(),
         "batch_size": common.EVAL_BATCH_SIZE,
         "coverage": common.coverage(gens),
+        "shards": progress.get("shards", []),
         "max_rounds": MAX_ROUNDS,
         "unfinished_chains": unfinished,
         "same_vocab": same_vocab,

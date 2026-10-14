@@ -37,6 +37,9 @@ def main() -> None:
     run.add_argument("--decoding", choices=("training", "evaluation"), default="evaluation")
     run.add_argument("--solo", type=Path)
     run.add_argument("--native-concurrency", type=int, help="Optional native-word execution concurrency; size GPU memory accordingly")
+    run.add_argument("--shard", help="START:END problem range saved separately; rerun without it to merge")
+    run.add_argument("--decode-graphs", action="store_true", help="vLLM decode-only CUDA graphs")
+    run.add_argument("--batch-problems", type=int, help="Native-word problems queued per saved shard batch")
     select = sub.add_parser("select")
     select.add_argument("--root", type=Path, required=True)
     panel = sub.add_parser("panel")
@@ -227,6 +230,12 @@ def evaluate(args) -> None:
                 command += ["--decoding", args.decoding]
                 if args.native_concurrency is not None:
                     command += ["--concurrency", str(args.native_concurrency)]
+                if args.batch_problems is not None:
+                    command += ["--batch-problems", str(args.batch_problems)]
+        if args.shard:
+            command += ["--shard", args.shard]
+        if args.decode_graphs:
+            command += ["--decode-graphs"]
     subprocess.run(command, check=True)
 
 

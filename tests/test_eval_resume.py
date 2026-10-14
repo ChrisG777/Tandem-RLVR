@@ -118,6 +118,35 @@ class EvaluationResume(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "inputs differ"):
                 common.load_progress(out, {"model": "a"}, [{**problems[0], "content": "changed"}])
 
+    def test_complete_shards_extend_saved_prefix_in_order(self):
+        problems = [{"set": "apps", "idx": i, "content": str(i)} for i in range(6)]
+        identity = {"model": "a", "max_num_seqs": 8}
+        gen = lambda p: {"set": p["set"], "idx": p["idx"], "correct": [1.0]}
+        with tempfile.TemporaryDirectory() as tmp:
+            out = str(Path(tmp) / "word.json")
+            path, progress = common.load_progress(out, identity, problems, batch_size=1)
+            progress["gens"] = [gen(problems[0])]
+            common.save_json(path, progress)
+            for start, end, seqs in ((3, 6, 32), (1, 3, 24)):
+                shard_path, shard, todo = common.open_progress(
+                    out, {**identity, "max_num_seqs": seqs}, problems, batch_size=4,
+                    shard=f"{start}:{end}", execution={"max_num_seqs": seqs})
+                self.assertEqual([p["idx"] for p in todo], list(range(start, end)))
+                shard["gens"] = [gen(p) for p in todo]
+                common.save_json(shard_path, shard)
+            with self.assertRaisesRegex(ValueError, "Shard inputs differ"):
+                common.open_progress(out, identity, problems, batch_size=4, shard="3:6",
+                                     execution={"max_num_seqs": 8})
+            other = {**identity, "model": "b"}
+            _, unrelated, _ = common.open_progress(out + ".other", other, problems, batch_size=1)
+            self.assertEqual(unrelated["gens"], [])
+            _, merged = common.load_progress(out, identity, problems, batch_size=1)
+            self.assertEqual([g["idx"] for g in merged["gens"]], list(range(6)))
+            self.assertEqual([s["start"] for s in merged["shards"]], [1, 3])
+            self.assertEqual(merged["shards"][0]["execution"], {"max_num_seqs": 24, "batch_size": 4})
+            _, reloaded = common.load_progress(out, identity, problems, batch_size=1)
+            self.assertEqual(len(reloaded["gens"]), 6)
+
 
 if __name__ == "__main__":
     unittest.main()

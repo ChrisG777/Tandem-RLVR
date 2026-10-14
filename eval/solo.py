@@ -23,29 +23,37 @@ def main():
 
     sets = common.parse_sets(args.benchmarks)
     problems = common.load_problems(sets, args.limit)
-    progress_path, progress = common.load_progress(args.out, {
+    progress_path, progress, todo = common.open_progress(args.out, {
         **common.evaluation_identity(problems),
         "phase": "solo", "model": args.model, "n": args.n,
         "sampling": config.record(), "seed": 17,
-    }, problems)
+    }, problems, shard=args.shard, execution={"decode_graphs": args.decode_graphs})
     tok = AutoTokenizer.from_pretrained(args.model)
-    llm = common.build_engine(args.model, args.gpu_util)
+    llm = None
 
     gens = progress["gens"]
-    for start in range(len(gens), len(problems), common.EVAL_BATCH_SIZE):
-        batch = problems[start:start + common.EVAL_BATCH_SIZE]
+    for start in range(len(gens), len(todo), common.EVAL_BATCH_SIZE):
+        llm = llm or common.build_engine(args.model, args.gpu_util, decode_graphs=args.decode_graphs)
+        batch = todo[start:start + common.EVAL_BATCH_SIZE]
         prompts = [common.chat_prefix(tok, p["content"]) for p in batch]
         eligible = [not common.overlength(tok, pr) for pr in prompts]
         outs = iter(llm.generate([pr for pr, ok in zip(prompts, eligible) if ok], config.sampling_params(n=args.n, seed=17)) if any(eligible) else [])
-        for p, ok in zip(batch, eligible):
-            completions = next(outs).outputs if ok else []
-            texts = [c.text for c in completions] if ok else [""] * args.n
-            details = [common.grade_details(t, p["gt"], p.get("data_source", "math")) for t in texts] if ok else [{"acc": 0.0, "overlength": 1.0}] * args.n
+        completions = [next(outs).outputs if ok else [] for ok in eligible]
+        details = iter(common.grade_many([(c.text, p["gt"], p.get("data_source", "math"))
+                                          for p, cs in zip(batch, completions) for c in cs]))
+        for p, ok, cs in zip(batch, eligible, completions):
+            texts = [c.text for c in cs] if ok else [""] * args.n
+            graded = [next(details) for _ in cs] if ok else [{"acc": 0.0, "overlength": 1.0}] * args.n
             gens.append({"set": p["set"], "idx": p["idx"], "task_id": p.get("task_id"),
-                         "texts": texts, "correct": [d["acc"] for d in details], "diagnostics": details,
-                         "samples": [{"n_tokens": len(getattr(c, "token_ids", [])), "finish_reason": getattr(c, "finish_reason", None)} for c in completions],
+                         "texts": texts, "correct": [d["acc"] for d in graded], "diagnostics": graded,
+                         "samples": [{"n_tokens": len(getattr(c, "token_ids", [])), "finish_reason": getattr(c, "finish_reason", None)} for c in cs],
                          "overlength": not ok})
         common.save_json(progress_path, progress)
+    if args.shard:
+        print(f"SOLO shard {args.shard} complete: {len(gens)} problems", flush=True)
+        return
+    if len(gens) != len(problems):
+        raise ValueError("Incomplete solo evaluation")
     counts = [int(sum(g["correct"])) for g in gens]
 
     result = {
@@ -58,6 +66,7 @@ def main():
         "sampling": config.record(),
         "batch_size": common.EVAL_BATCH_SIZE,
         "coverage": common.coverage(gens),
+        "shards": progress.get("shards", []),
         "metrics": common.metrics_by_set(problems, counts, args.n),
         "gens": gens,
     }
