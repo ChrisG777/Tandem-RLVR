@@ -42,6 +42,27 @@ verified grader/data mirror (`apps-eval-mirror-20261013`), but it lacks the
 step-200 checkpoints and its preemptible queue forecast was about a day, so no
 Engaging shards were submitted.
 
+Results (2026-10-14): all eight step-200 outputs are complete under
+`results/{grpo,tandem}/`; each pass@k result covers all 4,000 test problems after
+absorbing its shards. Macro averages over the introductory and interview tiers:
+
+| Step 200 | pass@1 | pass@4 | pass@8 |
+|---|---|---|---|
+| GRPO solo (n=32) | 0.568 | 0.685 | 0.723 |
+| Tandem solo (n=32) | 0.539 | 0.652 | 0.690 |
+| GRPO + junior, paragraph handoff | 0.566 | 0.685 | 0.725 |
+| Tandem + junior, paragraph handoff | 0.547 | 0.667 | 0.707 |
+| GRPO + junior, word handoff | 0.561 | 0.694 | 0.736 |
+| Tandem + junior, word handoff | 0.553 | 0.686 | 0.728 |
+
+Solo pass@32 is 0.775 (GRPO) and 0.746 (Tandem). Word-handoff senior token
+fractions are 0.500 (GRPO) and 0.502 (Tandem). Junior cross-entropy on solo
+responses (128,000 CoTs each) is 0.159 nats for GRPO and 0.147 for Tandem.
+Merges ran as 1-GPU jobs on Torralba RTX 3090s after `tig-cpu` forecast starts
+over a day away at 1 CPU/12 GB; each took 1-4 minutes. Overnight, shards
+preempted onto H200s were rejected on resume because 14 sequences differed from
+their recorded 8; the wrapper now reuses a shard's recorded concurrency.
+
 Grader fix (2026-10-14): two shards (Tandem handoff 1000:1600 and solo 2857:3429)
 stopped on `TimeoutError: APPS test timeout` reported as an infrastructure error.
 The pinned checker returns call-based wrong answers without cancelling its 5 s
