@@ -78,18 +78,19 @@ English-expansion tests are a follow-up, not implemented by this pilot chain.
 ## Interfaces and execution
 
 - `build_dataset(task, out_dir, seed, ruletaker_source)` in
-  [the builder](../data/build_concept_pilot.py) writes immutable splits using
+  [the builder](../experiments/shorthand/build_concept_pilot.py) writes immutable splits using
   upstream oracles; it rejects revision drift and existing output directories.
-- [Reward](../reward/shorthand_reward.py) retains binary `acc`; fractional
+- [Reward](../experiments/shorthand/shorthand_reward.py) retains binary `acc`; fractional
   RuleTaker `score`/`query_accuracy` never changes exact `pass_at_n` semantics.
-- [Submit](../slurm/submit-concept-pilot.sh) takes one task, existing calibration
-  job ID, prepared paths and live-validated CSAIL partition lists; it submits
+- The [current submit interface](../experiments/shorthand/submit.sh) takes tasks,
+  two budgets, a calibration job ID, prepared paths and explicit site resources
+  ([inputs](WORKFLOWS.md#pilot-submission)); for one task, it submits
   two training jobs → CPU checks → matched evaluations → blinded review, plus
   base evaluations. Its submission lock prevents duplicate chains.
-- [Calibration check](../train/check_shorthand.py) verifies scores, all data
+- [Calibration check](../experiments/shorthand/check_shorthand.py) verifies scores, all data
   hashes and prompt limits before writing `calibration/verified.json`.
 
-Generate with `uv run --project env/shorthand-data python data/build_concept_pilot.py
+Generate with `uv run --project experiments/shorthand/env python experiments/shorthand/build_concept_pilot.py
 --task TASK --out-dir data/concept-pilot/TASK`; RuleTaker additionally needs
 `--ruletaker-source PATH` to the pinned upstream checkout. The dedicated uv
 project is used only for data preparation, not cluster training environments.

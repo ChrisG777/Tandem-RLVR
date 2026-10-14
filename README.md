@@ -1,98 +1,104 @@
-Reproduce Tandem RLVR: train a senior language model with a frozen junior partner and compare it with solo GRPO across reasoning tasks.
+# Tandem RLVR: reproduction and extensions
 
-## Data and core records
+Does reinforcement learning preserve a model's ability to reason with a weaker partner?
+We compare **solo GRPO** with **Tandem RLVR**, where a trainable senior and frozen junior
+co-write solutions. Only senior-authored tokens receive policy-gradient updates.
 
-| Record | Meaning |
+**Start here:** [Results and caveats](docs/RESULTS.md) ·
+[Every variation, with diagrams](experiments/README.md) ·
+[Setup and job interfaces](docs/WORKFLOWS.md) ·
+[Released checkpoints](#released-checkpoints)
+
+<a id="inspect-results"></a>
+
+## Headline reproduction
+
+The original claim is similar solo accuracy with better junior handoff performance.
+Our completed Qwen3-4B replication reports **similar solo accuracy, but no clear handoff advantage**.
+The diagram shows corrected test **pass@4**, averaged equally across four benchmark groups
+(1,064 problems); pass@4 estimates success in four attempts.
+
+```mermaid
+flowchart TD
+    B["Qwen3-4B + DeepScaleR<br/>200 training updates per arm"]
+    B --> G["Solo GRPO<br/>Selected step 160"]
+    B --> T["Tandem + frozen base junior<br/>Selected step 180"]
+    G --> GR["Solo: 59.46%<br/>Paragraph handoff: 58.25%"]
+    T --> TR["Solo: 59.97%<br/>Paragraph handoff: 57.55%"]
+```
+
+Tandem also reduces marginal token-distribution drift by **15.13%** versus GRPO
+([Figure 3](docs/FIGURE3.md)). These are documented single-seed results: both models
+were trained with an incomplete math verifier, and corrected evaluation cannot undo
+those training rewards. Read the [grading audit](docs/REPRODUCTION_AUDIT.md) before
+interpreting the comparison. [Full result table and evidence availability](docs/RESULTS.md).
+
+<a id="experiment-workflows"></a>
+
+## What each variation tests
+
+Each linked workflow has a compact diagram, its recorded outcome/status, and entrypoints.
+
+| Variation | What changes / what it asks | Details |
+| --- | --- | --- |
+| [Asymmetric pair](experiments/README.md#asymmetric-qwen35-pair) | Start with a 9B senior and 2B junior: does compatibility survive an initial capability gap? | [Protocol](docs/QWEN35_PAIR.md), [pair probe](train/check_pair.py) |
+| [Native word handoff](experiments/README.md#native-word-handoff) | Evaluate the training-time switching schedule and trace who emitted errors or repairs. | [Execution options](docs/WORD_HANDOFF_EXECUTION.md) |
+| [Shorthand and concepts](experiments/README.md#shorthand-and-concepts) | Test whether repeated matrix operations or shared logical deductions develop reusable shorthand. | [Pilot protocols](experiments/README.md#shorthand-and-concepts) |
+| [Length pressure](experiments/README.md#length-pressure) | Add a token cost: does shorter reasoning remain correct? | [Results and mechanism](docs/LENGTH_PENALTY_PILOTS.md) |
+| [Natural-language drift](experiments/README.md#natural-language-drift) | Train small base models on GSM8K using correctness alone; inspect emerging conventions. | [Protocol](docs/NATURAL_DRIFT_PILOT.md) |
+| [Method Atlas and elegance](experiments/README.md#method-atlas-and-elegance) | Reward elegant reasoning, then test generalization to held-out methods. | [Dataset audit](docs/METHOD_AUDIT.md), [RL protocol](docs/ELEGANCE_RL.md) |
+| [APPS coding](experiments/README.md#coding) | Replace math problems with programs checked by executable tests. | [Protocol](docs/APPS.md), [migration recovery](docs/APPS_MIGRATION.md) |
+| [MedCalc](experiments/README.md#medcalc) | Transfer the comparison to verified medical calculations. | [Protocol and launchers](experiments/medcalc/README.md) |
+
+<a id="data-and-core-records"></a>
+<a id="training"></a>
+<a id="evaluation"></a>
+
+## Run the reproduction
+
+Follow [setup and job interfaces](docs/WORKFLOWS.md), then the
+[training protocol](docs/FRESH_TRAINING.md) and [evaluation protocol](docs/FIGURE2.md).
+Site paths and GPU allocations are explicit inputs; the job wrappers handle saved-state resumption.
+
+| Step | What it does | Entry points |
+| --- | --- | --- |
+| 1. Prepare data | Pin the source, make disjoint train/held-out splits, and record hashes. | [Dataset builder and manifest](data/build_deepscaler.py) |
+| 2. Train both arms | Run smoke checks, then matched policy updates; Tandem freezes the junior and masks its loss. | [Submit](slurm/submit-training.sh), [job](slurm/train-figure2.sbatch), [solo GRPO](train/vanilla_grpo.sh), [Tandem](train/tandem_grpo.sh) |
+| 3. Select weights | Check checkpoint integrity and observed validation evidence; write the model manifest. | [Verify](train/figure2_checkpoint.py), [select](eval/select_figure2.py) |
+| 4. Evaluate | Measure solo accuracy, paragraph-handoff accuracy, and junior cross-entropy on saved senior traces. | [Job](slurm/figure2.sbatch), [solo](eval/solo.py), [handoff](eval/handoff.py), [legibility](eval/legibility.py) |
+| 5. Aggregate and audit | Build Figure 2 with bootstrap uncertainty; regrade saved text without losing original grades. | [Figure 2](eval/figure2.py), [regrade](eval/regrade.py), [result format/provenance](eval/common.py) |
+
+Training switches stochastically at **word boundaries**; Figure 2 evaluation alternates
+at **paragraph boundaries**. [Execution options](train/execution.sh) configure the existing
+trainer. [Checkpoint storage](docs/ARCHITECTURE.md#other-fork-changes) separates recovery
+saves from retained evaluation exports with `PERSIST_HF_INTERVAL`.
+
+## Inspect and understand the implementation
+
+| Read or run | What you learn |
 | --- | --- |
-| [Dataset manifest](data/build_deepscaler.py) | Pinned source, disjoint splits, seed, and file hashes. |
-| [Model manifest](eval/select_figure2.py) | Initial senior, optional distinct junior, and selected GRPO/Tandem checkpoints. |
-| [Verified checkpoint](train/figure2_checkpoint.py) | Validation-selected weights, integrity checks, and explicit gaps in training evidence. |
-| [Evaluation result](eval/common.py) | Model/data identity, saved generations, scores, and resumable progress. |
-
-## Training
-
-[build_deepscaler.py](data/build_deepscaler.py) prepares training and held-out data.
-[submit-training.sh](slurm/submit-training.sh) composes smoke checks and full training;
-[train-figure2.sbatch](slurm/train-figure2.sbatch) runs one arm:
-
-```text
-base weights + training split
-→ solo GRPO: senior generates every token
-  or Tandem: senior + frozen junior alternate at word boundaries
-→ task reward → verl GRPO updates the senior's full weights
-→ validation + saved state → verified checkpoint → model manifest
-```
-
-[vanilla_grpo.sh](train/vanilla_grpo.sh) and [tandem_grpo.sh](train/tandem_grpo.sh)
-configure the pinned verl/vLLM forks. Tandem applies the policy loss only at
-senior-authored positions; junior tokens remain context and junior weights stay frozen.
-[verify_training](train/figure2_checkpoint.py) checks training evidence and weights;
-[select_figure2.py](eval/select_figure2.py) writes the evaluation manifest.
-
-The [Qwen3.5 pair](docs/QWEN35_PAIR.md) uses a distinct senior and junior through
-the same interfaces, with a [native compatibility probe](train/check_pair.py).
-[Execution options](train/execution.sh) compose with existing experiment launchers.
-[Checkpoint storage](docs/ARCHITECTURE.md#other-fork-changes) separates
-recovery saves from evaluation exports through `PERSIST_HF_INTERVAL`.
-
-## Evaluation
-
-[figure2.sbatch](slurm/figure2.sbatch) takes a model manifest and benchmark selection:
-
-```text
-initial / trained weights → solo → accuracy
-trained senior + frozen junior → paragraph handoff → accuracy
-senior traces + junior → legibility → cross-entropy
-saved solo / handoff results → aggregate + bootstrap → Figure 2
-```
-
-[solo.py](eval/solo.py), [handoff.py](eval/handoff.py), and
-[legibility.py](eval/legibility.py) save scores and traces.
-[figure2.py](eval/figure2.py) aggregates the benchmark results;
-[regrade.py](eval/regrade.py) rescores saved generations while retaining provenance.
-Training uses native word-level switching; Figure 2 handoff evaluation uses paragraphs.
-
-## Inspect results
-
-[training_progress.py](eval/training_progress.py) turns logs into curves and diagnostics.
-[comparison_browser.py](eval/comparison_browser.py) serves saved evaluations in the
-[trace UI](ui/comparison/). [figure3.py](eval/figure3.py) measures token drift and
-Jensen–Shannon divergence from saved solo outputs.
+| [Training progress](eval/training_progress.py) | Reward, validation, response lengths, truncation, and training health. |
+| [Comparison browser](eval/comparison_browser.py) / [trace UI](ui/comparison/) | Inspect saved responses side by side, including available token authorship. |
+| [Figure 3 analysis](eval/figure3.py) | Measure marginal token drift and Jensen–Shannon divergence from solo outputs. |
+| [Architecture](docs/ARCHITECTURE.md) / [fork patches](third_party/COMMIT_LOG.md) | Follow authorship from the native sampler to the senior-only loss. |
+| [Tests](tests/README.md) | Check switching, loss masking, validation, and aggregation contracts. |
 
 ## Released checkpoints
 
-Trained policies are on Hugging Face at
-[cge7-tandem-rlvr/tandem-rlvr](https://huggingface.co/cge7-tandem-rlvr/tandem-rlvr);
-load one with `subfolder=` set to its row. Tandem rows hold the trained senior only.
+Trained policies are hosted at
+[cge7-tandem-rlvr/tandem-rlvr](https://huggingface.co/cge7-tandem-rlvr/tandem-rlvr).
+Use the listed `subfolder=`; Tandem exports contain the trained senior only.
 
-| Subfolder | Experiment | Base model (senior) | Junior model | Step | Validation pass@4 |
+| Subfolder | Experiment | Senior initialization | Frozen junior | Step | Validation pass@4 |
 | --- | --- | --- | --- | --- | --- |
-| `grpo` | DeepScaleR math reproduction | Qwen3-4B-Instruct-2507 | —- | 160 | 0.674 |
-| `tandem` | DeepScaleR math reproduction | Qwen3-4B-Instruct-2507 | Qwen3-4B-Instruct-2507 | 180 | 0.656 |
-| `qwen35-9b-2b/grpo` | [DeepScaleR math, asymmetric pair](docs/QWEN35_PAIR.md) | Qwen3.5-9B | —- | 200 | 0.752 |
-| `qwen35-9b-2b/tandem` | [DeepScaleR math, asymmetric pair](docs/QWEN35_PAIR.md) | Qwen3.5-9B | Qwen3.5-2B | 200 | 0.694 |
-| `apps/grpo` | [APPS code generation](docs/APPS.md) | Qwen3-4B-Instruct-2507 | —- | 200 | 0.785 |
-| `apps/tandem` | [APPS code generation](docs/APPS.md) | Qwen3-4B-Instruct-2507 | Qwen3-4B-Instruct-2507 | 200 | 0.780 |
+| `grpo` | DeepScaleR reproduction | Qwen3-4B-Instruct-2507 | None | 160 | 0.674 |
+| `tandem` | DeepScaleR reproduction | Qwen3-4B-Instruct-2507 | Qwen3-4B-Instruct-2507 | 180 | 0.656 |
+| `qwen35-9b-2b/grpo` | Asymmetric math | Qwen3.5-9B | None | 200 | 0.752 |
+| `qwen35-9b-2b/tandem` | Asymmetric math | Qwen3.5-9B | Qwen3.5-2B | 200 | 0.694 |
+| `apps/grpo` | APPS coding | Qwen3-4B-Instruct-2507 | None | 200 | 0.785 |
+| `apps/tandem` | APPS coding | Qwen3-4B-Instruct-2507 | Qwen3-4B-Instruct-2507 | 200 | 0.780 |
 
-Validation uses each arm's own rollout protocol, so GRPO and Tandem scores are not
-directly comparable. The repository's `checkpoint_manifest.json` records base
-revisions, selection evidence and SHA-256 hashes.
-
-## Experiment workflows
-
-Each experiment reuses the trainer and supplies its own data and reward:
-
-| Workflow | Inputs → outputs |
-| --- | --- |
-| [APPS coding](docs/APPS.md) | Coding problems → sandboxed reward → matched GRPO/Tandem evaluation; [migration recovery](docs/APPS_MIGRATION.md). |
-| [MedCalc](experiments/medcalc/README.md) | Verified calculation problems → numeric reward → matched training and evaluation. |
-| [Method Atlas](docs/METHOD_AUDIT.md) | Curated method pairs → reviews and executable checks → labeled dataset and audit UI. |
-| [Elegance RL](docs/ELEGANCE_RL.md) | Fixed method holdout → judged reward → matched solo/Tandem training. |
-| [Shorthand and concepts](experiments/README.md#shorthand-and-concepts) | Generated tasks → correctness/length reward → traces and blinded review. |
-| [Natural-language drift](experiments/README.md#natural-language-drift) | GSM8K → correctness-only training → selected checkpoint and traces. |
-| [Native word handoff](experiments/README.md#native-word-handoff) | Senior/junior pair → training-sampler traces and per-token authorship; [execution options](docs/WORD_HANDOFF_EXECUTION.md). |
-
-See [setup and job interfaces](docs/WORKFLOWS.md), [training protocol](docs/FRESH_TRAINING.md),
-[evaluation protocol](docs/FIGURE2.md), and [grading audit](docs/REPRODUCTION_AUDIT.md)
-for operational details. [Architecture](docs/ARCHITECTURE.md),
-[fork patches](third_party/COMMIT_LOG.md), and [tests](tests/README.md) describe the implementation boundaries.
+Validation uses each arm's own rollout protocol, so these columns are **not matched
+test comparisons**. The Hugging Face repository's `checkpoint_manifest.json` records
+base revisions, selection evidence, and SHA-256 hashes. See the
+[experiment guide](experiments/README.md) for which evaluations have reported results.

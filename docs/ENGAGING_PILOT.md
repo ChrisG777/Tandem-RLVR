@@ -260,11 +260,12 @@ Test and longer-composition splits each have 256 problems, four samples at both
 evaluation budgets (seed 17). Eight matched comparisons feed blinded trace review;
 shorter traces alone do not establish jargon. Strings are deferred.
 
-[Submit](../slurm/submit-engaging-pilot.sh) consumes successful setup/calibration
-job IDs and explicit site paths; it queues the CPU calibration/data gate, two
+The [current submit interface](../experiments/shorthand/submit.sh) replaces this
+campaign's site-specific launcher; see [current inputs](WORKFLOWS.md#pilot-submission).
+The campaign queued the CPU calibration/data gate, two
 GPU training arms, two CPU checkpoint checks, base/trained GPU evaluations, and
-a CPU review. Calibration reruns on Engaging to verify the migrated runtime; it
-is not an additional scientific seed. The gate keeps its original thresholds
+a CPU review. Calibration reran on Engaging to verify the migrated runtime; it
+was not an additional scientific seed. The gate kept its original thresholds
 (longer-budget accuracy strictly between 0 and .98, completion at least .5,
 shorter-budget accuracy nonzero) with explicit task/budget parameters.
 
@@ -305,13 +306,15 @@ These are diagnostic calibration results, not extra independent scientific seeds
 Do not launch training until a usable reward signal and completion rate are
 established; the original calibration gate remains intact.
 
-The [CPU setup](../slurm/shorthand-calibration-setup.sh) installs the pinned
-evaluation environment using uv, downloads the pinned base, and verifies the
-saved datasets. The [GPU array](../slurm/shorthand-calibrate.sbatch) has exactly
-two elements: matrix (0) and string (1), one GPU each. It uses stock vLLM 0.19.1
-for solo inference; no Tandem patch or training runtime is required at this stage.
+The historical CPU setup installed the pinned evaluation environment using uv,
+downloaded the pinned base, and verified the saved datasets. The GPU array had
+two elements: matrix (0) and string (1), one GPU each, using stock vLLM 0.19.1
+for solo inference. For new runs, use [setup](../slurm/setup.sh) with
+`PROFILE=inference`, separate model/data preparation, and the
+[pilot evaluator](../experiments/shorthand/slurm/shorthand-eval.sbatch) with
+`PHASE=calibration`; see [current setup and inputs](WORKFLOWS.md).
 
-Required site inputs: `REPO`, `RUN_ROOT`, `DATA_ROOT`, `TANDEM_ENV`, `HF_HOME`,
+Historical site inputs: `REPO`, `RUN_ROOT`, `DATA_ROOT`, `TANDEM_ENV`, `HF_HOME`,
 `UV_CACHE_DIR`, `UV_BIN_DIR`. On Engaging use `mit_general`, CPU partition
 `mit_normal`, GPU partition `mit_normal_gpu`, and an `afterok` dependency on
 setup. Calibration needs one 40 GB-or-larger GPU, four CPUs, 32 GiB RAM and one
