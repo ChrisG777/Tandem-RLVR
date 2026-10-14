@@ -52,6 +52,18 @@ Tandem's marginal token-distribution drift is **15.13% lower** than GRPO's
 incomplete math verifier; corrected evaluation cannot repair those training rewards.
 See the [grading audit](docs/REPRODUCTION_AUDIT.md) and [full results](docs/RESULTS.md).
 
+## Figure 2 reproductions
+
+Pass@k with ±1 bootstrap SE; top row is paragraph handoff with the frozen junior, bottom row is solo.
+
+Qwen3-4B-Instruct-2507 senior and junior ([grading audit](docs/REPRODUCTION_AUDIT.md)):
+
+![Figure 2, Qwen3-4B reproduction](docs/figures/figure2-qwen3-4b.png)
+
+Qwen3.5-9B senior with frozen Qwen3.5-2B junior ([pair notes](docs/QWEN35_PAIR.md)):
+
+![Figure 2, Qwen3.5-9B/2B reproduction](docs/figures/figure2-qwen35-9b-2b.png)
+
 <a id="experiment-workflows"></a>
 <a id="what-each-variation-tests"></a>
 
