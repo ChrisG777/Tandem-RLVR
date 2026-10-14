@@ -47,7 +47,7 @@ The plots use serif fonts and LaTeX text. To regenerate them with matplotlib,
 LaTeX and `dvipng` installed:
 
 ```bash
-python docs/figures/plot_reported_metrics.py
+python3 docs/figures/plot_reported_metrics.py
 ```
 
 These bars supplement the full Figure 2 curves. The pilot chart compares the
