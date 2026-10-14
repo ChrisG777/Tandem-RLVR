@@ -1,6 +1,7 @@
 """Exercise training integrity and validation-only checkpoint selection."""
 import json
 import hashlib
+import importlib.util
 import os
 from pathlib import Path
 import struct
@@ -9,7 +10,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "train"))
-from figure2_checkpoint import VALIDATION, verify_training, verify_resume, record_resume_gap, read_training_records
+from figure2_checkpoint import VALIDATION, verify_training, verify_resume, record_resume_gap, record_saved_checkpoint_gap, read_training_records
 
 
 class TrainingCheckpoint(unittest.TestCase):
@@ -99,6 +100,17 @@ class TrainingCheckpoint(unittest.TestCase):
                 verify_training(root, "tandem", 3)
             verify_training(root, "grpo", 3)
 
+    def test_pruned_losing_weights_do_not_change_selection(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            shutil.rmtree(root / "hf/global_step_1")
+            self.assertEqual(verify_training(root, "tandem", 3)["step"], 2)
+            shutil.rmtree(root / "hf/global_step_2")
+            with self.assertRaises(FileNotFoundError):
+                verify_training(root, "tandem", 3)
+
     def test_truncated_weights_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -134,6 +146,46 @@ class TrainingCheckpoint(unittest.TestCase):
             self.assertEqual(selected["unobserved_metric_steps"], [2])
             self.assertEqual(selected["step"], 3)
             self.assertNotIn(2, read_training_records(root))
+
+    @unittest.skipUnless(importlib.util.find_spec("torch"), "Saved-state tests require the training environment")
+    def test_saved_gap_keeps_metrics_missing_and_checks_exact_snapshot(self):
+        import torch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.gap_fixture(root)
+            data = root / "global_step_2/data.pt"
+            data.parent.mkdir()
+            state = {"_snapshot": {"_snapshot_step": 2,
+                     "_main_snapshot": {"_sampler_iter_yielded": 2}}, "_steps_since_snapshot": 0}
+            torch.save(state, data)
+            receipt = record_saved_checkpoint_gap(root, 2)
+            self.assertEqual(receipt["kind"], "saved_checkpoint")
+            self.assertEqual(verify_training(root, "tandem", 3)["unobserved_metric_steps"], [2])
+            self.assertNotIn(2, read_training_records(root))
+            state["_snapshot"]["_snapshot_step"] = 1
+            torch.save(state, data)
+            with self.assertRaisesRegex(ValueError, "state changed"):
+                verify_training(root, "tandem", 3)
+            with self.assertRaisesRegex(ValueError, "snapshot does not match"):
+                record_saved_checkpoint_gap(root, 2)
+
+    @unittest.skipUnless(importlib.util.find_spec("torch"), "Saved-state tests require the training environment")
+    def test_saved_gap_requires_boundary_and_intact_weights(self):
+        import torch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.gap_fixture(root)
+            data = root / "global_step_2/data.pt"
+            data.parent.mkdir()
+            torch.save({"_snapshot": {"_snapshot_step": 2,
+                        "_main_snapshot": {"_sampler_iter_yielded": 2}}, "_steps_since_snapshot": 0}, data)
+            shard = root / "hf/global_step_2/model.safetensors"
+            shard.write_bytes(shard.read_bytes()[:-1])
+            with self.assertRaisesRegex(ValueError, "Truncated checkpoint"):
+                record_saved_checkpoint_gap(root, 2)
+            (root / "metrics-1-1.jsonl").write_text(json.dumps({"step": 1, "data": {}}))
+            with self.assertRaisesRegex(ValueError, "metric boundary"):
+                record_saved_checkpoint_gap(root, 2)
 
     def test_model_only_resume_log_is_insufficient(self):
         with tempfile.TemporaryDirectory() as directory:

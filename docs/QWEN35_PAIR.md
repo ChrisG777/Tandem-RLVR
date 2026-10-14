@@ -287,3 +287,22 @@ GPU inventory already showed 132,187 MiB used before loading our model, leaving
 about 9 GiB free. No training step completed. Replacement **25556548** retains the
 same settings and broad route, excluding this affected node; the exact command is
 saved in `grpo-full-retry-submission.json`. Tandem `2618075` remains running.
+
+## GRPO Figure 2 evaluation (2026-10-12)
+
+The user confirmed Figure 2's separate benchmark suite as the final evaluation
+scope, rather than the 1,000-row checkpoint-selection split. The selected
+Qwen3.5 GRPO checkpoint is optimized-200 step 200. Solo job **2635580** uses 32
+samples/problem; paragraph-handoff job **2635581** uses the frozen 2B junior and
+8 chains/problem. Both cover all 1,064 shipped benchmark problems, with the
+existing non-thinking prompts, decoding, grading and automatic batch resumption.
+Evaluator source is `5e6c8eb`; paths and commands are recorded in
+`optimized-200/evaluation/grpo-figure2-scope-confirmed-20261012.json`.
+The initially submitted jobs 2635551/2635552 were cancelled during scope review.
+
+`training-overlap-audit.json` reports zero benchmark/train prompt matches after
+whitespace normalization. This is an exact-text check, not semantic or pretraining
+contamination detection. The same audit found 65 distinct prompts shared between
+the training and validation splits: random row splitting did not exclude dataset
+duplicates. Checkpoint selection therefore has this split limitation; these
+matches are absent from the separate Figure 2 benchmark suite.

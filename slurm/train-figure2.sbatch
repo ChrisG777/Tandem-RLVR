@@ -7,6 +7,7 @@
 #SBATCH --mem=160G
 #SBATCH --time=24:00:00
 #SBATCH --requeue
+#SBATCH --open-mode=append
 #SBATCH --signal=B:USR1@300
 #SBATCH --nice=0
 #SBATCH --output=logs/train-%j.out

@@ -19,9 +19,13 @@ def main() -> None:
     parser.add_argument("--steps", type=int)
     parser.add_argument("--mode", choices=("smoke", "full"))
     parser.add_argument("--record-resume-step", type=int)
+    parser.add_argument("--record-saved-step", type=int)
     parser.add_argument("--expected-resume-step", type=int)
     parser.add_argument("--resume-log", type=Path)
     args = parser.parse_args()
+    if args.record_saved_step is not None:
+        print(json.dumps(record_saved_checkpoint_gap(args.root, args.record_saved_step), indent=2))
+        return
     if args.record_resume_step is not None:
         if args.resume_log is None:
             parser.error("--resume-log is required to record evidence")
@@ -84,9 +88,10 @@ def verify_training(root: Path, arm: str, steps: int, *, validation_metric: str 
         raise ValueError("Final held-out validation is missing")
     score, negative_step, checkpoint = max(candidates)
     # Historical exports may be retired after their metrics are archived. Select
-    # from the complete metric history, then require the winning weights: never
-    # silently substitute a worse model when the winner is missing.
+    # from the complete metric history, then require the winning and final weights:
+    # never silently substitute a worse model when the winner is missing.
     verify_weights(checkpoint)
+    verify_weights(root / "hf" / f"global_step_{steps}")
     return {"arm": arm, "path": str(checkpoint.resolve()), "step": -negative_step,
             "validation_metric": validation_metric, "validation_pass4": score,
             "training_steps": steps, "verified": True,
@@ -197,6 +202,35 @@ def record_resume_gap(root: Path, step: int, log: Path) -> dict:
     return evidence
 
 
+
+def record_saved_checkpoint_gap(root: Path, step: int) -> dict:
+    """Record a saved update whose metrics were lost across adjacent attempts.
+
+    Require intact HF weights and the saved dataloader snapshot at exactly step.
+    This proves a saved update, not optimizer/RNG loading or its missing metrics.
+    Use when preemption overwrote the startup log required by record_resume_gap.
+    """
+    attempts = _read_attempts(root)
+    boundary = next(((before.name, after.name)
+                     for (before, old), (after, new) in zip(attempts, attempts[1:])
+                     if old and new and old[-1]["step"] == step - 1 and new[0]["step"] == step + 1), None)
+    if boundary is None:
+        raise ValueError("No adjacent pre/post-resume metric boundary for this gap")
+    data = root / f"global_step_{step}" / "data.pt"
+    evidence = {"kind": "saved_checkpoint", "step": step, "root": str(root.resolve()),
+                "before": boundary[0], "after": boundary[1],
+                "data_sha256": hashlib.sha256(data.read_bytes()).hexdigest(),
+                "limitation": "Saved update verified; metrics, validation and full-state resume loading at this step are unobserved"}
+    _verify_resume_evidence(root, step, evidence)
+    directory = root / "resume-evidence"
+    directory.mkdir(exist_ok=True)
+    path = directory / f"step-{step}.json"
+    temporary = path.with_suffix(".partial")
+    temporary.write_text(json.dumps(evidence, indent=2) + "\n")
+    temporary.replace(path)
+    return evidence
+
+
 def _verify_resume_evidence(root: Path, step: int, evidence: dict) -> None:
     if evidence.get("root") != str(root.resolve()) or evidence.get("step") != step:
         raise ValueError("Resume evidence belongs to another run/step")
@@ -205,6 +239,20 @@ def _verify_resume_evidence(root: Path, step: int, evidence: dict) -> None:
                   if old and new and old[-1]["step"] == step - 1 and new[0]["step"] == step + 1]
     if (evidence.get("before"), evidence.get("after")) not in boundaries:
         raise ValueError("Resume evidence does not match metric attempt boundaries")
+    if evidence.get("kind") == "saved_checkpoint":
+        import torch
+        data = root / f"global_step_{step}" / "data.pt"
+        if hashlib.sha256(data.read_bytes()).hexdigest() != evidence.get("data_sha256"):
+            raise ValueError("Saved dataloader state changed")
+        # These are our own trusted training checkpoints, not arbitrary downloads.
+        state = torch.load(data, map_location="cpu", weights_only=False)
+        snapshot = state.get("_snapshot", {})
+        if (snapshot.get("_snapshot_step") != step
+                or snapshot.get("_main_snapshot", {}).get("_sampler_iter_yielded") != step
+                or state.get("_steps_since_snapshot") != 0):
+            raise ValueError("Saved dataloader snapshot does not match the missing step")
+        verify_weights(root / "hf" / f"global_step_{step}")
+        return
     lines = evidence.get("load_messages", [])
     if len(lines) != 4 or any(not _matches_resume_message(line, message)
                               for message, line in zip(_resume_messages(root, step), lines)):

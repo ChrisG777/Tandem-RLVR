@@ -186,3 +186,14 @@ job **2632052**, source **6f153bf**, uses isolated source at
 response limit, and one eligible 80-GB-or-larger GPU. Automatic requeue and resume
 remain enabled. `judge-fix-relaunch-20261012.json` records the submission.
 The other running arms retain their existing source versions.
+
+## Usage and GPU-memory recovery (2026-10-12)
+
+After the user reset Codex usage limits, both arms passed four fresh live judge
+cases and resumed as Tandem **2635466** from 95 and GRPO **2635467** from 30.
+Source **051e794** limits training and log-probability forwards to two examples.
+Dynamic batching counted real tokens while the model allocated padded logits;
+a mixed-length microbatch attempted an 86-GiB logits allocation. Fixed execution
+microbatches prevent this expansion, while retaining the RL batch, optimizer
+schedule, reward and 3,000-token response limit. Both arms now reject incomplete
+training batches. Submission receipt: `recovery-20261012-usage-memory.json`.

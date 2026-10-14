@@ -324,3 +324,32 @@ The target remains **unproven**. For one GPU, estimate complete-run GPU-hours as
 reported step timer includes them. Keep validation every 20 steps and include
 the actual recovery checkpoint cadence. The absolute step-only limit is 432 s;
 validation and checkpoint overhead require a lower steady-state step time.
+
+## Completed GRPO verification after preemption (2026-10-12)
+
+The 200-step GRPO run saved final weights and validation, but its completion
+check found missing step-160 metrics. The dataloader checkpoint has snapshot
+step 160 and 160 yielded batches; intact HF weights at 160 and adjacent metric
+attempts ending at 159 and starting at 161 remain. Slurm had overwritten the
+startup log on requeue, so full-state loading at 160 cannot be independently
+verified from that log.
+
+[`record_saved_checkpoint_gap(root, step)`](../train/figure2_checkpoint.py)
+(`--record-saved-step`) records this narrower evidence: exact saved dataloader
+snapshot, its SHA-256, intact HF weights, and adjacent attempt boundaries.
+It certifies the saved update, not optimizer/RNG loading. Missing metrics and
+validation remain unavailable and are excluded from checkpoint selection.
+Existing log-based resume qualification still requires all four load messages.
+New training submissions append stdout across requeues to retain that evidence.
+
+Completion also verifies the best observed validation checkpoint and final
+checkpoint after ranking all observed scores. Pruned losing weights need not
+remain on disk; missing winning weights still fail instead of selecting a runner-up.
+For this run, the best observed score is step 200, 0.7523974 pass@4.
+Step-180 metrics were also lost; its surviving log contains all four state-load
+messages, so the existing resume-evidence recorder applies there.
+
+The repaired completion check passed: `selected.json` selects step 200 with
+pass@4 0.7523974 and explicitly records unobserved metric steps `[160, 180]`.
+Sixteen checkpoint tests passed in the cluster training environment. No optimizer
+updates were rerun for this repair.

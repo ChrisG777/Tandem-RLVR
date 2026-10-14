@@ -3,6 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --requeue
+#SBATCH --open-mode=append
 #SBATCH --signal=B:USR1@300
 set -euo pipefail
 if [ "$#" -gt 0 ]; then export "$@"; fi
@@ -83,6 +84,10 @@ bash "$LAUNCHER" 'trainer.logger=[console,file]' data.seed=42 \
   '+data.apply_chat_template_kwargs.enable_thinking=False' \
   actor_rollout_ref.actor.freeze_vision_tower=True \
   actor_rollout_ref.actor.strategy=fsdp2 \
+  actor_rollout_ref.actor.use_dynamic_bsz=False \
+  actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
+  actor_rollout_ref.rollout.log_prob_use_dynamic_bsz=False \
+  actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=2 \
   actor_rollout_ref.actor.fsdp_config.offload_policy=True \
   actor_rollout_ref.model.use_remove_padding=False \
   actor_rollout_ref.rollout.enable_prefix_caching=False \
