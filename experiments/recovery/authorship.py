@@ -68,11 +68,13 @@ def token_bytes(tokenizer) -> dict[int, bytes]:
     except ImportError:  # older transformers
         from transformers.models.gpt2.tokenization_gpt2 import bytes_to_unicode
     decode = {c: b for b, c in bytes_to_unicode().items()}
+    special = set(tokenizer.get_added_vocab().values()) | set(tokenizer.all_special_ids)
     out = {}
     for token, index in tokenizer.get_vocab().items():
         try:
-            out[index] = bytes(decode[c] for c in token)
-        except KeyError:  # special/added tokens are not byte-level pieces
+            # Special/added tokens (e.g. <|im_end|>) are not part of the response text.
+            out[index] = b"" if index in special else bytes(decode[c] for c in token)
+        except KeyError:
             out[index] = b""
     return out
 
