@@ -36,6 +36,10 @@ def main() -> None:
     parser.add_argument("--out", required=True, type=Path, help="output filename stem")
     parser.add_argument("--bootstrap", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=20261004)
+    parser.add_argument("--checkpoints", default="validation-selected checkpoints",
+                        help="Checkpoint description recorded in the score JSON")
+    parser.add_argument("--omit-base", action="store_true",
+                        help="Provisional plot without the base solo curve; labelled on the figure")
     args = parser.parse_args()
     if args.bootstrap < 2:
         parser.error("--bootstrap must be at least 2")
@@ -46,7 +50,8 @@ def main() -> None:
         LABELS.update(base="Initial senior", junior="Frozen junior")
     curves = {}
     protocol_identity = None
-    for phase, arms in (("solo", COLORS), ("handoff", ("grpo", "tandem"))):
+    solo_arms = [arm for arm in COLORS if not (args.omit_base and arm == "base")]
+    for phase, arms in (("solo", solo_arms), ("handoff", ("grpo", "tandem"))):
         curves[phase] = {}
         for arm in arms:
             result = common.load_json(args.results / arm / f"{phase}.json")
@@ -60,11 +65,12 @@ def main() -> None:
             curves[phase][arm] = summarize(result, args.bootstrap, args.seed)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     common.save_json(args.out.with_suffix(".json"), {
-        "protocol": "independently trained validation-selected checkpoints; problem bootstrap within benchmark; bands = 1 SE",
+        "protocol": f"independently trained {args.checkpoints}; problem bootstrap within benchmark; bands = 1 SE",
+        "omitted": ["base solo"] if args.omit_base else [],
         "bootstrap_replicates": args.bootstrap, "bootstrap_seed": args.seed,
         "curves": curves,
     })
-    plot(curves, args.out)
+    plot(curves, args.out, note="Provisional: base-model solo curve pending" if args.omit_base else None)
 
 
 def summarize(result: dict, bootstrap: int = 2000, seed: int = 20261004) -> dict:
@@ -139,9 +145,10 @@ def plot(curves: dict, out: Path, *, note: str | None = None) -> None:
             if col == 0:
                 ax.set_ylabel(f"{phase.capitalize()} pass@k (%)")
             ax.set_xlabel("k")
-    handles = [Line2D([], [], color=c, marker="o", label=LABELS[arm])
-               for arm, c in COLORS.items()]
-    fig.legend(handles=handles, loc="outside upper center", ncol=len(COLORS), frameon=False)
+    plotted = dict.fromkeys(arm for phase in curves.values() for arm in phase)
+    handles = [Line2D([], [], color=COLORS[arm], marker="o", label=LABELS[arm])
+               for arm in COLORS if arm in plotted]
+    fig.legend(handles=handles, loc="outside upper center", ncol=len(handles), frameon=False)
     if note:
         fig.supxlabel(note, fontsize=9)
     fig.savefig(out.with_suffix(".png"), dpi=200)
