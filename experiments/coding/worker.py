@@ -59,17 +59,21 @@ def main() -> None:
         else:
             status = "wrong_answer"
         print(json.dumps({"status": status}))
-    except (SystemExit, KeyboardInterrupt, MemoryError):
+    except (SystemExit, KeyboardInterrupt, MemoryError, OutputLimitExceeded):
         print(json.dumps({"status": "runtime_error"}))
     except BaseException as exc:
         print(json.dumps({"infrastructure_error": f"{type(exc).__name__}: {exc}"}))
+
+
+class OutputLimitExceeded(RuntimeError):
+    """Candidate output exhausted the sandbox's existing output allowance."""
 
 
 class BoundedIO(io.StringIO):
     """Bound candidate/log output before the checker buffers it in host memory."""
     def write(self, text):
         if self.tell() + len(text) > 1024**2:
-            raise RuntimeError("Output limit exceeded")
+            raise OutputLimitExceeded("Output limit exceeded")
         return super().write(text)
 
 

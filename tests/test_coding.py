@@ -327,6 +327,8 @@ class SandboxIntegration(unittest.TestCase):
             ("import os; os._exit(7)", "runtime_error"),
             ("import os; os._exit(0)", "runtime_error"),
             ("while True: pass", "timeout"),
+            ("print('x' * (1024**2))", "runtime_error"),
+            ("import sys; sys.stdout.write('x' * (1024**2)); raise ValueError('after full buffer')", "runtime_error"),
         ]
         gt = json.dumps(normalize_tests({"inputs": ["2\n"], "outputs": ["4\n"]}))
         for code, expected in fixtures:
