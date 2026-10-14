@@ -52,6 +52,18 @@ saved solo / handoff results → aggregate + bootstrap → Figure 2
 [regrade.py](eval/regrade.py) rescores saved generations while retaining provenance.
 Training uses native word-level switching; Figure 2 handoff evaluation uses paragraphs.
 
+## Figure 2 reproductions
+
+Pass@k with ±1 bootstrap SE; top row is paragraph handoff with the frozen junior, bottom row is solo.
+
+Qwen3-4B-Instruct-2507 senior and junior ([grading audit](docs/REPRODUCTION_AUDIT.md)):
+
+![Figure 2, Qwen3-4B reproduction](docs/figures/figure2-qwen3-4b.png)
+
+Qwen3.5-9B senior with frozen Qwen3.5-2B junior ([pair notes](docs/QWEN35_PAIR.md)):
+
+![Figure 2, Qwen3.5-9B/2B reproduction](docs/figures/figure2-qwen35-9b-2b.png)
+
 ## Inspect results
 
 [training_progress.py](eval/training_progress.py) turns logs into curves and diagnostics.
