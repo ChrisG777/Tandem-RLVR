@@ -136,19 +136,6 @@ The hosted `checkpoint_manifest.json` records revisions, selection evidence and 
 <a id="implementation"></a>
 <a id="training-progress"></a>
 
-## Implementation and figure sources
+<a id="implementation-and-figure-sources"></a>
 
-- [Architecture](docs/ARCHITECTURE.md), [fork patches](third_party/COMMIT_LOG.md) and [tests](tests/README.md): sampler, authorship masking and verification.
-- [Execution options](train/execution.sh) and [checkpoint storage](docs/ARCHITECTURE.md#other-fork-changes): runtime settings and recovery.
-- [Training plots](eval/training_progress.py) and [token-drift analysis](eval/figure3.py): regenerate diagnostics from saved outputs.
-- [Comparison browser](eval/comparison_browser.py) and [trace interface](ui/comparison/): inspect saved model responses.
-- [Figure index](docs/figures/README.md): all plots and sources, including the [4B summary bars](docs/figures/qwen3-4b-summary.png), [training curves](results/training-progress/completed-20261008.png), [optimization diagnostics](results/training-progress/completed-diagnostics-20261008.png), [earlier GRPO snapshot](results/training-progress/solo-20261008.png) and [original paper overview](docs/teaser.png). The overview shows the paper's results.
-
-Regenerate both summary bar charts with the shared LaTeX/serif style:
-
-```bash
-python3 docs/figures/plot_reported_metrics.py
-```
-
-This writes PNG and SVG files for the 4B summary and the matrix/RuleTaker pilots.
-[Plotting requirements and sources](docs/figures/README.md#reproducible-summary-plots).
+[Architecture](docs/ARCHITECTURE.md) · [All figures and sources](docs/figures/README.md)
