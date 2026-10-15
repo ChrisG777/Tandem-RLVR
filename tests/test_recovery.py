@@ -3,6 +3,7 @@ import unittest
 
 import numpy as np
 
+from experiments.recovery.agreement import region_features
 from experiments.recovery.authorship import answer_span, sample_features, within_problem_effects
 
 
@@ -33,6 +34,16 @@ class AnswerRegions(unittest.TestCase):
         effects = within_problem_effects(x, y, groups, bootstrap=20, seed=0)
         self.assertGreater(effects["junior_frac_answer"]["pp_per_sd"], 5)
         self.assertLess(abs(effects["switches_per_100_reasoning"]["pp_per_sd"]), 3)
+
+    def test_agreement_counts_surprising_junior_tokens_by_region(self):
+        pieces = {0: b"plan\n", 1: b"```python\n", 2: b"print(", 3: b"2)\n", 4: b"```\n"}
+        senior = (np.log([0.9, 0.9, 0.001, 0.9, 0.9]), np.array([0, 1, 7, 3, 4]))
+        junior = (np.log([0.9, 0.9, 0.9, 0.9, 0.9]), np.array([0, 1, 2, 3, 4]))
+        f = region_features([0, 1, 2, 3, 4], [0, 1, 0, 1, 1], senior, junior, pieces, "apps", 0.01)
+        self.assertEqual((f["answer_tokens"], f["answer_junior_tokens"]), (2, 1))
+        self.assertEqual(f["answer_surprising_junior"], 1)
+        self.assertEqual(f["answer_top_disagree"], 1)
+        self.assertEqual(f["reasoning_surprising_junior"], 0)
 
 
 if __name__ == "__main__":

@@ -119,9 +119,9 @@ def sample_features(token_ids, mask, pieces, domain) -> dict | None:
             "answer_tokens": int(answer.sum()), "reasoning_tokens": int(reasoning.sum())}
 
 
-def within_problem_effects(X, y, groups, bootstrap, seed) -> dict:
-    """Problem-demeaned OLS; coefficients scaled to percentage points per +1 SD."""
-    sd = X.std(axis=0)
+def within_problem_effects(X, y, groups, bootstrap, seed, names=FEATURES, per_sd: bool = True) -> dict:
+    """Problem-demeaned OLS in percentage points per +1 SD (or per +1 unit if not per_sd)."""
+    sd = X.std(axis=0) if per_sd else np.ones(X.shape[1])
     sd[sd == 0] = 1
     problems = np.unique(groups)
     by_problem = {g: np.flatnonzero(groups == g) for g in problems}
@@ -139,7 +139,8 @@ def within_problem_effects(X, y, groups, bootstrap, seed) -> dict:
         chosen = rng.choice(problems, size=len(problems))
         draws.append(fit(np.concatenate([by_problem[g] for g in chosen])))
     se = np.std(draws, axis=0, ddof=1)
-    return {f: {"pp_per_sd": float(e), "se": float(s)} for f, e, s in zip(FEATURES, estimate, se)}
+    unit = "pp_per_sd" if per_sd else "pp_per_unit"
+    return {f: {unit: float(e), "se": float(s)} for f, e, s in zip(names, estimate, se)}
 
 
 if __name__ == "__main__":
