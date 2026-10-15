@@ -1,5 +1,40 @@
 # APPS pilot run: 2026-10-10
 
+## Error-recovery tests: 2026-10-14
+
+Hypothesis: one wrong token is harder to recover from in code than in math.
+Code is [experiments/recovery](../experiments/recovery/); summaries are in
+[figures/recovery](figures/recovery/).
+
+Test 1 (`authorship.py`): within-problem regression of handoff success on the
+junior's share of tokens and author switches inside the answer region (APPS:
+final ```python block; math: last `\boxed{}`) versus the reasoning before it.
+Effects are at most about 1 point per SD on APPS (GRPO/Tandem step 200, base
+calibration); junior share inside code is about zero (−0.25 ± 0.17 GRPO,
+−0.03 ± 0.15 Tandem). Math (Tandem step 180, training decoding) shows −2.35 ±
+0.89 points per SD of reasoning switches. The coin-flip schedule leaves the
+junior share near 50% (SD about 0.07), and the junior is the base model.
+
+Test 2 (`perturb.py`): from 400 correct base-model solo responses per domain,
+one cut in the answer region and one in the reasoning; the next token is
+replaced by another top-20 token sampled by renormalized probability, then four
+continuations are compared with four unperturbed controls from the same prefix.
+
+| Domain | Region | Control | Perturbed | Recovery |
+|---|---|---|---|---|
+| APPS | Reasoning | 75.6% | 76.6% | 1.01 ± 0.02 |
+| APPS | Code block | 97.5% | 84.4% | 0.87 ± 0.02 |
+| Math | Reasoning | 84.6% | 84.1% | 0.99 ± 0.01 |
+| Math | `\boxed{}` | 99.6% | 82.5% | 0.83 ± 0.02 |
+
+Errors in reasoning are fully absorbed in both domains. A forced token inside
+the graded answer costs 13 points of success in code and 17 in math, so code is
+not uniquely unforgiving. In code, replaced words/numbers recover least (0.83),
+then whitespace (0.88) and symbols (0.91); total failures include `print` →
+` print` (indentation) and `<=` → `≤`. The forced alternatives are improbable
+(median probability 3e-9 in code, 3e-4 in APPS reasoning), so such errors are
+rare under sampling. This mechanism does not explain Tandem's solo deficit.
+
 ## Solo gap investigation: 2026-10-14
 
 [Training curves](figures/apps-training-progress.png) (logged metrics only):

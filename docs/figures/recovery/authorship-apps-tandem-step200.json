@@ -1,0 +1,44 @@
+{
+ "domain": "apps",
+ "samples": 32000,
+ "with_answer_region": 29089,
+ "senior": "/data/vision/torralba/u/chrisge/tandem-rlvr/apps-optimized-20261011/tandem-full/hf/global_step_200",
+ "decoding": {
+  "temperature": 0.7,
+  "top_p": 0.8,
+  "top_k": 20,
+  "max_tokens": 6000
+ },
+ "feature_means": {
+  "junior_frac_answer": 0.4992258189884448,
+  "junior_frac_reasoning": 0.49996529124426686,
+  "switches_per_100_answer": 27.226316078875076,
+  "switches_per_100_reasoning": 29.380095588904226
+ },
+ "feature_sds": {
+  "junior_frac_answer": 0.07994541215519786,
+  "junior_frac_reasoning": 0.04331014703531268,
+  "switches_per_100_answer": 5.118834832794563,
+  "switches_per_100_reasoning": 4.131823331218382
+ },
+ "success_rate": 0.5381415655402386,
+ "effects": {
+  "junior_frac_answer": {
+   "pp_per_sd": -0.029441165497674913,
+   "se": 0.14758790243580436
+  },
+  "junior_frac_reasoning": {
+   "pp_per_sd": -0.6630765169511718,
+   "se": 0.22175462425278802
+  },
+  "switches_per_100_answer": {
+   "pp_per_sd": 0.16716127784721146,
+   "se": 0.23120458819192852
+  },
+  "switches_per_100_reasoning": {
+   "pp_per_sd": -0.7264176991829608,
+   "se": 0.29239118344414194
+  }
+ },
+ "source": "/data/vision/torralba/u/chrisge/tandem-rlvr/apps-optimized-20261011/results/tandem/word-handoff.json"
+}

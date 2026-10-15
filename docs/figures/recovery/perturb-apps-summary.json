@@ -1,0 +1,55 @@
+{
+ "model": "/data/vision/torralba/u/chrisge/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554",
+ "domain": "apps",
+ "n": 4,
+ "regions": {
+  "reasoning": {
+   "cuts": 399,
+   "control_success": 0.7556390977443609,
+   "perturbed_success": 0.7662907268170426,
+   "recovery": 1.0140961857379767,
+   "se": {
+    "control": 0.01822728023660878,
+    "perturbed": 0.017561017870899667,
+    "recovery": 0.015193738788193537
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 275,
+     "control": 0.7627272727272727,
+     "perturbed": 0.7645454545454545
+    },
+    "rank3+": {
+     "cuts": 108,
+     "control": 0.7546296296296297,
+     "perturbed": 0.7870370370370371
+    }
+   },
+   "median_alt_prob": 0.00020342607212999405
+  },
+  "answer": {
+   "cuts": 400,
+   "control_success": 0.975,
+   "perturbed_success": 0.84375,
+   "recovery": 0.8653846153846154,
+   "se": {
+    "control": 0.006007909868380749,
+    "perturbed": 0.016896085848014965,
+    "recovery": 0.016742556281152204
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 305,
+     "control": 0.9770491803278688,
+     "perturbed": 0.860655737704918
+    },
+    "rank3+": {
+     "cuts": 93,
+     "control": 0.967741935483871,
+     "perturbed": 0.7849462365591398
+    }
+   },
+   "median_alt_prob": 3.398267819495071e-09
+  }
+ }
+}

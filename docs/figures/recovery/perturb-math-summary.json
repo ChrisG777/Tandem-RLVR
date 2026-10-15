@@ -1,0 +1,55 @@
+{
+ "model": "/data/vision/torralba/u/chrisge/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554",
+ "domain": "math",
+ "n": 4,
+ "regions": {
+  "reasoning": {
+   "cuts": 400,
+   "control_success": 0.84625,
+   "perturbed_success": 0.840625,
+   "recovery": 0.9933530280649926,
+   "se": {
+    "control": 0.015653238861199525,
+    "perturbed": 0.015785613224777957,
+    "recovery": 0.00943783224872151
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 309,
+     "control": 0.8389967637540453,
+     "perturbed": 0.8341423948220065
+    },
+    "rank3+": {
+     "cuts": 78,
+     "control": 0.8910256410256411,
+     "perturbed": 0.8814102564102564
+    }
+   },
+   "median_alt_prob": 5.3157852544244216e-08
+  },
+  "answer": {
+   "cuts": 400,
+   "control_success": 0.99625,
+   "perturbed_success": 0.825,
+   "recovery": 0.8281053952321205,
+   "se": {
+    "control": 0.002862981040732675,
+    "perturbed": 0.01807828338189529,
+    "recovery": 0.017871867235553337
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 311,
+     "control": 0.9967845659163987,
+     "perturbed": 0.8207395498392283
+    },
+    "rank3+": {
+     "cuts": 88,
+     "control": 1.0,
+     "perturbed": 0.8494318181818182
+    }
+   },
+   "median_alt_prob": 2.5946094982764667e-11
+  }
+ }
+}
