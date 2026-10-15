@@ -63,22 +63,27 @@ def score(args) -> list[dict]:
         prompt = tok.encode(common.chat_prefix(tok, problems[g["idx"]]["content"]), add_special_tokens=False)
         for sample, correct in zip(g["samples"], g["correct"]):
             work.append((g["idx"], float(correct), prompt, sample["token_ids"], sample["model_mask"]))
+    # One model at a time keeps memory to one 4B model (~15 GiB), so 24 GiB cards suffice.
     # Prompt log-probs materialize full-vocabulary logits per prefill chunk; keep chunks small.
-    engines = {role: common.build_engine(path, 0.42, max_num_batched_tokens=4096, max_model_len=common.MAX_MODEL_LEN)
-               for role, path in (("senior", args.senior), ("junior", args.junior))}
     params = SamplingParams(temperature=0, max_tokens=1, prompt_logprobs=1)
+    scored = {}
+    for role, path in (("senior", args.senior), ("junior", args.junior)):
+        llm = common.build_engine(path, 0.85, max_num_batched_tokens=4096, max_model_len=common.MAX_MODEL_LEN)
+        scored[role] = []
+        for start in range(0, len(work), CHUNK):
+            chunk = work[start:start + CHUNK]
+            prompts = [TokensPrompt(prompt_token_ids=p + r) for _, _, p, r, _ in chunk]
+            scored[role] += [extract(o, len(p), r) for o, (_, _, p, r, _)
+                             in zip(llm.generate(prompts, params, use_tqdm=False), chunk)]
+            print(f"{role}: scored {min(start + CHUNK, len(work))}/{len(work)} responses", flush=True)
+        llm.llm_engine.engine_core.shutdown()
+        del llm
     rows = []
-    for start in range(0, len(work), CHUNK):
-        chunk = work[start:start + CHUNK]
-        prompts = [TokensPrompt(prompt_token_ids=p + r) for _, _, p, r, _ in chunk]
-        scored = {role: [extract(o, len(p), r) for o, (_, _, p, r, _) in zip(llm.generate(prompts, params, use_tqdm=False), chunk)]
-                  for role, llm in engines.items()}
-        for k, (idx, correct, _, response, mask) in enumerate(chunk):
-            features = region_features(response, mask, scored["senior"][k], scored["junior"][k],
-                                       pieces, args.domain, args.surprise)
-            if features is not None:
-                rows.append({"problem": idx, "correct": correct, **features})
-        print(f"scored {min(start + CHUNK, len(work))}/{len(work)} responses", flush=True)
+    for k, (idx, correct, _, response, mask) in enumerate(work):
+        features = region_features(response, mask, scored["senior"][k], scored["junior"][k],
+                                   pieces, args.domain, args.surprise)
+        if features is not None:
+            rows.append({"problem": idx, "correct": correct, **features})
     return rows
 
 
