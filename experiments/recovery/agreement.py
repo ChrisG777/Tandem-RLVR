@@ -63,7 +63,8 @@ def score(args) -> list[dict]:
         prompt = tok.encode(common.chat_prefix(tok, problems[g["idx"]]["content"]), add_special_tokens=False)
         for sample, correct in zip(g["samples"], g["correct"]):
             work.append((g["idx"], float(correct), prompt, sample["token_ids"], sample["model_mask"]))
-    engines = {role: common.build_engine(path, 0.42, max_model_len=common.MAX_MODEL_LEN)
+    # Prompt log-probs materialize full-vocabulary logits per prefill chunk; keep chunks small.
+    engines = {role: common.build_engine(path, 0.42, max_num_batched_tokens=4096, max_model_len=common.MAX_MODEL_LEN)
                for role, path in (("senior", args.senior), ("junior", args.junior))}
     params = SamplingParams(temperature=0, max_tokens=1, prompt_logprobs=1)
     rows = []
