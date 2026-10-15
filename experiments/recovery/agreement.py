@@ -33,6 +33,9 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--surprise", type=float, default=0.01, help="senior-probability threshold")
     parser.add_argument("--bootstrap", type=int, default=500)
+    parser.add_argument("--gpu-util", type=float, default=0.55,
+                        help="vLLM reservation; prompt log-prob buffers need the remainder")
+    parser.add_argument("--max-batched-tokens", type=int, default=2048)
     parser.add_argument("--out", type=Path, required=True)
     common.add_data_arguments(parser)
     args = parser.parse_args()
@@ -63,12 +66,14 @@ def score(args) -> list[dict]:
         prompt = tok.encode(common.chat_prefix(tok, problems[g["idx"]]["content"]), add_special_tokens=False)
         for sample, correct in zip(g["samples"], g["correct"]):
             work.append((g["idx"], float(correct), prompt, sample["token_ids"], sample["model_mask"]))
-    # One model at a time keeps memory to one 4B model (~15 GiB), so 24 GiB cards suffice.
-    # Prompt log-probs materialize full-vocabulary logits per prefill chunk; keep chunks small.
+    # One model at a time keeps memory to one 4B model, so 24 GiB cards suffice. Prompt
+    # log-probs materialize full-vocabulary logits per prefill chunk outside vLLM's
+    # reservation, so the defaults leave about 10 GiB free and use small chunks.
     params = SamplingParams(temperature=0, max_tokens=1, prompt_logprobs=1)
     scored = {}
     for role, path in (("senior", args.senior), ("junior", args.junior)):
-        llm = common.build_engine(path, 0.85, max_num_batched_tokens=4096, max_model_len=common.MAX_MODEL_LEN)
+        llm = common.build_engine(path, args.gpu_util, max_num_batched_tokens=args.max_batched_tokens,
+                                  max_model_len=common.MAX_MODEL_LEN)
         scored[role] = []
         for start in range(0, len(work), CHUNK):
             chunk = work[start:start + CHUNK]
