@@ -1,0 +1,96 @@
+{
+ "model": "/data/vision/torralba/u/chrisge/tandem-rlvr/final-eval-20261008/tandem-step200",
+ "junior": "/data/vision/torralba/u/chrisge/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554",
+ "domain": "math",
+ "n": 4,
+ "regions": {
+  "reasoning": {
+   "by_senior_probability_of_forced_token": {
+    "<1%": {
+     "cuts": 65,
+     "control": 0.9692307692307692,
+     "perturbed": 0.95,
+     "recovery": 0.9801587301587301
+    },
+    "1-10%": {
+     "cuts": 93,
+     "control": 0.8924731182795699,
+     "perturbed": 0.8682795698924731,
+     "recovery": 0.9728915662650602
+    },
+    ">=10%": {
+     "cuts": 242,
+     "control": 0.8398760330578512,
+     "perturbed": 0.8357438016528925,
+     "recovery": 0.9950799507995081
+    }
+   },
+   "cuts": 400,
+   "control_success": 0.873125,
+   "perturbed_success": 0.861875,
+   "recovery": 0.9871152469577665,
+   "se": {
+    "control": 0.014257690775304947,
+    "perturbed": 0.014638147431922967,
+    "recovery": 0.00951459374489262
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 247,
+     "control": 0.8977732793522267,
+     "perturbed": 0.8866396761133604
+    },
+    "rank3+": {
+     "cuts": 65,
+     "control": 0.8615384615384616,
+     "perturbed": 0.8269230769230769
+    }
+   },
+   "median_alt_prob": 0.1839137637409605
+  },
+  "answer": {
+   "by_senior_probability_of_forced_token": {
+    "<1%": {
+     "cuts": 15,
+     "control": 1.0,
+     "perturbed": 0.8,
+     "recovery": 0.8
+    },
+    "1-10%": {
+     "cuts": 14,
+     "control": 0.9821428571428571,
+     "perturbed": 0.7321428571428571,
+     "recovery": 0.7454545454545455
+    },
+    ">=10%": {
+     "cuts": 19,
+     "control": 0.9210526315789473,
+     "perturbed": 0.6973684210526315,
+     "recovery": 0.7571428571428571
+    }
+   },
+   "cuts": 48,
+   "control_success": 0.9635416666666666,
+   "perturbed_success": 0.7395833333333334,
+   "recovery": 0.7675675675675676,
+   "se": {
+    "control": 0.01663768636022848,
+    "perturbed": 0.060375108388508764,
+    "recovery": 0.05723114631262203
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 42,
+     "control": 0.9761904761904762,
+     "perturbed": 0.75
+    },
+    "rank3+": {
+     "cuts": 3,
+     "control": 1.0,
+     "perturbed": 1.0
+    }
+   },
+   "median_alt_prob": 0.029271852637072757
+  }
+ }
+}

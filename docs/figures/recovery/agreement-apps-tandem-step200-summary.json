@@ -1,0 +1,65 @@
+{
+ "domain": "apps",
+ "senior": "/data/vision/torralba/u/chrisge/tandem-rlvr/apps-optimized-20261011/tandem-full/hf/global_step_200",
+ "junior": "/data/vision/torralba/u/chrisge/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554",
+ "surprise_threshold": 0.01,
+ "responses": 7245,
+ "problems": 1000,
+ "success_rate": 0.52864044168392,
+ "regions": {
+  "answer": {
+   "tokens_per_response": 255.60110420979987,
+   "junior_tokens_per_response": 127.6984126984127,
+   "surprising_junior_per_response": 0.23588681849551416,
+   "surprising_senior_per_response": 0.024844720496894408,
+   "surprising_junior_rate": 0.0018472180938741319,
+   "top_choice_disagreement_rate": 0.015458222407024403,
+   "responses_with_any_surprising_junior": 0.17156659765355417
+  },
+  "reasoning": {
+   "tokens_per_response": 1920.008971704624,
+   "junior_tokens_per_response": 956.1798481711526,
+   "surprising_junior_per_response": 5.5289164941338855,
+   "surprising_senior_per_response": 1.2040027605244996,
+   "surprising_junior_rate": 0.00578229765530912,
+   "top_choice_disagreement_rate": 0.051547162513977784,
+   "responses_with_any_surprising_junior": 0.9853692201518288
+  }
+ },
+ "effects_pp_per_token": {
+  "answer_surprising_junior": {
+   "pp_per_unit": -0.1548878998085989,
+   "se": 0.6285389453589733
+  },
+  "reasoning_surprising_junior": {
+   "pp_per_unit": -0.22674510542322318,
+   "se": 0.09732976403510228
+  },
+  "answer_junior_tokens": {
+   "pp_per_unit": -0.007862158447800187,
+   "se": 0.0030193158472475662
+  },
+  "reasoning_junior_tokens": {
+   "pp_per_unit": -0.0009501080701180848,
+   "se": 0.0009328106393148647
+  }
+ },
+ "success_by_surprising_junior_answer_tokens": {
+  "0": {
+   "responses": 6002,
+   "success": 0.5204931689436855
+  },
+  "1": {
+   "responses": 957,
+   "success": 0.5726227795193313
+  },
+  "2-3": {
+   "responses": 255,
+   "success": 0.592156862745098
+  },
+  "4+": {
+   "responses": 31,
+   "success": 0.22580645161290322
+  }
+ }
+}

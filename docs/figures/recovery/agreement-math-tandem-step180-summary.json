@@ -1,0 +1,57 @@
+{
+ "domain": "math",
+ "senior": "/data/vision/torralba/u/chrisge/tandem-rlvr/selected-eval-20261008/tandem-step180",
+ "junior": "/data/vision/torralba/u/chrisge/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554",
+ "surprise_threshold": 0.01,
+ "responses": 5927,
+ "problems": 890,
+ "success_rate": 0.7511388560823351,
+ "regions": {
+  "answer": {
+   "tokens_per_response": 9.67403408132276,
+   "junior_tokens_per_response": 4.810865530622575,
+   "surprising_junior_per_response": 0.024295596423148304,
+   "surprising_senior_per_response": 0.015353467184072886,
+   "surprising_junior_rate": 0.00505015080311426,
+   "top_choice_disagreement_rate": 0.01356866301580104,
+   "responses_with_any_surprising_junior": 0.024295596423148304
+  },
+  "reasoning": {
+   "tokens_per_response": 1158.5237050784544,
+   "junior_tokens_per_response": 577.9601822169732,
+   "surprising_junior_per_response": 3.623755694280412,
+   "surprising_senior_per_response": 0.5458073224228108,
+   "surprising_junior_rate": 0.006269905446392863,
+   "top_choice_disagreement_rate": 0.03801781675567278,
+   "responses_with_any_surprising_junior": 0.921882908722794
+  }
+ },
+ "effects_pp_per_token": {
+  "answer_surprising_junior": {
+   "pp_per_unit": -1.4317876737210125,
+   "se": 2.298767035498326
+  },
+  "reasoning_surprising_junior": {
+   "pp_per_unit": 0.10771918212222176,
+   "se": 0.15272355159750103
+  },
+  "answer_junior_tokens": {
+   "pp_per_unit": 0.06080145607037826,
+   "se": 0.08078408083067257
+  },
+  "reasoning_junior_tokens": {
+   "pp_per_unit": 0.0030915173601411957,
+   "se": 0.003306394546167897
+  }
+ },
+ "success_by_surprising_junior_answer_tokens": {
+  "0": {
+   "responses": 5783,
+   "success": 0.7546256268372817
+  },
+  "1": {
+   "responses": 144,
+   "success": 0.6111111111111112
+  }
+ }
+}

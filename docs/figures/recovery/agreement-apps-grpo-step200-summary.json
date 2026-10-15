@@ -1,0 +1,65 @@
+{
+ "domain": "apps",
+ "senior": "/data/vision/torralba/u/chrisge/tandem-rlvr/apps-optimized-20261011/grpo-full/hf/global_step_200",
+ "junior": "/data/vision/torralba/u/chrisge/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554",
+ "surprise_threshold": 0.01,
+ "responses": 6977,
+ "problems": 997,
+ "success_rate": 0.5539630213558836,
+ "regions": {
+  "answer": {
+   "tokens_per_response": 298.75648559552815,
+   "junior_tokens_per_response": 149.69714777124838,
+   "surprising_junior_per_response": 0.6074243944388705,
+   "surprising_senior_per_response": 0.12641536476995843,
+   "surprising_junior_rate": 0.004057688496290346,
+   "top_choice_disagreement_rate": 0.02188230417611772,
+   "responses_with_any_surprising_junior": 0.36777984807223735
+  },
+  "reasoning": {
+   "tokens_per_response": 2044.6872581338685,
+   "junior_tokens_per_response": 1021.4400171993693,
+   "surprising_junior_per_response": 8.5859251827433,
+   "surprising_senior_per_response": 1.3462806363766662,
+   "surprising_junior_rate": 0.008405706686805339,
+   "top_choice_disagreement_rate": 0.05535363884337789,
+   "responses_with_any_surprising_junior": 0.9964167980507381
+  }
+ },
+ "effects_pp_per_token": {
+  "answer_surprising_junior": {
+   "pp_per_unit": -0.4082871140882109,
+   "se": 0.4784274744680552
+  },
+  "reasoning_surprising_junior": {
+   "pp_per_unit": -0.19662904331620312,
+   "se": 0.08101310992224305
+  },
+  "answer_junior_tokens": {
+   "pp_per_unit": -0.005236671049487526,
+   "se": 0.0029000716981570215
+  },
+  "reasoning_junior_tokens": {
+   "pp_per_unit": -0.0007429757832141861,
+   "se": 0.0010607153841848147
+  }
+ },
+ "success_by_surprising_junior_answer_tokens": {
+  "0": {
+   "responses": 4411,
+   "success": 0.5225572432554976
+  },
+  "1": {
+   "responses": 1702,
+   "success": 0.6081081081081081
+  },
+  "2-3": {
+   "responses": 733,
+   "success": 0.654843110504775
+  },
+  "4+": {
+   "responses": 131,
+   "success": 0.3435114503816794
+  }
+ }
+}

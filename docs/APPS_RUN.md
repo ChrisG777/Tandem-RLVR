@@ -1,5 +1,45 @@
 # APPS pilot run: 2026-10-10
 
+## Junior-intrusion exposure and causal swaps: 2026-10-15
+
+Agreement scoring (`agreement.py`) teacher-forces saved word-handoff responses
+under the step-200 senior and the base junior (APPS: 1,000 random problems × 8;
+math: Tandem step 180, all problems). A junior token is surprising when the
+senior gives it < 1% probability.
+
+| Senior | Answer tokens/response | Surprising junior answer tokens/response | Junior answer tokens surprising | Top-choice disagreement in answer |
+|---|---|---|---|---|
+| APPS Tandem | 256 | 0.24 | 0.18% | 1.6% |
+| APPS GRPO | 299 | 0.61 | 0.41% | 2.2% |
+| Math Tandem `\boxed{}` | 9.7 | 0.024 | 0.51% | 1.4% |
+
+Code answers are 26–30× longer, so responses carry 10–25× more surprising junior
+answer tokens than math. Within problems, each surprising junior code token
+changes success by −0.16 ± 0.63 (Tandem) and −0.41 ± 0.48 points (GRPO); each in
+the reasoning by −0.23 ± 0.10 and −0.20 ± 0.08. Tandem's senior agrees with the
+junior more closely than GRPO's.
+
+Causal swaps (`perturb.py --junior`): in ~400 correct step-200 solo solutions
+per senior, at one disagreement position in the answer and one in the reasoning,
+the junior's top choice replaces the senior's token; the senior continues four
+times, against four unswapped controls.
+
+| Senior | Region | Cuts | Control | Swapped | Recovery |
+|---|---|---|---|---|---|
+| APPS GRPO | Code | 350 | 96.4% | 94.8% | 0.98 ± 0.01 |
+| APPS GRPO | Reasoning | 400 | 78.5% | 75.9% | 0.97 ± 0.02 |
+| APPS Tandem | Code | 276 | 97.6% | 95.2% | 0.98 ± 0.01 |
+| APPS Tandem | Reasoning | 400 | 79.7% | 78.1% | 0.98 ± 0.01 |
+| Math Tandem | `\boxed{}` | 48 | 96.4% | 74.0% | 0.77 ± 0.06 |
+| Math Tandem | Reasoning | 400 | 87.3% | 86.2% | 0.99 ± 0.01 |
+
+Realistic junior intrusions in code cost about 2 points each, including those
+the senior finds surprising (recovery 0.97 GRPO, 0.99 Tandem for < 1% tokens),
+far less than artificial errors (0.87). Math answer disagreements are costly but
+rare. This is consistent with handoff matching solo (GRPO 56.6 vs 56.8; Tandem
+54.7 vs 53.9 pass@1). Junior code intrusions do not explain Tandem's solo gap.
+Summaries: [figures/recovery](figures/recovery/).
+
 ## Error-recovery tests: 2026-10-14
 
 Hypothesis: one wrong token is harder to recover from in code than in math.

@@ -1,0 +1,96 @@
+{
+ "model": "/data/vision/torralba/u/chrisge/tandem-rlvr/apps-optimized-20261011/grpo-full/hf/global_step_200",
+ "junior": "/data/vision/torralba/u/chrisge/.cache/huggingface/hub/models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f17c01a7cc42f958dc650907174af0554",
+ "domain": "apps",
+ "n": 4,
+ "regions": {
+  "reasoning": {
+   "by_senior_probability_of_forced_token": {
+    "<1%": {
+     "cuts": 74,
+     "control": 0.8513513513513513,
+     "perturbed": 0.8243243243243243,
+     "recovery": 0.9682539682539684
+    },
+    "1-10%": {
+     "cuts": 112,
+     "control": 0.78125,
+     "perturbed": 0.7477678571428571,
+     "recovery": 0.9571428571428571
+    },
+    ">=10%": {
+     "cuts": 214,
+     "control": 0.764018691588785,
+     "perturbed": 0.741822429906542,
+     "recovery": 0.9709480122324159
+    }
+   },
+   "cuts": 400,
+   "control_success": 0.785,
+   "perturbed_success": 0.75875,
+   "recovery": 0.9665605095541401,
+   "se": {
+    "control": 0.01676617321846494,
+    "perturbed": 0.01808074957489583,
+    "recovery": 0.01514576177438057
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 267,
+     "control": 0.7846441947565543,
+     "perturbed": 0.7724719101123596
+    },
+    "rank3+": {
+     "cuts": 85,
+     "control": 0.7852941176470588,
+     "perturbed": 0.7147058823529412
+    }
+   },
+   "median_alt_prob": 0.11918742465533938
+  },
+  "answer": {
+   "by_senior_probability_of_forced_token": {
+    "<1%": {
+     "cuts": 103,
+     "control": 0.9927184466019418,
+     "perturbed": 0.9635922330097088,
+     "recovery": 0.9706601466992665
+    },
+    "1-10%": {
+     "cuts": 99,
+     "control": 0.9873737373737373,
+     "perturbed": 0.9419191919191919,
+     "recovery": 0.9539641943734015
+    },
+    ">=10%": {
+     "cuts": 148,
+     "control": 0.9273648648648649,
+     "perturbed": 0.9408783783783784,
+     "recovery": 1.0145719489981784
+    }
+   },
+   "cuts": 350,
+   "control_success": 0.9635714285714285,
+   "perturbed_success": 0.9478571428571428,
+   "recovery": 0.9836916234247591,
+   "se": {
+    "control": 0.008373154297644408,
+    "perturbed": 0.010381098204260223,
+    "recovery": 0.010150102724650285
+   },
+   "by_alternative_rank": {
+    "rank2": {
+     "cuts": 272,
+     "control": 0.9705882352941176,
+     "perturbed": 0.9485294117647058
+    },
+    "rank3+": {
+     "cuts": 53,
+     "control": 0.9433962264150944,
+     "perturbed": 0.9481132075471698
+    }
+   },
+   "median_alt_prob": 0.07566012146175775
+  }
+ }
+}
