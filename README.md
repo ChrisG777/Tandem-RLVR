@@ -1,141 +1,62 @@
-# Tandem RLVR: replication and extensions
+# Tandem RLVR
 
-We compare solo GRPO with Tandem RLVR: a senior language model learns to solve
-problems alongside a frozen junior. We test whether this preserves solo accuracy
-and produces reasoning the junior can continue.
+**[Final report (PDF)](final_report.pdf)** · **[Model weights on Hugging Face](https://huggingface.co/cge7-tandem-rlvr/tandem-rlvr)**
 
-<a id="headline-reproduction"></a>
-<a id="inspect-results"></a>
-<a id="figure-2-reproductions"></a>
-<a id="results-plots"></a>
+Tandem RLVR trains a senior LLM with GRPO while a frozen junior model writes
+alternating parts of each rollout. Only the senior's tokens are updated. This
+repository reproduces the method on Qwen3-4B and extends it to a Qwen3.5-9B
+senior with a 2B junior, and to coding and shorthand pilots.
 
-<a id="replication-results"></a>
+![Tandem RLVR overview](docs/teaser.png)
 
-## Replication: Qwen3-4B
+## Rerunning the experiments
 
-**Research question:** Does Tandem preserve solo performance while improving handoff to a frozen partner?
+Requirements: Linux, 2 NVIDIA 80 GB GPUs (A100/H100/H200), ~144 GB host RAM, and [`uv`](https://docs.astral.sh/uv/).
+Slurm is optional; the `slurm/` wrappers only add scheduling and resumption.
 
-**TL;DR results: Solo accuracy is similar; Tandem shows no aggregate paragraph-handoff gain in the 4B reproduction.**
+**1. Install** (Python 3.11, pinned patched verl/vLLM; see [docs/INSTALL.md](docs/INSTALL.md)):
 
-Both models start from Qwen3-4B-Instruct-2507. Validation selects GRPO step 160
-and Tandem step 180. The complete, regraded evaluation covers 1,064 problems.
+```bash
+export REPO="$PWD" RUN_ROOT="$PWD/runs" UV_BIN_DIR="$(dirname "$(command -v uv)")"
+TANDEM_ENV="$PWD/.envs/training"  PROFILE=training  PREPARE_FORKS=1 bash slurm/setup.sh
+TANDEM_ENV="$PWD/.envs/inference" PROFILE=inference bash slurm/setup.sh
+```
 
-![Qwen3-4B reproduction: handoff and solo pass@k](docs/figures/figure2-qwen3-4b.png)
+**2. Prepare data** (DeepScaleR: 39,309 train / 1,000 validation rows):
 
-Top: paragraph handoff. Bottom: solo. Bands show ±1 bootstrap standard error.
+```bash
+uv run --no-project --python .envs/training/bin/python python data/build_deepscaler.py --out-dir data/deepscaler
+```
 
-| Corrected macro score | GRPO | Tandem |
-| --- | ---: | ---: |
-| Solo pass@4 | 59.46% | 59.97% |
-| Paragraph handoff pass@4 | 58.25% | 57.55% |
-| Paragraph handoff pass@8 | 61.79% | 60.48% |
+**3. Train both arms** (200 steps; checkpoints in `checkpoints/<run>/hf/global_step_N`):
 
-Tandem's marginal token-distribution drift is **15.13% lower**
-([Figure 3 analysis](docs/FIGURE3.md)). Each arm has one training run; both used
-an incomplete math verifier. Regrading corrects evaluation, not training rewards.
-[Grading audit](docs/REPRODUCTION_AUDIT.md) · [Full results](docs/RESULTS.md)
+```bash
+cp train/env.sh.example train/env.sh   # set TANDEM_ENV_BIN=$PWD/.envs/training/bin
+GPUS=0,1 TOTAL_STEPS=200 bash train/vanilla_grpo.sh
+GPUS=0,1 TOTAL_STEPS=200 bash train/tandem_grpo.sh
+```
 
-<a id="experiment-workflows"></a>
-<a id="what-each-variation-tests"></a>
+Pick each arm's best validation checkpoint (from the logged `val` score), or skip
+training and download ours: `uvx hf download cge7-tandem-rlvr/tandem-rlvr --local-dir released`.
 
-## Extensions
+**4. Evaluate** solo pass@k (32 samples) and paragraph handoff to the frozen junior (8 chains) on AMC, AIME, Minerva and OlympiadBench:
 
-<a id="asymmetric-benchmark-9b-senior--2b-junior"></a>
+```bash
+export PATH="$PWD/.envs/inference/bin:$PATH" JUNIOR=Qwen/Qwen3-4B-Instruct-2507
+python eval/solo.py --model $JUNIOR --out results/figure2/base/solo.json --n 32
+for arm in grpo tandem; do
+  python eval/solo.py --model released/$arm --out results/figure2/$arm/solo.json --n 32
+  python eval/handoff.py --senior released/$arm --junior $JUNIOR --out results/figure2/$arm/handoff.json --n 8
+done
+```
 
-### 1. 9B senior / 2B junior — full benchmark evaluation
+**5. Plot:**
 
-**Research question:** Does Tandem improve a 9B model's handoff to a smaller, frozen 2B partner?
+```bash
+uv run --no-project --python .envs/inference/bin/python python eval/figure2.py \
+  --results results/figure2 --out results/figure2/figure2
+```
 
-**TL;DR results: Tandem improves macro handoff performance while retaining broadly similar solo performance. Handoff gains appear on AMC, AIME and Olympiad, but not Minerva.**
-
-Both Qwen3.5 seniors are evaluated at step 200 on all 1,064 problems, with a
-frozen Qwen3.5-2B handoff partner.
-
-![Qwen3.5-9B/2B reproduction: handoff and solo pass@k](docs/figures/figure2-qwen35-9b-2b.png)
-
-Top: paragraph handoff. Bottom: solo. Bands show ±1 bootstrap standard error.
-
-[Pair setup and results](docs/QWEN35_PAIR.md) ·
-[Workflow](experiments/README.md#asymmetric-qwen35-pair) · [Pair probe](train/check_pair.py)
-
-### 2. Shorthand and length pressure — solo-RL pilots
-
-**Research question:** Can correctness rewards and shorter reasoning encourage reusable shorthand?
-
-**TL;DR results: Training improves task accuracy, but useful opaque shorthand is not established. Adding a length penalty reduces accuracy, especially on matrix tasks.**
-
-![Matrix and RuleTaker pilot accuracy](docs/figures/pilot-summary.png)
-
-One training run per condition; trained policies evaluated at step 100. Matrix
-uses a 3K-token budget; RuleTaker uses 4K and requires all four answers to be correct. These pilots test
-solo RL, with no senior–junior handoff comparison.
-
-[Shorthand and concept pilots](experiments/README.md#shorthand-and-concepts) ·
-[Length-pressure results](docs/LENGTH_PENALTY_PILOTS.md) ·
-[Plot data and code](docs/figures/README.md#reproducible-summary-plots)
-
-### Other work
-
-| Work | Type | Question and recorded outcome |
-| --- | --- | --- |
-| [Native word handoff](experiments/README.md#native-word-handoff) | Partial evaluation | Does the training-time switching schedule help? No clear advantage in the partial comparison. [Details](docs/WORD_HANDOFF_EXECUTION.md). |
-| [Natural-language drift](experiments/README.md#natural-language-drift) | Pilot | Does correctness-only RL change small base models' language? No final results reported. |
-| [Method Atlas](docs/METHOD_AUDIT.md) | Dataset and audit | Can we separate memorized methods from transfer? 374 problems and 1,840 solution paths assembled. |
-| [Elegance RL](docs/ELEGANCE_RL.md) | Training extension | Does rewarding elegant derivations help? Final comparison pending. |
-| [APPS coding](docs/APPS.md) | Domain extension | Does Tandem help on executable program tests? Both policies released; final aggregate evaluation pending. [Migration record](docs/APPS_MIGRATION.md). |
-| [MedCalc](experiments/medcalc/README.md) | Implemented pipeline | Does Tandem help with verified clinical calculations? No empirical results reported. |
-
-[Experiment index](experiments/README.md): workflow diagrams, code and detailed records.
-
-<a id="data-and-core-records"></a>
-<a id="training"></a>
-<a id="evaluation"></a>
-<a id="run-the-reproduction"></a>
-<a id="data-and-evaluation"></a>
-
-<a id="reproduce"></a>
-
-## Data and reproduction
-
-The 4B runs use 200 training updates on DeepScaleR: 39,309 training rows and
-1,000 validation rows. Tandem updates only senior-authored tokens. Training
-switches at word boundaries; the main handoff evaluation switches at paragraphs.
-Evaluation uses 32 solo samples and eight handoff chains per problem across AMC,
-AIME, Minerva and OlympiadBench. Macro scores weight the four benchmarks equally.
-
-[Setup](docs/WORKFLOWS.md) · [Training protocol](docs/FRESH_TRAINING.md) ·
-[Evaluation protocol](docs/FIGURE2.md)
-
-| Step | Entry points |
-| --- | --- |
-| Prepare data | [DeepScaleR builder and manifest](data/build_deepscaler.py) |
-| Train both arms | [Submit jobs](slurm/submit-training.sh), [training job](slurm/train-figure2.sbatch), [GRPO](train/vanilla_grpo.sh), [Tandem](train/tandem_grpo.sh) |
-| Select checkpoints | [Verify weights](train/figure2_checkpoint.py), [select and write model manifest](eval/select_figure2.py) |
-| Evaluate | [Evaluation job](slurm/figure2.sbatch), [solo](eval/solo.py), [paragraph handoff](eval/handoff.py), [junior cross-entropy](eval/legibility.py) |
-| Aggregate results | [Figure 2](eval/figure2.py), [regrade saved answers](eval/regrade.py), [result format](eval/common.py) |
-
-## Released checkpoints
-
-Weights are on [Hugging Face](https://huggingface.co/cge7-tandem-rlvr/tandem-rlvr).
-Use the listed `subfolder=`; Tandem exports contain the trained senior only.
-
-| Subfolder | Senior / frozen junior | Step | Validation pass@4 |
-| --- | --- | ---: | ---: |
-| `grpo` | Qwen3-4B / none | 160 | 0.674 |
-| `tandem` | Qwen3-4B / Qwen3-4B | 180 | 0.656 |
-| `qwen35-9b-2b/grpo` | Qwen3.5-9B / none | 200 | 0.752 |
-| `qwen35-9b-2b/tandem` | Qwen3.5-9B / Qwen3.5-2B | 200 | 0.694 |
-| `apps/grpo` | Qwen3-4B / none | 200 | 0.785 |
-| `apps/tandem` | Qwen3-4B / Qwen3-4B | 200 | 0.780 |
-
-Validation uses each arm's rollout protocol; these are not matched test comparisons.
-The hosted `checkpoint_manifest.json` records revisions, selection evidence and hashes.
-
-<a id="inspect-and-understand-the-implementation"></a>
-
-<a id="implementation"></a>
-<a id="training-progress"></a>
-
-<a id="implementation-and-figure-sources"></a>
-
-[Architecture](docs/ARCHITECTURE.md) · [All figures and sources](docs/figures/README.md)
+Details: [training protocol](docs/FRESH_TRAINING.md) ·
+[evaluation protocol](docs/FIGURE2.md) · [9B/2B pair](docs/QWEN35_PAIR.md) ·
+[other experiments](experiments/README.md) · [results](docs/RESULTS.md).
