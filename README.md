@@ -55,7 +55,6 @@ GPUS=0,1 TOTAL_STEPS=200 bash train/vanilla_grpo.sh
 GPUS=0,1 TOTAL_STEPS=200 bash train/tandem_grpo.sh
 ```
 
-
 **4. Evaluate** solo pass@k (32 samples) and paragraph handoff to the frozen junior (8 chains) on AMC, AIME, Minerva and OlympiadBench:
 
 ```bash
