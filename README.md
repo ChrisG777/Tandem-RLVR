@@ -11,7 +11,6 @@ senior with a 2B junior, and to coding and shorthand pilots.
 
 ## Rerunning the experiments
 
-Requirements: Linux, 2 NVIDIA 80 GB GPUs (A100/H100/H200), ~144 GB host RAM, and [`uv`](https://docs.astral.sh/uv/).
 Slurm is optional; the `slurm/` wrappers only add scheduling and resumption.
 
 **1. Install** (Python 3.11, pinned patched verl/vLLM; see [docs/INSTALL.md](docs/INSTALL.md)):
