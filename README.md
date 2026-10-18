@@ -26,7 +26,7 @@ reward/               Math answer grader
 train/
   vanilla_grpo.sh     GRPO arm
   tandem_grpo.sh      Tandem arm
-  check_pair.py     * 9B/2B pair check
+  check_pair.py     * Pre-training test of 9B/2B co-generation
 eval/
   solo.py             Solo pass@k
   handoff.py          Senior/junior handoff
