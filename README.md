@@ -5,13 +5,33 @@
 Tandem RLVR trains a senior LLM with GRPO while a frozen junior model writes
 alternating parts of each rollout. Only the senior's tokens are updated. This
 repository reproduces the method on Qwen3-4B and extends it to a Qwen3.5-9B
-senior with a 2B junior, and to coding and shorthand pilots.
+senior with a Qwen3.5-2B junior, to a coding dataset, and to a synthesized math
+dataset testing whether Tandem RLVR changes the model's tendency to try highly
+technical versus simpler, bashier solutions. Further details are in the
+[written report](final_report.pdf).
 
 ![Tandem RLVR overview](docs/teaser.png)
 
-## Rerunning the experiments
+*Figure 1 from D. Jiao, R. Singhal, R. West, A. Anderson,
+[Tandem Reinforcement Learning with Verifiable Rewards](https://arxiv.org/abs/2606.28166),
+arXiv:2606.28166, 2026.*
 
-Slurm is optional; the `slurm/` wrappers only add scheduling and resumption.
+## Repository layout
+
+Main additions since forking [CSSLab/Tandem-RLVR](https://github.com/CSSLab/Tandem-RLVR):
+
+| Path | Contents |
+| --- | --- |
+| [`eval/`](eval/) | Checkpoint selection, regrading, Figure 2/3 plots ([`figure2.py`](eval/figure2.py), [`figure3.py`](eval/figure3.py), [`regrade.py`](eval/regrade.py), [`select_figure2.py`](eval/select_figure2.py)) |
+| [`train/`](train/) | Checkpoint verification, Qwen3.5 pair check and profiling ([`figure2_checkpoint.py`](train/figure2_checkpoint.py), [`check_pair.py`](train/check_pair.py)) |
+| [`third_party/`](third_party/) | Updated verl/vLLM Tandem patches (incl. Qwen3.5 support) |
+| [`experiments/coding/`](experiments/coding/) | APPS coding extension: data, sandboxed test reward, evaluation |
+| [`experiments/method_audit/`](experiments/method_audit/), [`experiments/elegance/`](experiments/elegance/) | Synthesized math dataset of technical vs. simple solution methods, and elegance-rewarded RL |
+| [`experiments/shorthand/`](experiments/shorthand/), [`experiments/word_handoff/`](experiments/word_handoff/), [`experiments/drift/`](experiments/drift/), [`experiments/medcalc/`](experiments/medcalc/) | Smaller pilots ([index](experiments/README.md)) |
+| [`slurm/`](slurm/) | Environment setup, cluster job wrappers, preemption-safe resume |
+| [`docs/`](docs/) | Protocols, results and figure sources |
+
+## Rerunning the experiments
 
 **1. Install** (Python 3.11, pinned patched verl/vLLM; see [docs/INSTALL.md](docs/INSTALL.md)):
 
@@ -35,17 +55,19 @@ GPUS=0,1 TOTAL_STEPS=200 bash train/vanilla_grpo.sh
 GPUS=0,1 TOTAL_STEPS=200 bash train/tandem_grpo.sh
 ```
 
-Pick each arm's best validation checkpoint (from the logged `val` score), or skip
-training and download ours: `uvx hf download cge7-tandem-rlvr/tandem-rlvr --local-dir released`.
 
 **4. Evaluate** solo pass@k (32 samples) and paragraph handoff to the frozen junior (8 chains) on AMC, AIME, Minerva and OlympiadBench:
 
 ```bash
 export PATH="$PWD/.envs/inference/bin:$PATH" JUNIOR=Qwen/Qwen3-4B-Instruct-2507
+declare -A CKPT=(
+  [grpo]=checkpoints/vanilla_grpo_qwen3_4b_deepscaler/hf/global_step_160
+  [tandem]=checkpoints/tandem_grpo_qwen3_4b_deepscaler/hf/global_step_180
+)
 python eval/solo.py --model $JUNIOR --out results/figure2/base/solo.json --n 32
 for arm in grpo tandem; do
-  python eval/solo.py --model released/$arm --out results/figure2/$arm/solo.json --n 32
-  python eval/handoff.py --senior released/$arm --junior $JUNIOR --out results/figure2/$arm/handoff.json --n 8
+  python eval/solo.py --model ${CKPT[$arm]} --out results/figure2/$arm/solo.json --n 32
+  python eval/handoff.py --senior ${CKPT[$arm]} --junior $JUNIOR --out results/figure2/$arm/handoff.json --n 8
 done
 ```
 
