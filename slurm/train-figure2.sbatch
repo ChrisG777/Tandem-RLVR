@@ -12,6 +12,8 @@
 #SBATCH --nice=0
 #SBATCH --output=logs/train-%j.out
 set -euo pipefail
+# Outside Slurm: the shell PID names this run and all local CPUs are used.
+SLURM_JOB_ID=${SLURM_JOB_ID:-local-$$} SLURM_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK:-$(nproc)}
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?}"
 export JOB_ENTRYPOINT=slurm/train-figure2.sbatch

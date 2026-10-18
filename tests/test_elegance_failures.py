@@ -48,6 +48,24 @@ class JudgeFailures(unittest.TestCase):
             self.assertEqual(invoke.call_count, 3)
             self.assertEqual(list(Path(tmp).glob('*.json')), [])
 
+    def test_rate_limits_back_off_longer_then_fail_without_caching(self):
+        request = dict(question='Q', candidate='C', answer='A', references=[])
+        error = RuntimeError('Codex failed (1): ERROR: exceeded retry limit, last status: 429 Too Many Requests')
+        with tempfile.TemporaryDirectory() as tmp, patch.object(judge, 'invoke_codex', side_effect=error) as invoke, patch.object(judge.time, 'sleep') as sleep:
+            with self.assertRaisesRegex(RuntimeError, '429'):
+                judge.judge_solution(request, cache=Path(tmp))
+            self.assertEqual(invoke.call_count, len(judge.RATE_LIMIT_WAITS) + 1)
+            self.assertEqual([c.args[0] for c in sleep.call_args_list], list(judge.RATE_LIMIT_WAITS))
+            self.assertEqual(list(Path(tmp).glob('*.json')), [])
+
+    def test_rate_limit_then_success_commits_grade(self):
+        request = dict(question='Q', candidate='C', answer='A', references=[])
+        grade = dict(valid=True, elegant=False, reason='ok')
+        effects = [RuntimeError('last status: 429 Too Many Requests'), (grade, 'v')]
+        with tempfile.TemporaryDirectory() as tmp, patch.object(judge, 'invoke_codex', side_effect=effects), patch.object(judge.time, 'sleep'):
+            self.assertEqual(judge.judge_solution(request, cache=Path(tmp)), grade)
+            self.assertEqual(len(list(Path(tmp).glob('*.json'))), 1)
+
 
 class CompleteTraining(unittest.TestCase):
     def test_guard_before_padding_rejects_failed_or_missing_sessions(self):

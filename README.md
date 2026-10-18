@@ -7,7 +7,7 @@ alternating parts of each rollout. This
 repository reproduces the method on Qwen3-4B and extends it to a Qwen3.5-9B
 senior with a Qwen3.5-2B junior, to a coding dataset, and to a synthesized math
 dataset testing whether Tandem RLVR changes the model's tendency to try highly
-technical versus simpler, bashier solutions. Further details are in the
+elegant versus bashy solutions. Further details are in the
 [written report](final_report.pdf).
 
 ![Tandem RLVR overview](docs/teaser.png)
@@ -36,7 +36,7 @@ eval/
   figure3.py        * Token-drift analysis
 experiments/        *
   coding/             APPS coding
-  method_audit/       Builds elegant vs. technical solution dataset
+  method_audit/       Builds elegant vs. bashy solution dataset
   elegance/           Elegance-rewarded RL
   shorthand/          Failed attempts at inducing jargon via GRPO
 third_party/          verl/vLLM Tandem patches
@@ -44,6 +44,9 @@ slurm/              * Setup and cluster jobs
 ```
 
 ## Rerunning the experiments
+
+We used 80 GB A100/H100 GPUs for the 4B runs and H200s for the 9B and coding
+runs; each training arm took roughly 30–60 GPU-hours.
 
 **1. Install**:
 
@@ -91,11 +94,10 @@ uv run --no-project --python .envs/inference/bin/python python eval/figure2.py \
 
 ### Extensions
 
-The extension launchers are Slurm batch scripts; outside Slurm, run them with
-`bash` and give each run its own `SLURM_JOB_ID`:
+Each extension trains on one GPU:
 
 ```bash
-export REPO=$PWD UV_BIN_DIR=$(dirname $(command -v uv)) SLURM_CPUS_PER_TASK=8 CUDA_VISIBLE_DEVICES=0
+export REPO=$PWD UV_BIN_DIR=$(dirname $(command -v uv)) GPUS=0 CUDA_VISIBLE_DEVICES=0
 TRAIN=$PWD/.envs/training INFER=$PWD/.envs/inference
 PY="uv run --no-project --python $TRAIN/bin/python python"
 ```
@@ -107,18 +109,18 @@ R=$PWD/runs/qwen35
 $PY eval/download_figure2.py --manifest eval/qwen35-models.json --out $R/base.json
 $PY train/assets/build_word_boundary_ids.py --model $(jq -r .base.path $R/base.json) --out $R/word-boundaries.json --write
 for A in grpo tandem; do for M in smoke full; do
-  SLURM_JOB_ID=$A-$M bash slurm/train-figure2.sbatch REPO=$REPO RUN_ROOT=$R DATA_ROOT=$PWD/data \
+  bash slurm/train-figure2.sbatch REPO=$REPO RUN_ROOT=$R DATA_ROOT=$PWD/data \
     TANDEM_ENV=$TRAIN UV_BIN_DIR=$UV_BIN_DIR ARM=$A MODE=$M
 done; done
 $PY eval/select_figure2.py --root $R --out $R/models.json
-SLURM_JOB_ID=eval bash slurm/figure2.sbatch REPO=$REPO TANDEM_ENV=$INFER \
+bash slurm/figure2.sbatch REPO=$REPO TANDEM_ENV=$INFER \
   MODELS_JSON=$R/models.json RESULTS_ROOT=$R/results MODE=full
 ```
 
 **APPS coding** (needs `bwrap` for the test sandbox):
 
 ```bash
-export SLURM_JOB_ID=apps RUN_ROOT=$PWD/runs/apps DATA_ROOT=$PWD/runs/apps/data TANDEM_ENV=$TRAIN
+export RUN_ROOT=$PWD/runs/apps DATA_ROOT=$PWD/runs/apps/data TANDEM_ENV=$TRAIN
 $PY eval/download_figure2.py --out $RUN_ROOT/base.json
 DATA_REVISION=21e74ddf8de1a21436da12e3e653065c5213e9d1 bash experiments/coding/job.sbatch setup
 GRADING_ENV=$INFER bash experiments/coding/interactive.sh   # tests, reward calibration, smokes
@@ -130,16 +132,16 @@ bash experiments/coding/job.sbatch plot
 ```
 
 **Elegance RL** (uses the 9B/2B models from above). The elegance reward is
-judged by GPT-6.1-sol through the [Codex CLI](https://github.com/openai/codex),
-so run `codex login` first:
+judged by GPT-6.1-sol through the Codex CLI, so run `codex login` first:
 
 ```bash
 E=$PWD/runs/elegance
 uv run --no-project --python $INFER/bin/python python -m experiments.elegance.prepare \
   --archive data/method-elegance/dataset.zip --out $E/data
 for A in grpo tandem; do
-  SLURM_JOB_ID=el-$A bash experiments/elegance/job.sbatch REPO=$REPO RUN_ROOT=$E ARM=$A \
+  bash experiments/elegance/job.sbatch REPO=$REPO RUN_ROOT=$E ARM=$A \
     TANDEM_ENV=$TRAIN UV_BIN_DIR=$UV_BIN_DIR INITIALIZATION_ROOT=$R ELEGANCE_DATA=$E/data \
     ELEGANCE_CODEX_BIN=$(command -v codex)
 done
+uv run --no-project --with matplotlib,pandas python experiments/elegance/figure/plot_elegance.py
 ```

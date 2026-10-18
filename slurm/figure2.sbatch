@@ -11,6 +11,8 @@
 #SBATCH --requeue
 #SBATCH --signal=B:USR1@300
 set -euo pipefail
+# Outside Slurm: the shell PID names this run and all local CPUs are used.
+SLURM_JOB_ID=${SLURM_JOB_ID:-local-$$} SLURM_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK:-$(nproc)}
 # Explicit KEY=VALUE arguments also support sbatch --export=NIL on CSAIL.
 if [ "$#" -gt 0 ]; then export "$@"; fi
 cd "${REPO:?set REPO to the git checkout}"
@@ -44,7 +46,9 @@ if [ -n "${CODE_COMMIT:-}" ]; then
 else
     git rev-parse HEAD > "$ROOT/code-${SLURM_JOB_ID}.txt"
 fi
-cp "$ROOT/code-${SLURM_JOB_ID}.txt" "$ROOT/code-commit.txt"
+# Atomic replace: concurrent jobs may share RESULTS_ROOT.
+cp "$ROOT/code-${SLURM_JOB_ID}.txt" "$ROOT/code-commit.txt.${SLURM_JOB_ID}"
+mv -f "$ROOT/code-commit.txt.${SLURM_JOB_ID}" "$ROOT/code-commit.txt"
 cp "${MODELS_JSON:?}" "$ROOT/models-${SLURM_JOB_ID}.json"
 nvidia-smi > "$ROOT/gpus-${SLURM_JOB_ID}.txt"
 MODE=${MODE:-full}
@@ -63,6 +67,8 @@ if [ "$MODE" = junior-solo ] && [ "$PAIR" = 0 ]; then echo "junior-solo requires
 LIMIT=${LIMIT:-0}
 SOLO_N=${SOLO_N:-32}
 HANDOFF_N=${HANDOFF_N:-8}
+# Optional evaluator data options, e.g. "--data-root DIR --benchmarks NAME".
+read -ra EVAL_ARGS <<< "${EVAL_ARGS:-}"
 
 # Individual phases write atomically; a retry reuses only finished phases.
 ARMS=(base grpo tandem)
@@ -79,7 +85,7 @@ for ARM in "${ARMS[@]}"; do
     OUT="$ROOT/$ARM/solo.json"
     if [ ! -f "$OUT" ]; then
         echo "START $ARM solo $(date -u +%FT%TZ)"
-        run_python eval/solo.py --model "$MODEL" --out "$OUT" --n "$SOLO_N" --limit "$LIMIT"
+        run_python eval/solo.py --model "$MODEL" --out "$OUT" --n "$SOLO_N" --limit "$LIMIT" "${EVAL_ARGS[@]}"
     fi
 done
 for ARM in "${HANDOFF_ARMS[@]}"; do
@@ -89,7 +95,7 @@ for ARM in "${HANDOFF_ARMS[@]}"; do
     if [ ! -f "$OUT" ]; then
         echo "START $ARM handoff $(date -u +%FT%TZ)"
         run_python eval/handoff.py --senior "$MODEL" --junior "$JUNIOR" \
-            --out "$OUT" --n "$HANDOFF_N" --limit "$LIMIT"
+            --out "$OUT" --n "$HANDOFF_N" --limit "$LIMIT" "${EVAL_ARGS[@]}"
     fi
 done
 if [ "$MODE" = full ] && [ "$LIMIT" = 0 ] && [ "$SOLO_N" -ge 32 ] && [ "$HANDOFF_N" -ge 8 ]; then

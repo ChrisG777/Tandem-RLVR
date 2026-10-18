@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Validate and calibrate in an existing allocation; never submits another job.
 set -euo pipefail
-: "${SLURM_JOB_ID:?Run inside an existing interactive GPU allocation}"
+SLURM_JOB_ID=${SLURM_JOB_ID:-local-$$}  # outside Slurm, run on a local GPU machine
 cd "${REPO:?}"
 export UV_BIN_DIR=${UV_BIN_DIR:-$(dirname "$(command -v uv)")}
 export APPS_GRADER_RUNTIME=${APPS_GRADER_RUNTIME:-${RUN_ROOT:?}/grader}
