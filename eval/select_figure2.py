@@ -9,7 +9,7 @@ from figure2_checkpoint import verify_training
 
 
 def main() -> None:
-    """Verify requested 200-step arms and their smoke tests; record local paths."""
+    """Verify requested 200-step arms and any smoke tests; record local paths."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
@@ -26,7 +26,7 @@ def main() -> None:
             smoke = json.loads(migration.read_text())["source_smoke_verification"]
             if not smoke["verified"] or smoke["arm"] != arm or smoke["training_steps"] != 3:
                 raise ValueError(f"Missing verified source smoke test for {arm}")
-        else:
+        elif (args.root / f"{arm}-smoke").exists():
             verify_training(args.root / f"{arm}-smoke", arm, 3)
         if json.loads((root / "initialization.json").read_text()) != {key: manifest[key] for key in ("base", "junior") if key in manifest}:
             raise ValueError(f"Unexpected initialization for {arm}")

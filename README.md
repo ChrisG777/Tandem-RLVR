@@ -46,7 +46,7 @@ slurm/              * Setup and cluster jobs
 ## Rerunning the experiments
 
 We used 80 GB A100/H100 GPUs for the 4B runs and H200s for the 9B and coding
-runs; each training arm took roughly 30–60 GPU-hours.
+runs; each training run took roughly 30–60 GPU-hours.
 
 **1. Install**:
 
@@ -70,7 +70,7 @@ GPUS=0,1 TOTAL_STEPS=200 bash train/vanilla_grpo.sh
 GPUS=0,1 TOTAL_STEPS=200 bash train/tandem_grpo.sh
 ```
 
-**4. Evaluate** solo pass@k (32 samples) and paragraph handoff to the frozen junior (8 chains) on AMC, AIME, Minerva and OlympiadBench:
+**4. Evaluate** solo pass@k and paragraph handoff to the frozen junior on AMC, AIME, Minerva and OlympiadBench:
 
 ```bash
 export PATH="$PWD/.envs/inference/bin:$PATH" JUNIOR=Qwen/Qwen3-4B-Instruct-2507
@@ -108,27 +108,26 @@ PY="uv run --no-project --python $TRAIN/bin/python python"
 R=$PWD/runs/qwen35
 $PY eval/download_figure2.py --manifest eval/qwen35-models.json --out $R/base.json
 $PY train/assets/build_word_boundary_ids.py --model $(jq -r .base.path $R/base.json) --out $R/word-boundaries.json --write
-for A in grpo tandem; do for M in smoke full; do
-  bash slurm/train-figure2.sbatch REPO=$REPO RUN_ROOT=$R DATA_ROOT=$PWD/data \
-    TANDEM_ENV=$TRAIN UV_BIN_DIR=$UV_BIN_DIR ARM=$A MODE=$M
-done; done
+for A in grpo tandem; do
+  bash slurm/train-figure2.sbatch RUN_ROOT=$R DATA_ROOT=$PWD/data TANDEM_ENV=$TRAIN ARM=$A MODE=full
+done
 $PY eval/select_figure2.py --root $R --out $R/models.json
-bash slurm/figure2.sbatch REPO=$REPO TANDEM_ENV=$INFER \
-  MODELS_JSON=$R/models.json RESULTS_ROOT=$R/results MODE=full
+bash slurm/figure2.sbatch TANDEM_ENV=$INFER MODELS_JSON=$R/models.json RESULTS_ROOT=$R/results
 ```
 
 **APPS coding** (needs `bwrap` for the test sandbox):
 
 ```bash
 export RUN_ROOT=$PWD/runs/apps DATA_ROOT=$PWD/runs/apps/data TANDEM_ENV=$TRAIN
+J=experiments/coding/job.sbatch
 $PY eval/download_figure2.py --out $RUN_ROOT/base.json
-DATA_REVISION=21e74ddf8de1a21436da12e3e653065c5213e9d1 bash experiments/coding/job.sbatch setup
-GRADING_ENV=$INFER bash experiments/coding/interactive.sh   # tests, reward calibration, smokes
-for A in grpo tandem; do ARM=$A MODE=full bash experiments/coding/job.sbatch train; done
-bash experiments/coding/job.sbatch select
-for A in base grpo tandem; do for P in solo legibility; do ARM=$A EVAL_PHASE=$P bash experiments/coding/job.sbatch evaluate; done; done
-for A in grpo tandem; do for P in handoff word-handoff; do ARM=$A EVAL_PHASE=$P bash experiments/coding/job.sbatch evaluate; done; done
-bash experiments/coding/job.sbatch plot
+DATA_REVISION=21e74ddf8de1a21436da12e3e653065c5213e9d1 bash $J setup
+for P in solo word-handoff; do EVAL_PHASE=$P bash $J calibration; done; bash $J gate
+for A in grpo tandem; do ARM=$A MODE=full bash $J train; done
+bash $J select
+for P in solo legibility; do for A in base grpo tandem; do ARM=$A EVAL_PHASE=$P bash $J evaluate; done; done
+for P in handoff word-handoff; do for A in grpo tandem; do ARM=$A EVAL_PHASE=$P bash $J evaluate; done; done
+bash $J plot
 ```
 
 **Elegance RL** (uses the 9B/2B models from above). The elegance reward is
@@ -139,9 +138,8 @@ E=$PWD/runs/elegance
 uv run --no-project --python $INFER/bin/python python -m experiments.elegance.prepare \
   --archive data/method-elegance/dataset.zip --out $E/data
 for A in grpo tandem; do
-  bash experiments/elegance/job.sbatch REPO=$REPO RUN_ROOT=$E ARM=$A \
-    TANDEM_ENV=$TRAIN UV_BIN_DIR=$UV_BIN_DIR INITIALIZATION_ROOT=$R ELEGANCE_DATA=$E/data \
-    ELEGANCE_CODEX_BIN=$(command -v codex)
+  bash experiments/elegance/job.sbatch RUN_ROOT=$E ARM=$A TANDEM_ENV=$TRAIN INITIALIZATION_ROOT=$R \
+    ELEGANCE_DATA=$E/data ELEGANCE_CODEX_BIN=$(command -v codex)
 done
 uv run --no-project --with matplotlib,pandas python experiments/elegance/figure/plot_elegance.py
 ```
