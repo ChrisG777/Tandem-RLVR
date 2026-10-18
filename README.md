@@ -18,22 +18,36 @@ arXiv:2606.28166, 2026.*
 
 ## Repository layout
 
-Main additions since forking [CSSLab/Tandem-RLVR](https://github.com/CSSLab/Tandem-RLVR):
+`*` marks code added after forking CSSLab/Tandem-RLVR.
 
-| Path | Contents |
-| --- | --- |
-| [`eval/`](eval/) | Checkpoint selection, regrading, Figure 2/3 plots ([`figure2.py`](eval/figure2.py), [`figure3.py`](eval/figure3.py), [`regrade.py`](eval/regrade.py), [`select_figure2.py`](eval/select_figure2.py)) |
-| [`train/`](train/) | Checkpoint verification, Qwen3.5 pair check and profiling ([`figure2_checkpoint.py`](train/figure2_checkpoint.py), [`check_pair.py`](train/check_pair.py)) |
-| [`third_party/`](third_party/) | Updated verl/vLLM Tandem patches (incl. Qwen3.5 support) |
-| [`experiments/coding/`](experiments/coding/) | APPS coding extension: data, sandboxed test reward, evaluation |
-| [`experiments/method_audit/`](experiments/method_audit/), [`experiments/elegance/`](experiments/elegance/) | Synthesized math dataset of technical vs. simple solution methods, and elegance-rewarded RL |
-| [`experiments/shorthand/`](experiments/shorthand/), [`experiments/word_handoff/`](experiments/word_handoff/), [`experiments/drift/`](experiments/drift/), [`experiments/medcalc/`](experiments/medcalc/) | Smaller pilots ([index](experiments/README.md)) |
-| [`slurm/`](slurm/) | Environment setup, cluster job wrappers, preemption-safe resume |
-| [`docs/`](docs/) | Protocols, results and figure sources |
+```
+data/                 DeepScaleR builder, eval benchmarks
+reward/               Math answer grader
+train/
+  vanilla_grpo.sh     GRPO arm
+  tandem_grpo.sh      Tandem arm
+  check_pair.py     * 9B/2B pair check
+eval/
+  solo.py             Solo pass@k
+  handoff.py          Senior/junior handoff
+  legibility.py       Junior cross-entropy
+  select_figure2.py * Checkpoint selection
+  regrade.py        * Regrade saved answers
+  figure2.py        * Figure 2 plot
+  figure3.py        * Token-drift analysis
+experiments/        *
+  coding/             APPS coding
+  method_audit/       Synthesized method dataset
+  elegance/           Elegance-rewarded RL
+  shorthand/          Shorthand pilots
+third_party/          verl/vLLM Tandem patches
+slurm/              * Setup and cluster jobs
+docs/               * Notes and figures
+```
 
 ## Rerunning the experiments
 
-**1. Install** (Python 3.11, pinned patched verl/vLLM; see [docs/INSTALL.md](docs/INSTALL.md)):
+**1. Install**:
 
 ```bash
 export REPO="$PWD" RUN_ROOT="$PWD/runs" UV_BIN_DIR="$(dirname "$(command -v uv)")"
@@ -76,7 +90,3 @@ done
 uv run --no-project --python .envs/inference/bin/python python eval/figure2.py \
   --results results/figure2 --out results/figure2/figure2
 ```
-
-Details: [training protocol](docs/FRESH_TRAINING.md) ·
-[evaluation protocol](docs/FIGURE2.md) · [9B/2B pair](docs/QWEN35_PAIR.md) ·
-[other experiments](experiments/README.md) · [results](docs/RESULTS.md).
