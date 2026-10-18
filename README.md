@@ -88,3 +88,58 @@ done
 uv run --no-project --python .envs/inference/bin/python python eval/figure2.py \
   --results results/figure2 --out results/figure2/figure2
 ```
+
+### Extensions
+
+The extension launchers are Slurm batch scripts; outside Slurm, run them with
+`bash` and give each run its own `SLURM_JOB_ID`:
+
+```bash
+export REPO=$PWD UV_BIN_DIR=$(dirname $(command -v uv)) SLURM_CPUS_PER_TASK=8 CUDA_VISIBLE_DEVICES=0
+TRAIN=$PWD/.envs/training INFER=$PWD/.envs/inference
+PY="uv run --no-project --python $TRAIN/bin/python python"
+```
+
+**Qwen3.5-9B senior / Qwen3.5-2B junior:**
+
+```bash
+R=$PWD/runs/qwen35
+$PY eval/download_figure2.py --manifest eval/qwen35-models.json --out $R/base.json
+$PY train/assets/build_word_boundary_ids.py --model $(jq -r .base.path $R/base.json) --out $R/word-boundaries.json --write
+for A in grpo tandem; do for M in smoke full; do
+  SLURM_JOB_ID=$A-$M bash slurm/train-figure2.sbatch REPO=$REPO RUN_ROOT=$R DATA_ROOT=$PWD/data \
+    TANDEM_ENV=$TRAIN UV_BIN_DIR=$UV_BIN_DIR ARM=$A MODE=$M
+done; done
+$PY eval/select_figure2.py --root $R --out $R/models.json
+SLURM_JOB_ID=eval bash slurm/figure2.sbatch REPO=$REPO TANDEM_ENV=$INFER \
+  MODELS_JSON=$R/models.json RESULTS_ROOT=$R/results MODE=full
+```
+
+**APPS coding** (needs `bwrap` for the test sandbox):
+
+```bash
+export SLURM_JOB_ID=apps RUN_ROOT=$PWD/runs/apps DATA_ROOT=$PWD/runs/apps/data TANDEM_ENV=$TRAIN
+$PY eval/download_figure2.py --out $RUN_ROOT/base.json
+DATA_REVISION=21e74ddf8de1a21436da12e3e653065c5213e9d1 bash experiments/coding/job.sbatch setup
+GRADING_ENV=$INFER bash experiments/coding/interactive.sh   # tests, reward calibration, smokes
+for A in grpo tandem; do ARM=$A MODE=full bash experiments/coding/job.sbatch train; done
+bash experiments/coding/job.sbatch select
+for A in base grpo tandem; do for P in solo legibility; do ARM=$A EVAL_PHASE=$P bash experiments/coding/job.sbatch evaluate; done; done
+for A in grpo tandem; do for P in handoff word-handoff; do ARM=$A EVAL_PHASE=$P bash experiments/coding/job.sbatch evaluate; done; done
+bash experiments/coding/job.sbatch plot
+```
+
+**Elegance RL** (uses the 9B/2B models from above). The elegance reward is
+judged by GPT-6.1-sol through the [Codex CLI](https://github.com/openai/codex),
+so run `codex login` first:
+
+```bash
+E=$PWD/runs/elegance
+uv run --no-project --python $INFER/bin/python python -m experiments.elegance.prepare \
+  --archive data/method-elegance/dataset.zip --out $E/data
+for A in grpo tandem; do
+  SLURM_JOB_ID=el-$A bash experiments/elegance/job.sbatch REPO=$REPO RUN_ROOT=$E ARM=$A \
+    TANDEM_ENV=$TRAIN UV_BIN_DIR=$UV_BIN_DIR INITIALIZATION_ROOT=$R ELEGANCE_DATA=$E/data \
+    ELEGANCE_CODEX_BIN=$(command -v codex)
+done
+```
