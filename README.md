@@ -3,7 +3,7 @@
 **[Final report (PDF)](final_report.pdf)** · **[Model weights on Hugging Face](https://huggingface.co/cge7-tandem-rlvr/tandem-rlvr)**
 
 Tandem RLVR trains a senior LLM with GRPO while a frozen junior model writes
-alternating parts of each rollout. Only the senior's tokens are updated. This
+alternating parts of each rollout. This
 repository reproduces the method on Qwen3-4B and extends it to a Qwen3.5-9B
 senior with a Qwen3.5-2B junior, to a coding dataset, and to a synthesized math
 dataset testing whether Tandem RLVR changes the model's tendency to try highly
