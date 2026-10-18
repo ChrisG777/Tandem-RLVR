@@ -36,9 +36,9 @@ eval/
   figure3.py        * Token-drift analysis
 experiments/        *
   coding/             APPS coding
-  method_audit/       Synthesized method dataset
+  method_audit/       Builds elegant vs. technical solution dataset
   elegance/           Elegance-rewarded RL
-  shorthand/          Shorthand pilots
+  shorthand/          Failed attempts at inducing jargon via GRPO
 third_party/          verl/vLLM Tandem patches
 slurm/              * Setup and cluster jobs
 ```
