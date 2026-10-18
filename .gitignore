@@ -32,3 +32,10 @@ dist/
 .DS_Store
 
 .env
+# Overleaf paper (separate git repo)
+paper/
+CLAUDE.md
+# Internal notes; only these docs are published
+docs/*
+!docs/INSTALL.md
+!docs/teaser.png

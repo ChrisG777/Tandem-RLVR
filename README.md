@@ -26,7 +26,6 @@ reward/               Math answer grader
 train/
   vanilla_grpo.sh     GRPO arm
   tandem_grpo.sh      Tandem arm
-  check_pair.py     * Pre-training test of 9B/2B co-generation
 eval/
   solo.py             Solo pass@k
   handoff.py          Senior/junior handoff
@@ -42,7 +41,6 @@ experiments/        *
   shorthand/          Shorthand pilots
 third_party/          verl/vLLM Tandem patches
 slurm/              * Setup and cluster jobs
-docs/               * Notes and figures
 ```
 
 ## Rerunning the experiments
